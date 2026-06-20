@@ -1,7 +1,7 @@
 import { Route, Redirect } from 'react-router-dom';
 import Setup from '../pages/Setup';
-import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
+import Login from '../pages/Login';
 
 export default function AppRouter() {
   return (
