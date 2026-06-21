@@ -11,6 +11,12 @@ export default function Setup() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: fullName,
+          role: 'admin'
+        }
+      }
     });
 
     if (error) return alert(error.message);
@@ -28,7 +34,6 @@ export default function Setup() {
   return (
     <IonPage>
       <IonContent className="ion-padding">
-
         <IonTitle>Create First Admin</IonTitle>
 
         <IonInput placeholder="Full Name" onIonChange={e => setFullName(e.detail.value!)} />
@@ -38,7 +43,6 @@ export default function Setup() {
         <IonButton expand="block" onClick={createAdmin}>
           Create Admin
         </IonButton>
-
       </IonContent>
     </IonPage>
   );
