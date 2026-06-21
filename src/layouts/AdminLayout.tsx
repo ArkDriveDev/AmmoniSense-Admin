@@ -14,6 +14,7 @@ import { useHistory } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 
 export default function AdminLayout({ children }: any) {
+
   const history = useHistory();
 
   const logout = async () => {
@@ -34,33 +35,14 @@ export default function AdminLayout({ children }: any) {
         <IonContent>
           <IonList>
 
-            <IonItem button onClick={() => history.push('/dashboard')}>
-              Dashboard
-            </IonItem>
+            <IonItem button onClick={() => history.push('/dashboard')}>Dashboard</IonItem>
+            <IonItem button onClick={() => history.push('/clients')}>Clients</IonItem>
+            <IonItem button onClick={() => history.push('/piggeries')}>Piggeries</IonItem>
+            <IonItem button onClick={() => history.push('/devices')}>Devices</IonItem>
+            <IonItem button onClick={() => history.push('/sensor-data')}>Sensor Data</IonItem>
+            <IonItem button onClick={() => history.push('/notifications')}>Alerts</IonItem>
 
-            <IonItem button onClick={() => history.push('/clients')}>
-              Clients
-            </IonItem>
-
-            <IonItem button onClick={() => history.push('/piggeries')}>
-              Piggeries
-            </IonItem>
-
-            <IonItem button onClick={() => history.push('/devices')}>
-              Devices
-            </IonItem>
-
-            <IonItem button onClick={() => history.push('/sensor-data')}>
-              Sensor Data
-            </IonItem>
-
-            <IonItem button onClick={() => history.push('/notifications')}>
-              Alerts
-            </IonItem>
-
-            <IonItem button onClick={logout}>
-              Logout
-            </IonItem>
+            <IonItem button onClick={logout}>Logout</IonItem>
 
           </IonList>
         </IonContent>

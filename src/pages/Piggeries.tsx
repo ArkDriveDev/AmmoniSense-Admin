@@ -8,11 +8,11 @@ import {
   IonItem,
   IonLabel,
   IonButton,
-  IonModal,
   IonInput,
+  IonModal,
+  IonButtons,
   IonSelect,
-  IonSelectOption,
-  IonButtons
+  IonSelectOption
 } from '@ionic/react';
 
 import { useEffect, useState } from 'react';
@@ -25,40 +25,54 @@ export default function Piggeries() {
   const [showModal, setShowModal] = useState(false);
 
   const [form, setForm] = useState({
-    name: '',
+    piggery_serial: '',
+    piggery_name: '',
     location: '',
     client_id: ''
   });
 
   useEffect(() => {
-    fetchData();
+    fetchPiggeries();
+    fetchClients();
   }, []);
 
-  const fetchData = async () => {
-    const { data: piggeryData } = await supabase
+  // ------------------------
+  // FETCH PIGGERIES
+  // ------------------------
+  const fetchPiggeries = async () => {
+    const { data, error } = await supabase
       .from('piggeries')
-      .select('*');
-
-    const { data: clientData } = await supabase
-      .from('profiles')
       .select('*')
-      .eq('role', 'client');
+      .order('created_at', { ascending: false });
 
-    setPiggeries(piggeryData || []);
-    setClients(clientData || []);
+    if (!error) setPiggeries(data || []);
   };
 
+  // ------------------------
+  // FETCH CLIENTS (profiles)
+  // ------------------------
+  const fetchClients = async () => {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('role', 'client');
+
+    setClients(data || []);
+  };
+
+  // ------------------------
+  // CREATE PIGGERY
+  // ------------------------
   const createPiggery = async () => {
-    const piggery_code = `PIG-${Date.now()}`;
 
     const { error } = await supabase
       .from('piggeries')
       .insert([
         {
-          name: form.name,
+          piggery_serial: form.piggery_serial,
+          piggery_name: form.piggery_name,
           location: form.location,
-          client_id: form.client_id,
-          piggery_code
+          client_id: parseInt(form.client_id)
         }
       ]);
 
@@ -68,9 +82,20 @@ export default function Piggeries() {
     }
 
     setShowModal(false);
-    fetchData();
+
+    setForm({
+      piggery_serial: '',
+      piggery_name: '',
+      location: '',
+      client_id: ''
+    });
+
+    fetchPiggeries();
   };
 
+  // ------------------------
+  // UI
+  // ------------------------
   return (
     <IonPage>
 
@@ -89,13 +114,15 @@ export default function Piggeries() {
 
       <IonContent className="ion-padding">
 
+        {/* LIST */}
         <IonList>
           {piggeries.map((p) => (
             <IonItem key={p.id}>
               <IonLabel>
-                <h2>{p.name}</h2>
-                <p>{p.location}</p>
-                <p>Code: {p.piggery_code}</p>
+                <h2>{p.piggery_name}</h2>
+                <p>Serial: {p.piggery_serial}</p>
+                <p>Location: {p.location}</p>
+                <p>Client ID: {p.client_id}</p>
               </IonLabel>
             </IonItem>
           ))}
@@ -118,9 +145,16 @@ export default function Piggeries() {
           <IonContent className="ion-padding">
 
             <IonInput
+              placeholder="Piggery Serial"
+              onIonChange={(e) =>
+                setForm({ ...form, piggery_serial: e.detail.value! })
+              }
+            />
+
+            <IonInput
               placeholder="Piggery Name"
               onIonChange={(e) =>
-                setForm({ ...form, name: e.detail.value! })
+                setForm({ ...form, piggery_name: e.detail.value! })
               }
             />
 
@@ -131,6 +165,7 @@ export default function Piggeries() {
               }
             />
 
+            {/* CLIENT SELECT */}
             <IonSelect
               placeholder="Select Client"
               onIonChange={(e) =>
