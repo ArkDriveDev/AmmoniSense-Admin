@@ -1,10 +1,10 @@
-import { Route, Redirect } from 'react-router-dom';
-import Setup from '../pages/Setup';
-import Login from '../pages/Login';
-import Dashboard from '../pages/Dashboard';
+import { Route, Redirect } from "react-router-dom";
 
-import ProtectedRoute from '../components/ProtectedRoute';
-import AdminLayout from '../layouts/AdminLayout';
+import Setup from "../pages/Setup";
+import Login from "../pages/Login";
+import AdminLayout from "../layouts/AdminLayout";
+
+import ProtectedRoute from "../components/ProtectedRoute";
 
 export default function AppRouter() {
   return (
@@ -13,19 +13,12 @@ export default function AppRouter() {
         <Redirect to="/setup" />
       </Route>
 
-      <Route path="/setup" component={Setup} />
-      <Route path="/login" component={Login} />
+      <Route exact path="/setup" component={Setup} />
+      <Route exact path="/login" component={Login} />
 
       {/* ADMIN AREA */}
       <ProtectedRoute>
-        <AdminLayout>
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/users" component={() => <div>Users</div>} />
-          <Route path="/piggeries" component={() => <div>Piggeries</div>} />
-          <Route path="/devices" component={() => <div>Devices</div>} />
-          <Route path="/sensor-data" component={() => <div>Sensor Data</div>} />
-          <Route path="/notifications" component={() => <div>Notifications</div>} />
-        </AdminLayout>
+        <Route path="/admin" component={AdminLayout} />
       </ProtectedRoute>
     </>
   );
