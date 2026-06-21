@@ -7,57 +7,57 @@ import {
   IonHeader,
   IonToolbar,
   IonTitle,
-  IonPage
-} from '@ionic/react';
+  IonPage,
+  IonRouterOutlet,
+  IonButtons,
+  IonMenuButton,
+} from "@ionic/react";
 
-import { useHistory } from 'react-router-dom';
-import { supabase } from '../services/supabase';
+import { Redirect, Route } from "react-router-dom";
+import { supabase } from "../services/supabase";
 
-export default function AdminLayout({ children }: any) {
-  const history = useHistory();
+import Dashboard from "../pages/Dashboard";
+
+
+export default function AdminLayout() {
 
   const logout = async () => {
     await supabase.auth.signOut();
-    history.push('/login');
+    window.location.href = "/login";
   };
 
-  return (
-    <IonSplitPane contentId="main">
+  const menu = [
+    { title: "Dashboard", path: "/admin/dashboard" },
+    { title: "Clients", path: "/admin/users" },
+    { title: "Piggeries", path: "/admin/piggeries" },
+    { title: "Devices", path: "/admin/devices" },
+    { title: "Sensor Data", path: "/admin/sensor-data" },
+    { title: "Notifications", path: "/admin/notifications" },
+  ];
 
-      {/* SIDEBAR */}
-      <IonMenu contentId="main">
+  return (
+    <IonSplitPane contentId="admin">
+
+      {/* SIDE MENU */}
+      <IonMenu contentId="admin">
         <IonHeader>
           <IonToolbar>
-            <IonTitle>Admin Panel</IonTitle>
+            <IonTitle>Piggery Admin</IonTitle>
           </IonToolbar>
         </IonHeader>
 
         <IonContent>
           <IonList>
 
-            <IonItem button onClick={() => history.push('/dashboard')}>
-              Dashboard
-            </IonItem>
-
-            <IonItem button onClick={() => history.push('/users')}>
-              Clients
-            </IonItem>
-
-            <IonItem button onClick={() => history.push('/piggeries')}>
-              Piggeries
-            </IonItem>
-
-            <IonItem button onClick={() => history.push('/devices')}>
-              Devices
-            </IonItem>
-
-            <IonItem button onClick={() => history.push('/sensor-data')}>
-              Sensor Data
-            </IonItem>
-
-            <IonItem button onClick={() => history.push('/notifications')}>
-              Notifications
-            </IonItem>
+            {menu.map((item) => (
+              <IonItem
+                key={item.path}
+                routerLink={item.path}
+                routerDirection="root"
+              >
+                {item.title}
+              </IonItem>
+            ))}
 
             <IonItem button onClick={logout}>
               Logout
@@ -67,9 +67,30 @@ export default function AdminLayout({ children }: any) {
         </IonContent>
       </IonMenu>
 
-      {/* MAIN CONTENT AREA */}
-      <IonPage id="main">
-        {children}
+      {/* MAIN AREA */}
+      <IonPage id="admin">
+
+        <IonHeader>
+          <IonToolbar>
+            <IonButtons slot="start">
+              <IonMenuButton />
+            </IonButtons>
+
+            <IonTitle>Admin Panel</IonTitle>
+          </IonToolbar>
+        </IonHeader>
+
+        <IonContent fullscreen>
+          <IonRouterOutlet>
+
+            <Route exact path="/admin">
+              <Redirect to="/admin/dashboard" />
+            </Route>
+
+            <Route exact path="/admin/dashboard" component={Dashboard} />
+          </IonRouterOutlet>
+        </IonContent>
+
       </IonPage>
 
     </IonSplitPane>
