@@ -16,7 +16,7 @@ import {
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 
-export default function Users() {
+export default function Clients() {
 
   const [clients, setClients] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -42,7 +42,6 @@ export default function Users() {
 
   const createClient = async () => {
 
-    // 1. create auth user
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: form.email,
       password: form.password,
@@ -53,8 +52,7 @@ export default function Users() {
       return;
     }
 
-    // 2. insert into profiles
-    const user = authData.user;
+    const user = authData.user ?? authData.session?.user;
 
     if (user) {
       await supabase.from('profiles').insert([
@@ -77,11 +75,13 @@ export default function Users() {
       <IonHeader>
         <IonToolbar>
           <IonTitle>Clients</IonTitle>
+
           <IonButtons slot="end">
             <IonButton onClick={() => setShowModal(true)}>
               Add
             </IonButton>
           </IonButtons>
+
         </IonToolbar>
       </IonHeader>
 
@@ -98,7 +98,6 @@ export default function Users() {
           ))}
         </IonList>
 
-        {/* CREATE MODAL */}
         <IonModal isOpen={showModal}>
           <IonHeader>
             <IonToolbar>

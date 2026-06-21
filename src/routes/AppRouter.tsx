@@ -1,24 +1,44 @@
-import { Route, Redirect } from "react-router-dom";
+import { Route, Redirect } from 'react-router-dom';
 
-import Setup from "../pages/Setup";
-import Login from "../pages/Login";
-import AdminLayout from "../layouts/AdminLayout";
+import Setup from '../pages/Setup';
+import Login from '../pages/Login';
+import Dashboard from '../pages/Dashboard';
 
-import ProtectedRoute from "../components/ProtectedRoute";
+import Clients from '../pages/Clients';
+import Piggeries from '../pages/Piggeries';
+import Devices from '../pages/Devices';
+import SensorData from '../pages/SensorData';
+import Notifications from '../pages/Notifications';
+
+import ProtectedRoute from '../components/ProtectedRoute';
+import AdminLayout from '../layouts/AdminLayout';
 
 export default function AppRouter() {
   return (
     <>
+      {/* DEFAULT REDIRECT */}
       <Route exact path="/">
         <Redirect to="/setup" />
       </Route>
 
-      <Route exact path="/setup" component={Setup} />
-      <Route exact path="/login" component={Login} />
+      {/* PUBLIC ROUTES */}
+      <Route path="/setup" component={Setup} />
+      <Route path="/login" component={Login} />
 
-      {/* ADMIN AREA */}
+      {/* =========================
+          ADMIN PROTECTED AREA
+      ========================= */}
       <ProtectedRoute>
-        <Route path="/admin" component={AdminLayout} />
+        <AdminLayout>
+
+          <Route exact path="/dashboard" component={Dashboard} />
+          <Route exact path="/clients" component={Clients} />
+          <Route exact path="/piggeries" component={Piggeries} />
+          <Route exact path="/devices" component={Devices} />
+          <Route exact path="/sensor-data" component={SensorData} />
+          <Route exact path="/notifications" component={Notifications} />
+
+        </AdminLayout>
       </ProtectedRoute>
     </>
   );
