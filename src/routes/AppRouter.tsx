@@ -2,8 +2,8 @@ import { Route, Redirect } from 'react-router-dom';
 
 import Setup from '../pages/Setup';
 import Login from '../pages/Login';
-import Dashboard from '../pages/Dashboard';
 
+import Dashboard from '../pages/Dashboard';
 import Clients from '../pages/Clients';
 import Piggeries from '../pages/Piggeries';
 import Devices from '../pages/Devices';
@@ -16,30 +16,83 @@ import AdminLayout from '../layouts/AdminLayout';
 export default function AppRouter() {
   return (
     <>
-      {/* DEFAULT REDIRECT */}
+
+      {/* ROOT */}
       <Route exact path="/">
         <Redirect to="/setup" />
       </Route>
 
-      {/* PUBLIC ROUTES */}
-      <Route path="/setup" component={Setup} />
-      <Route path="/login" component={Login} />
+      {/* PUBLIC */}
+      <Route exact path="/setup" component={Setup} />
+      <Route exact path="/login" component={Login} />
 
-      {/* =========================
-          ADMIN PROTECTED AREA
-      ========================= */}
-      <ProtectedRoute>
-        <AdminLayout>
+      {/* ADMIN WRAPPED ROUTES (IMPORTANT FIX) */}
+      <Route
+        path="/dashboard"
+        render={() => (
+          <ProtectedRoute>
+            <AdminLayout>
+              <Dashboard />
+            </AdminLayout>
+          </ProtectedRoute>
+        )}
+      />
 
-          <Route exact path="/dashboard" component={Dashboard} />
-          <Route exact path="/clients" component={Clients} />
-          <Route exact path="/piggeries" component={Piggeries} />
-          <Route exact path="/devices" component={Devices} />
-          <Route exact path="/sensor-data" component={SensorData} />
-          <Route exact path="/notifications" component={Notifications} />
+      <Route
+        path="/clients"
+        render={() => (
+          <ProtectedRoute>
+            <AdminLayout>
+              <Clients />
+            </AdminLayout>
+          </ProtectedRoute>
+        )}
+      />
 
-        </AdminLayout>
-      </ProtectedRoute>
+      <Route
+        path="/piggeries"
+        render={() => (
+          <ProtectedRoute>
+            <AdminLayout>
+              <Piggeries />
+            </AdminLayout>
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        path="/devices"
+        render={() => (
+          <ProtectedRoute>
+            <AdminLayout>
+              <Devices />
+            </AdminLayout>
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        path="/sensor-data"
+        render={() => (
+          <ProtectedRoute>
+            <AdminLayout>
+              <SensorData />
+            </AdminLayout>
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        path="/notifications"
+        render={() => (
+          <ProtectedRoute>
+            <AdminLayout>
+              <Notifications />
+            </AdminLayout>
+          </ProtectedRoute>
+        )}
+      />
+
     </>
   );
 }

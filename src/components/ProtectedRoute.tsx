@@ -2,34 +2,26 @@ import { useEffect, useState } from 'react';
 import { Redirect } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 
-interface Props {
-  children: React.ReactNode;
-}
+export default function ProtectedRoute({ children }: any) {
 
-export default function ProtectedRoute({ children }: Props) {
   const [loading, setLoading] = useState(true);
-  const [authenticated, setAuthenticated] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    checkSession();
+
+    const init = async () => {
+      const { data } = await supabase.auth.getSession();
+      setUser(data.session?.user ?? null);
+      setLoading(false);
+    };
+
+    init();
+
   }, []);
 
-  const checkSession = async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
+  if (loading) return null; // IMPORTANT (prevents redirect flicker)
 
-    setAuthenticated(!!session);
-    setLoading(false);
-  };
+  if (!user) return <Redirect to="/login" />;
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  if (!authenticated) {
-    return <Redirect to="/login" />;
-  }
-
-  return <>{children}</>;
+  return children;
 }
