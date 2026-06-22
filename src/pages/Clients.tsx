@@ -30,6 +30,7 @@ import {
 } from 'ionicons/icons';
 import AssignPiggeryModal from '../components/AssignPiggeryModal';
 
+
 export default function Clients() {
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
