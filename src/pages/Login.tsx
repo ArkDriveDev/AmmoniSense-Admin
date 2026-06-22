@@ -24,7 +24,7 @@ export default function Login() {
         <IonTitle>Admin Login</IonTitle>
 
         <IonInput placeholder="Email" onIonChange={e => setEmail(e.detail.value!)} />
-        <IonInput placeholder="Passwo" type="password" onIonChange={e => setPassword(e.detail.value!)} />
+        <IonInput placeholder="Password" type="password" onIonChange={e => setPassword(e.detail.value!)} />
 
         <IonButton expand="block" onClick={login}>
           Login
