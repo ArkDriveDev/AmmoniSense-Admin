@@ -16,20 +16,22 @@ import {
   IonSpinner,
   IonBadge,
   IonIcon,
-  IonChip
+  IonChip,
+  IonToast
 } from '@ionic/react';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
-import ConfirmationModal from '../components/ConfirmationModal';
-import { hardwareChipOutline, businessOutline } from 'ionicons/icons';
+import { hardwareChipOutline, businessOutline, addOutline } from 'ionicons/icons';
 
 export default function Devices() {
   const [devices, setDevices] = useState<any[]>([]);
   const [piggeries, setPiggeries] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastColor, setToastColor] = useState('success');
 
   const [form, setForm] = useState({
     piggery_id: '',
@@ -75,13 +77,17 @@ export default function Devices() {
 
       if (devicesRes.error) {
         console.error('Error fetching devices:', devicesRes.error);
-        alert('Failed to fetch devices: ' + devicesRes.error.message);
+        setToastMessage('Failed to fetch devices: ' + devicesRes.error.message);
+        setToastColor('danger');
+        setShowToast(true);
         return;
       }
 
       if (piggeriesRes.error) {
         console.error('Error fetching piggeries:', piggeriesRes.error);
-        alert('Failed to fetch piggeries: ' + piggeriesRes.error.message);
+        setToastMessage('Failed to fetch piggeries: ' + piggeriesRes.error.message);
+        setToastColor('danger');
+        setShowToast(true);
         return;
       }
 
@@ -89,7 +95,9 @@ export default function Devices() {
       setPiggeries(piggeriesRes.data || []);
     } catch (err) {
       console.error('Unexpected error:', err);
-      alert('An unexpected error occurred');
+      setToastMessage('An unexpected error occurred');
+      setToastColor('danger');
+      setShowToast(true);
     } finally {
       setLoading(false);
     }
@@ -97,6 +105,13 @@ export default function Devices() {
 
   const handleCreateDevice = async () => {
     try {
+      if (!form.device_uid || !form.piggery_id) {
+        setToastMessage('Please fill in all required fields');
+        setToastColor('danger');
+        setShowToast(true);
+        return;
+      }
+
       const { error } = await supabase
         .from('devices')
         .insert([{
@@ -109,26 +124,25 @@ export default function Devices() {
         }]);
 
       if (error) {
-        alert('Error creating device: ' + error.message);
+        console.error('Error creating device:', error);
+        setToastMessage('Error creating device: ' + error.message);
+        setToastColor('danger');
+        setShowToast(true);
         return;
       }
 
-      alert('Device created successfully!');
+      setToastMessage('Device created successfully!');
+      setToastColor('success');
+      setShowToast(true);
       setShowModal(false);
       setForm({ device_uid: '', piggery_id: '', firmware_version: '' });
       fetchData();
     } catch (err) {
       console.error('Unexpected error:', err);
-      alert('An unexpected error occurred');
+      setToastMessage('An unexpected error occurred');
+      setToastColor('danger');
+      setShowToast(true);
     }
-  };
-
-  const confirmCreateDevice = () => {
-    if (!form.device_uid || !form.piggery_id) {
-      alert('Please fill in all required fields');
-      return;
-    }
-    setShowConfirmation(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -146,7 +160,10 @@ export default function Devices() {
         <IonToolbar>
           <IonTitle>Devices</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={() => setShowModal(true)}>Add</IonButton>
+            <IonButton onClick={() => setShowModal(true)}>
+              <IonIcon icon={addOutline} />
+              &nbsp;Add
+            </IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -156,6 +173,14 @@ export default function Devices() {
           <div style={{ textAlign: 'center', marginTop: '20px' }}>
             <IonSpinner />
             <p>Loading devices...</p>
+          </div>
+        ) : devices.length === 0 ? (
+          <div style={{ textAlign: 'center', marginTop: '40px' }}>
+            <IonIcon icon={hardwareChipOutline} size="large" style={{ fontSize: '48px', color: 'gray' }} />
+            <p>No devices found.</p>
+            <p style={{ fontSize: '14px', color: 'gray' }}>
+              Click the Add button to create your first device.
+            </p>
           </div>
         ) : (
           <IonList>
@@ -200,6 +225,7 @@ export default function Devices() {
           </IonList>
         )}
 
+        {/* CREATE DEVICE MODAL */}
         <IonModal isOpen={showModal}>
           <IonHeader>
             <IonToolbar>
@@ -211,19 +237,37 @@ export default function Devices() {
           </IonHeader>
 
           <IonContent className="ion-padding">
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ fontSize: '14px', color: 'gray' }}>
+                Fill in the details below to create a new device.
+              </p>
+            </div>
+
             <IonInput
-              placeholder="Device UID (e.g. ESP32-001) *"
+              label="Device UID"
+              labelPlacement="floating"
+              placeholder="e.g. ESP32-001"
+              value={form.device_uid}
               onIonChange={(e) => setForm({ ...form, device_uid: e.detail.value! })}
+              style={{ marginBottom: '16px' }}
             />
 
             <IonInput
-              placeholder="Firmware Version (e.g. 1.0.0)"
+              label="Firmware Version"
+              labelPlacement="floating"
+              placeholder="e.g. 1.0.0"
+              value={form.firmware_version}
               onIonChange={(e) => setForm({ ...form, firmware_version: e.detail.value! })}
+              style={{ marginBottom: '16px' }}
             />
 
             <IonSelect
-              placeholder="Select Piggery *"
+              label="Select Piggery"
+              labelPlacement="floating"
+              placeholder="Choose a piggery"
+              value={form.piggery_id}
               onIonChange={(e) => setForm({ ...form, piggery_id: e.detail.value })}
+              style={{ marginBottom: '16px' }}
             >
               {piggeries.map((p) => (
                 <IonSelectOption key={p.id} value={p.id}>
@@ -233,20 +277,23 @@ export default function Devices() {
               ))}
             </IonSelect>
 
-            <IonButton expand="block" onClick={confirmCreateDevice}>
+            <IonButton 
+              expand="block" 
+              onClick={handleCreateDevice}
+              style={{ marginTop: '16px' }}
+            >
               Create Device
             </IonButton>
           </IonContent>
         </IonModal>
 
-        <ConfirmationModal
-          isOpen={showConfirmation}
-          onClose={() => setShowConfirmation(false)}
-          onConfirm={handleCreateDevice}
-          title="Confirm Create Device"
-          message={`Are you sure you want to create device "${form.device_uid}"?`}
-          confirmText="Yes, Create"
-          confirmColor="primary"
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={5000}
+          color={toastColor}
+          position="bottom"
         />
       </IonContent>
     </IonPage>
