@@ -13,12 +13,16 @@ import {
   IonSelect,
   IonSelectOption,
   IonButtons,
-  IonSpinner
+  IonSpinner,
+  IonBadge,
+  IonIcon,
+  IonChip
 } from '@ionic/react';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { hardwareChipOutline, businessOutline } from 'ionicons/icons';
 
 export default function Devices() {
   const [devices, setDevices] = useState<any[]>([]);
@@ -29,7 +33,8 @@ export default function Devices() {
 
   const [form, setForm] = useState({
     piggery_id: '',
-    device_uid: ''
+    device_uid: '',
+    firmware_version: ''
   });
 
   useEffect(() => {
@@ -40,8 +45,32 @@ export default function Devices() {
     setLoading(true);
     try {
       const [devicesRes, piggeriesRes] = await Promise.all([
-        supabase.from('devices').select('*').order('created_at', { ascending: false }),
-        supabase.from('piggeries').select('id, piggery_name, piggery_serial')
+        supabase
+          .from('devices')
+          .select(`
+            *,
+            piggeries (
+              id,
+              piggery_name,
+              piggery_serial,
+              clients (
+                id,
+                full_name
+              )
+            )
+          `)
+          .order('installed_at', { ascending: false }),
+        supabase
+          .from('piggeries')
+          .select(`
+            id, 
+            piggery_name, 
+            piggery_serial,
+            clients (
+              id,
+              full_name
+            )
+          `)
       ]);
 
       if (devicesRes.error) {
@@ -74,6 +103,8 @@ export default function Devices() {
           device_uid: form.device_uid,
           piggery_id: parseInt(form.piggery_id),
           status: 'ACTIVE',
+          firmware_version: form.firmware_version || '1.0.0',
+          installed_at: new Date().toISOString(),
           last_seen: new Date().toISOString()
         }]);
 
@@ -82,9 +113,9 @@ export default function Devices() {
         return;
       }
 
-      alert('Device created successfully');
+      alert('Device created successfully!');
       setShowModal(false);
-      setForm({ device_uid: '', piggery_id: '' });
+      setForm({ device_uid: '', piggery_id: '', firmware_version: '' });
       fetchData();
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -98,6 +129,15 @@ export default function Devices() {
       return;
     }
     setShowConfirmation(true);
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toUpperCase()) {
+      case 'ACTIVE': return 'success';
+      case 'INACTIVE': return 'danger';
+      case 'PENDING': return 'warning';
+      default: return 'medium';
+    }
   };
 
   return (
@@ -122,11 +162,39 @@ export default function Devices() {
             {devices.map((d) => (
               <IonItem key={d.id}>
                 <IonLabel>
-                  <h2>{d.device_uid}</h2>
-                  <p>Piggery ID: {d.piggery_id}</p>
-                  <p>Status: {d.status}</p>
-                  <p>Last Seen: {d.last_seen ? new Date(d.last_seen).toLocaleString() : 'Never'}</p>
+                  <h2>
+                    <IonIcon icon={hardwareChipOutline} />
+                    &nbsp;{d.device_uid}
+                  </h2>
+                  <p>
+                    <IonIcon icon={businessOutline} style={{ marginRight: '4px' }} />
+                    Piggery: {d.piggeries?.piggery_name || 'Unknown'}
+                    {d.piggeries?.clients && (
+                      <span style={{ fontSize: '12px', color: 'gray' }}>
+                        {' '}(Owner: {d.piggeries.clients.full_name})
+                      </span>
+                    )}
+                  </p>
+                  <p>Firmware: {d.firmware_version || 'Unknown'}</p>
+                  <p>Installed: {new Date(d.installed_at).toLocaleDateString()}</p>
+                  {d.last_seen && (
+                    <p style={{ fontSize: '12px', color: 'gray' }}>
+                      Last seen: {new Date(d.last_seen).toLocaleString()}
+                    </p>
+                  )}
                 </IonLabel>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                  <IonBadge color={getStatusColor(d.status)}>
+                    {d.status || 'Unknown'}
+                  </IonBadge>
+                  {d.last_seen && (
+                    <IonChip color={new Date().getTime() - new Date(d.last_seen).getTime() < 60000 ? 'success' : 'warning'}>
+                      <IonLabel>
+                        {new Date().getTime() - new Date(d.last_seen).getTime() < 60000 ? 'Online' : 'Offline'}
+                      </IonLabel>
+                    </IonChip>
+                  )}
+                </div>
               </IonItem>
             ))}
           </IonList>
@@ -144,17 +212,23 @@ export default function Devices() {
 
           <IonContent className="ion-padding">
             <IonInput
-              placeholder="Device UID (e.g. ESP32-001)"
+              placeholder="Device UID (e.g. ESP32-001) *"
               onIonChange={(e) => setForm({ ...form, device_uid: e.detail.value! })}
             />
 
+            <IonInput
+              placeholder="Firmware Version (e.g. 1.0.0)"
+              onIonChange={(e) => setForm({ ...form, firmware_version: e.detail.value! })}
+            />
+
             <IonSelect
-              placeholder="Select Piggery"
+              placeholder="Select Piggery *"
               onIonChange={(e) => setForm({ ...form, piggery_id: e.detail.value })}
             >
               {piggeries.map((p) => (
                 <IonSelectOption key={p.id} value={p.id}>
                   {p.piggery_name} ({p.piggery_serial})
+                  {p.clients && ` - Owner: ${p.clients.full_name}`}
                 </IonSelectOption>
               ))}
             </IonSelect>
