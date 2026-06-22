@@ -13,12 +13,16 @@ import {
   IonButtons,
   IonSelect,
   IonSelectOption,
-  IonSpinner
+  IonSpinner,
+  IonBadge,
+  IonIcon,
+  IonChip
 } from '@ionic/react';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { businessOutline, personOutline } from 'ionicons/icons';
 
 export default function Piggeries() {
   const [piggeries, setPiggeries] = useState<any[]>([]);
@@ -26,6 +30,7 @@ export default function Piggeries() {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [deviceCounts, setDeviceCounts] = useState<Record<number, number>>({});
 
   const [form, setForm] = useState({
     piggery_serial: '',
@@ -44,7 +49,14 @@ export default function Piggeries() {
     try {
       const { data, error } = await supabase
         .from('piggeries')
-        .select('*')
+        .select(`
+          *,
+          clients (
+            id,
+            full_name,
+            email
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -54,6 +66,17 @@ export default function Piggeries() {
       }
 
       setPiggeries(data || []);
+
+      // Get device counts for each piggery
+      const counts: Record<number, number> = {};
+      for (const piggery of data || []) {
+        const { count } = await supabase
+          .from('devices')
+          .select('id', { count: 'exact', head: true })
+          .eq('piggery_id', piggery.id);
+        counts[piggery.id] = count || 0;
+      }
+      setDeviceCounts(counts);
     } catch (err) {
       console.error('Unexpected error:', err);
       alert('An unexpected error occurred');
@@ -66,7 +89,7 @@ export default function Piggeries() {
     try {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, full_name, organization_name');
+        .select('id, full_name, organization_name, email');
 
       if (error) {
         console.error('Error fetching clients:', error);
@@ -86,7 +109,7 @@ export default function Piggeries() {
         .insert([{
           piggery_serial: form.piggery_serial,
           piggery_name: form.piggery_name,
-          location: form.location,
+          location: form.location || null,
           client_id: parseInt(form.client_id)
         }]);
 
@@ -95,7 +118,7 @@ export default function Piggeries() {
         return;
       }
 
-      alert('Piggery created successfully');
+      alert('Piggery created successfully!');
       setShowModal(false);
       setForm({ piggery_serial: '', piggery_name: '', location: '', client_id: '' });
       fetchPiggeries();
@@ -138,8 +161,27 @@ export default function Piggeries() {
                   <h2>{p.piggery_name}</h2>
                   <p>Serial: {p.piggery_serial}</p>
                   <p>Location: {p.location || 'Not specified'}</p>
-                  <p>Client ID: {p.client_id}</p>
+                  {p.clients ? (
+                    <p>
+                      <IonIcon icon={personOutline} style={{ marginRight: '4px' }} />
+                      Owner: {p.clients.full_name}
+                      {p.clients.email && ` (${p.clients.email})`}
+                    </p>
+                  ) : (
+                    <p style={{ color: 'orange' }}>No client assigned</p>
+                  )}
                 </IonLabel>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                  <IonBadge color="primary">
+                    <IonIcon icon={businessOutline} />
+                    &nbsp;{deviceCounts[p.id] || 0} Devices
+                  </IonBadge>
+                  {p.clients ? (
+                    <IonChip color="success">Assigned</IonChip>
+                  ) : (
+                    <IonChip color="warning">Unassigned</IonChip>
+                  )}
+                </div>
               </IonItem>
             ))}
           </IonList>
