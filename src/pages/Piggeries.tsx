@@ -16,20 +16,22 @@ import {
   IonSpinner,
   IonBadge,
   IonIcon,
-  IonChip
+  IonChip,
+  IonToast
 } from '@ionic/react';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
-import ConfirmationModal from '../components/ConfirmationModal';
-import { businessOutline, personOutline } from 'ionicons/icons';
+import { businessOutline, personOutline, addOutline } from 'ionicons/icons';
 
 export default function Piggeries() {
   const [piggeries, setPiggeries] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastColor, setToastColor] = useState('success');
   const [deviceCounts, setDeviceCounts] = useState<Record<number, number>>({});
 
   const [form, setForm] = useState({
@@ -54,14 +56,17 @@ export default function Piggeries() {
           clients (
             id,
             full_name,
-            email
+            email,
+            organization_name
           )
         `)
         .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching piggeries:', error);
-        alert('Failed to fetch piggeries: ' + error.message);
+        setToastMessage('Failed to fetch piggeries: ' + error.message);
+        setToastColor('danger');
+        setShowToast(true);
         return;
       }
 
@@ -79,7 +84,9 @@ export default function Piggeries() {
       setDeviceCounts(counts);
     } catch (err) {
       console.error('Unexpected error:', err);
-      alert('An unexpected error occurred');
+      setToastMessage('An unexpected error occurred');
+      setToastColor('danger');
+      setShowToast(true);
     } finally {
       setLoading(false);
     }
@@ -89,7 +96,8 @@ export default function Piggeries() {
     try {
       const { data, error } = await supabase
         .from('clients')
-        .select('id, full_name, organization_name, email');
+        .select('id, full_name, organization_name, email')
+        .order('full_name', { ascending: true });
 
       if (error) {
         console.error('Error fetching clients:', error);
@@ -104,36 +112,44 @@ export default function Piggeries() {
 
   const handleCreatePiggery = async () => {
     try {
-      const { error } = await supabase
+      // Validate form
+      if (!form.piggery_serial || !form.piggery_name || !form.client_id) {
+        setToastMessage('Please fill in all required fields');
+        setToastColor('danger');
+        setShowToast(true);
+        return;
+      }
+
+      const { data, error } = await supabase
         .from('piggeries')
         .insert([{
           piggery_serial: form.piggery_serial,
           piggery_name: form.piggery_name,
           location: form.location || null,
           client_id: parseInt(form.client_id)
-        }]);
+        }])
+        .select();
 
       if (error) {
-        alert('Error creating piggery: ' + error.message);
+        console.error('Error creating piggery:', error);
+        setToastMessage('Error creating piggery: ' + error.message);
+        setToastColor('danger');
+        setShowToast(true);
         return;
       }
 
-      alert('Piggery created successfully!');
+      setToastMessage('Piggery created successfully!');
+      setToastColor('success');
+      setShowToast(true);
       setShowModal(false);
       setForm({ piggery_serial: '', piggery_name: '', location: '', client_id: '' });
       fetchPiggeries();
     } catch (err) {
       console.error('Unexpected error:', err);
-      alert('An unexpected error occurred');
+      setToastMessage('An unexpected error occurred');
+      setToastColor('danger');
+      setShowToast(true);
     }
-  };
-
-  const confirmCreatePiggery = () => {
-    if (!form.piggery_serial || !form.piggery_name || !form.client_id) {
-      alert('Please fill in all required fields');
-      return;
-    }
-    setShowConfirmation(true);
   };
 
   return (
@@ -142,7 +158,10 @@ export default function Piggeries() {
         <IonToolbar>
           <IonTitle>Piggeries</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={() => setShowModal(true)}>Add</IonButton>
+            <IonButton onClick={() => setShowModal(true)}>
+              <IonIcon icon={addOutline} />
+              &nbsp;Add
+            </IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -152,6 +171,13 @@ export default function Piggeries() {
           <div style={{ textAlign: 'center', marginTop: '20px' }}>
             <IonSpinner />
             <p>Loading piggeries...</p>
+          </div>
+        ) : piggeries.length === 0 ? (
+          <div style={{ textAlign: 'center', marginTop: '40px' }}>
+            <p>No piggeries found.</p>
+            <p style={{ fontSize: '14px', color: 'gray' }}>
+              Click the Add button to create your first piggery.
+            </p>
           </div>
         ) : (
           <IonList>
@@ -187,6 +213,7 @@ export default function Piggeries() {
           </IonList>
         )}
 
+        {/* CREATE PIGGERY MODAL */}
         <IonModal isOpen={showModal}>
           <IonHeader>
             <IonToolbar>
@@ -198,24 +225,46 @@ export default function Piggeries() {
           </IonHeader>
 
           <IonContent className="ion-padding">
+            <div style={{ marginBottom: '16px' }}>
+              <p style={{ fontSize: '14px', color: 'gray' }}>
+                Fill in the details below to create a new piggery.
+              </p>
+            </div>
+
             <IonInput
-              placeholder="Piggery Serial *"
+              label="Piggery Serial"
+              labelPlacement="floating"
+              placeholder="e.g. PIG-001"
+              value={form.piggery_serial}
               onIonChange={(e) => setForm({ ...form, piggery_serial: e.detail.value! })}
+              style={{ marginBottom: '16px' }}
             />
 
             <IonInput
-              placeholder="Piggery Name *"
+              label="Piggery Name"
+              labelPlacement="floating"
+              placeholder="e.g. Main Piggery"
+              value={form.piggery_name}
               onIonChange={(e) => setForm({ ...form, piggery_name: e.detail.value! })}
+              style={{ marginBottom: '16px' }}
             />
 
             <IonInput
-              placeholder="Location"
+              label="Location"
+              labelPlacement="floating"
+              placeholder="e.g. Laguna, Philippines"
+              value={form.location}
               onIonChange={(e) => setForm({ ...form, location: e.detail.value! })}
+              style={{ marginBottom: '16px' }}
             />
 
             <IonSelect
-              placeholder="Select Client *"
+              label="Select Client"
+              labelPlacement="floating"
+              placeholder="Choose a client"
+              value={form.client_id}
               onIonChange={(e) => setForm({ ...form, client_id: e.detail.value })}
+              style={{ marginBottom: '16px' }}
             >
               {clients.map((c) => (
                 <IonSelectOption key={c.id} value={c.id}>
@@ -224,20 +273,23 @@ export default function Piggeries() {
               ))}
             </IonSelect>
 
-            <IonButton expand="block" onClick={confirmCreatePiggery}>
+            <IonButton 
+              expand="block" 
+              onClick={handleCreatePiggery}
+              style={{ marginTop: '16px' }}
+            >
               Create Piggery
             </IonButton>
           </IonContent>
         </IonModal>
 
-        <ConfirmationModal
-          isOpen={showConfirmation}
-          onClose={() => setShowConfirmation(false)}
-          onConfirm={handleCreatePiggery}
-          title="Confirm Create Piggery"
-          message={`Are you sure you want to create piggery "${form.piggery_name}"?`}
-          confirmText="Yes, Create"
-          confirmColor="primary"
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={5000}
+          color={toastColor}
+          position="bottom"
         />
       </IonContent>
     </IonPage>
