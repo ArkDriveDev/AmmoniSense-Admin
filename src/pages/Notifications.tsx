@@ -71,9 +71,9 @@ export default function Notifications() {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Alerts</IonTitle>
+          <IonTitle>ALERTS</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={fetchAlerts}>Refresh</IonButton>
+            <IonButton onClick={fetchAlerts}>REFRESH</IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
@@ -82,17 +82,17 @@ export default function Notifications() {
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '20px' }}>
             <IonSpinner />
-            <p>Loading alerts...</p>
+            <p>LOADING ALERTS...</p>
           </div>
         ) : (
           <IonList>
             {alerts.map((a) => (
               <IonItem key={a.id} button onClick={() => markAsRead(a.id)}>
                 <IonLabel>
-                  <h2>Ammonia Alert</h2>
-                  <p>Ammonia Level: {a.ammonia}</p>
-                  <p>Device UID: {a.device_uid || 'Unknown'}</p>
-                  <p>Piggery ID: {a.piggery_id || 'Unknown'}</p>
+                  <h2>AMMONIA ALERT</h2>
+                  <p>AMMONIA LEVEL: {a.ammonia}</p>
+                  <p>DEVICE UID: {a.device_uid || 'UNKNOWN'}</p>
+                  <p>PIGGERY ID: {a.piggery_id || 'UNKNOWN'}</p>
                   <p>{new Date(a.created_at).toLocaleString()}</p>
                 </IonLabel>
 
@@ -105,7 +105,7 @@ export default function Notifications() {
                       : 'success'
                   }
                 >
-                  {a.severity || 'Unknown'}
+                  {a.severity || 'UNKNOWN'}
                 </IonBadge>
 
                 {a.is_read ? (
