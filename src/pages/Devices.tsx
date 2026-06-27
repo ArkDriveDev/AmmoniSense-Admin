@@ -131,7 +131,7 @@ export default function Devices() {
         return;
       }
 
-      setToastMessage('Device created successfully!');
+      setToastMessage('Device created successfully');
       setToastColor('success');
       setShowToast(true);
       setShowModal(false);
@@ -158,11 +158,11 @@ export default function Devices() {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Devices</IonTitle>
+          <IonTitle>DEVICES</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={() => setShowModal(true)}>
               <IonIcon icon={addOutline} />
-              &nbsp;Add
+              &nbsp;ADD
             </IonButton>
           </IonButtons>
         </IonToolbar>
@@ -172,14 +172,14 @@ export default function Devices() {
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '20px' }}>
             <IonSpinner />
-            <p>Loading devices...</p>
+            <p>LOADING DEVICES...</p>
           </div>
         ) : devices.length === 0 ? (
           <div style={{ textAlign: 'center', marginTop: '40px' }}>
             <IonIcon icon={hardwareChipOutline} size="large" style={{ fontSize: '48px', color: 'gray' }} />
-            <p>No devices found.</p>
+            <p>NO DEVICES FOUND</p>
             <p style={{ fontSize: '14px', color: 'gray' }}>
-              Click the Add button to create your first device.
+              CLICK THE ADD BUTTON TO CREATE YOUR FIRST DEVICE
             </p>
           </div>
         ) : (
@@ -193,29 +193,29 @@ export default function Devices() {
                   </h2>
                   <p>
                     <IonIcon icon={businessOutline} style={{ marginRight: '4px' }} />
-                    Piggery: {d.piggeries?.piggery_name || 'Unknown'}
+                    PIGGERY: {d.piggeries?.piggery_name || 'UNKNOWN'}
                     {d.piggeries?.clients && (
                       <span style={{ fontSize: '12px', color: 'gray' }}>
-                        {' '}(Owner: {d.piggeries.clients.full_name})
+                        {' '}(OWNER: {d.piggeries.clients.full_name})
                       </span>
                     )}
                   </p>
-                  <p>Firmware: {d.firmware_version || 'Unknown'}</p>
-                  <p>Installed: {new Date(d.installed_at).toLocaleDateString()}</p>
+                  <p>FIRMWARE: {d.firmware_version || 'UNKNOWN'}</p>
+                  <p>INSTALLED: {new Date(d.installed_at).toLocaleDateString()}</p>
                   {d.last_seen && (
                     <p style={{ fontSize: '12px', color: 'gray' }}>
-                      Last seen: {new Date(d.last_seen).toLocaleString()}
+                      LAST SEEN: {new Date(d.last_seen).toLocaleString()}
                     </p>
                   )}
                 </IonLabel>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                   <IonBadge color={getStatusColor(d.status)}>
-                    {d.status || 'Unknown'}
+                    {d.status || 'UNKNOWN'}
                   </IonBadge>
                   {d.last_seen && (
                     <IonChip color={new Date().getTime() - new Date(d.last_seen).getTime() < 60000 ? 'success' : 'warning'}>
                       <IonLabel>
-                        {new Date().getTime() - new Date(d.last_seen).getTime() < 60000 ? 'Online' : 'Offline'}
+                        {new Date().getTime() - new Date(d.last_seen).getTime() < 60000 ? 'ONLINE' : 'OFFLINE'}
                       </IonLabel>
                     </IonChip>
                   )}
@@ -225,46 +225,39 @@ export default function Devices() {
           </IonList>
         )}
 
-        {/* CREATE DEVICE MODAL */}
         <IonModal isOpen={showModal}>
           <IonHeader>
             <IonToolbar>
-              <IonTitle>Create Device</IonTitle>
+              <IonTitle>CREATE DEVICE</IonTitle>
               <IonButtons slot="end">
-                <IonButton onClick={() => setShowModal(false)}>Close</IonButton>
+                <IonButton onClick={() => setShowModal(false)}>CLOSE</IonButton>
               </IonButtons>
             </IonToolbar>
           </IonHeader>
 
           <IonContent className="ion-padding">
-            <div style={{ marginBottom: '16px' }}>
-              <p style={{ fontSize: '14px', color: 'gray' }}>
-                Fill in the details below to create a new device.
-              </p>
-            </div>
-
             <IonInput
-              label="Device UID"
+              label="DEVICE UID"
               labelPlacement="floating"
-              placeholder="e.g. ESP32-001"
+              placeholder="E.G. ESP32-001"
               value={form.device_uid}
               onIonChange={(e) => setForm({ ...form, device_uid: e.detail.value! })}
               style={{ marginBottom: '16px' }}
             />
 
             <IonInput
-              label="Firmware Version"
+              label="FIRMWARE VERSION"
               labelPlacement="floating"
-              placeholder="e.g. 1.0.0"
+              placeholder="E.G. 1.0.0"
               value={form.firmware_version}
               onIonChange={(e) => setForm({ ...form, firmware_version: e.detail.value! })}
               style={{ marginBottom: '16px' }}
             />
 
             <IonSelect
-              label="Select Piggery"
+              label="SELECT PIGGERY"
               labelPlacement="floating"
-              placeholder="Choose a piggery"
+              placeholder="CHOOSE A PIGGERY"
               value={form.piggery_id}
               onIonChange={(e) => setForm({ ...form, piggery_id: e.detail.value })}
               style={{ marginBottom: '16px' }}
@@ -272,7 +265,7 @@ export default function Devices() {
               {piggeries.map((p) => (
                 <IonSelectOption key={p.id} value={p.id}>
                   {p.piggery_name} ({p.piggery_serial})
-                  {p.clients && ` - Owner: ${p.clients.full_name}`}
+                  {p.clients && ` - OWNER: ${p.clients.full_name}`}
                 </IonSelectOption>
               ))}
             </IonSelect>
@@ -282,7 +275,7 @@ export default function Devices() {
               onClick={handleCreateDevice}
               style={{ marginTop: '16px' }}
             >
-              Create Device
+              CREATE DEVICE
             </IonButton>
           </IonContent>
         </IonModal>
