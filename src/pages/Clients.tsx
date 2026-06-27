@@ -11,16 +11,13 @@ import {
   IonInput,
   IonModal,
   IonButtons,
-  IonSpinner,
   IonBadge,
   IonChip,
   IonIcon,
   IonToast,
   IonSegment,
   IonSegmentButton,
-  IonItemSliding,
-  IonItemOptions,
-  IonItemOption
+  IonSearchbar
 } from '@ionic/react';
 
 import { useEffect, useState } from 'react';
@@ -34,7 +31,6 @@ import {
   createOutline
 } from 'ionicons/icons';
 
-import SearchSortBar from '../components/SearchSortBar';
 import DeleteAlert from '../components/DeleteAlert';
 import ConfirmAlert from '../components/ConfirmAlert';
 import EmptyState from '../components/EmptyState';
@@ -205,6 +201,15 @@ export default function Clients() {
     fetchClients();
   };
 
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
   return (
     <IonPage>
       <IonHeader>
@@ -217,30 +222,39 @@ export default function Clients() {
           </IonButtons>
         </IonToolbar>
         <IonToolbar>
-          <IonSegment value={segment} onIonChange={(e) => setSegment(e.detail.value as string)}>
-            <IonSegmentButton value="all">ALL</IonSegmentButton>
-            <IonSegmentButton value="approved">APPROVED</IonSegmentButton>
-            <IonSegmentButton value="pending">PENDING</IonSegmentButton>
-          </IonSegment>
+          <IonSearchbar
+            placeholder="SEARCH CLIENTS..."
+            value={searchTerm}
+            onIonChange={(e) => setSearchTerm(e.detail.value || '')}
+            animated
+          />
         </IonToolbar>
-        <SearchSortBar
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          sortOrder={sortOrder}
-          setSortOrder={setSortOrder}
-          sortFields={[
-            { key: 'full_name', label: 'NAME' },
-            { key: 'created_at', label: 'DATE' }
-          ]}
-          onReset={() => {
-            setSearchTerm('');
-            setSortBy('created_at');
-            setSortOrder('desc');
-          }}
-          placeholder="SEARCH CLIENTS..."
-        />
+        <IonToolbar>
+          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap' }}>
+            <IonSegment 
+              value={segment} 
+              onIonChange={(e) => setSegment(e.detail.value as string)}
+              style={{ flex: 1, minWidth: '200px' }}
+            >
+              <IonSegmentButton value="all">ALL</IonSegmentButton>
+              <IonSegmentButton value="approved">APPROVED</IonSegmentButton>
+              <IonSegmentButton value="pending">PENDING</IonSegmentButton>
+            </IonSegment>
+            <IonButton size="small" fill={sortBy === 'full_name' ? 'solid' : 'outline'} onClick={() => handleSort('full_name')}>
+              NAME {sortBy === 'full_name' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </IonButton>
+            <IonButton size="small" fill={sortBy === 'created_at' ? 'solid' : 'outline'} onClick={() => handleSort('created_at')}>
+              DATE {sortBy === 'created_at' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </IonButton>
+            <IonButton size="small" color="medium" fill="outline" onClick={() => {
+              setSearchTerm('');
+              setSortBy('created_at');
+              setSortOrder('desc');
+            }}>
+              RESET
+            </IonButton>
+          </div>
+        </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
@@ -254,20 +268,20 @@ export default function Clients() {
         ) : (
           <IonList>
             {filteredClients.map((c) => (
-              <IonItemSliding key={c.id}>
-                <IonItem>
-                  <IonLabel>
-                    <h2>{c.full_name}</h2>
-                    <p>EMAIL: {c.email}</p>
-                    {c.phone && <p>PHONE: {c.phone}</p>}
-                    {c.organization_name && <p>ORG: {c.organization_name}</p>}
-                  </IonLabel>
-                  <div style={{ textAlign: 'right' }}>
-                    {c.profile_id ? (
-                      <IonChip color="success"><IonIcon icon={checkmarkCircleOutline} /> APPROVED</IonChip>
-                    ) : (
-                      <IonChip color="warning"><IonIcon icon={closeCircleOutline} /> PENDING</IonChip>
-                    )}
+              <IonItem key={c.id}>
+                <IonLabel>
+                  <h2>{c.full_name}</h2>
+                  <p>EMAIL: {c.email}</p>
+                  {c.phone && <p>PHONE: {c.phone}</p>}
+                  {c.organization_name && <p>ORG: {c.organization_name}</p>}
+                </IonLabel>
+                <div style={{ textAlign: 'right' }}>
+                  {c.profile_id ? (
+                    <IonChip color="success"><IonIcon icon={checkmarkCircleOutline} /> APPROVED</IonChip>
+                  ) : (
+                    <IonChip color="warning"><IonIcon icon={closeCircleOutline} /> PENDING</IonChip>
+                  )}
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px', justifyContent: 'flex-end' }}>
                     {c.profile_id && (
                       <IonButton size="small" fill="outline" onClick={() => {
                         setSelectedClient(c);
@@ -276,30 +290,28 @@ export default function Clients() {
                         <IonIcon icon={businessOutline} /> ASSIGN
                       </IonButton>
                     )}
+                    <IonButton size="small" fill="clear" color="primary" onClick={() => {
+                      setSelectedClient(c);
+                      setForm({
+                        full_name: c.full_name || '',
+                        email: c.email || '',
+                        phone: c.phone || '',
+                        organization_name: c.organization_name || '',
+                        password: ''
+                      });
+                      setShowEditModal(true);
+                    }}>
+                      <IonIcon icon={createOutline} />
+                    </IonButton>
+                    <IonButton size="small" fill="clear" color="danger" onClick={() => {
+                      setSelectedClient(c);
+                      setShowDeleteAlert(true);
+                    }}>
+                      <IonIcon icon={trashOutline} />
+                    </IonButton>
                   </div>
-                </IonItem>
-                <IonItemOptions side="end">
-                  <IonItemOption color="primary" onClick={() => {
-                    setSelectedClient(c);
-                    setForm({
-                      full_name: c.full_name || '',
-                      email: c.email || '',
-                      phone: c.phone || '',
-                      organization_name: c.organization_name || '',
-                      password: ''
-                    });
-                    setShowEditModal(true);
-                  }}>
-                    <IonIcon icon={createOutline} />
-                  </IonItemOption>
-                  <IonItemOption color="danger" onClick={() => {
-                    setSelectedClient(c);
-                    setShowDeleteAlert(true);
-                  }}>
-                    <IonIcon icon={trashOutline} />
-                  </IonItemOption>
-                </IonItemOptions>
-              </IonItemSliding>
+                </div>
+              </IonItem>
             ))}
           </IonList>
         )}
