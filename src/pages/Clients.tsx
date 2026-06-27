@@ -29,7 +29,6 @@ import {
   businessOutline 
 } from 'ionicons/icons';
 import AssignPiggeryModal from '../components/AssignPiggeryModal';
-import ConfirmationModal from '../components/ConfirmationModal';
 
 export default function Clients() {
   const [clients, setClients] = useState<any[]>([]);
@@ -271,26 +270,46 @@ export default function Clients() {
           <IonContent className="ion-padding">
             <IonInput
               placeholder="FULL NAME *"
-              onIonChange={(e) => setForm({ ...form, full_name: e.detail.value! })}
+              value={form.full_name}
+              onIonChange={(e) => setForm({ 
+                ...form, 
+                full_name: e.detail.value?.toUpperCase() || '' 
+              })}
             />
             <IonInput
               placeholder="EMAIL *"
               type="email"
-              onIonChange={(e) => setForm({ ...form, email: e.detail.value! })}
+              value={form.email}
+              onIonChange={(e) => setForm({ 
+                ...form, 
+                email: e.detail.value || '' 
+              })}
             />
             <IonInput
               placeholder="PHONE"
               type="tel"
-              onIonChange={(e) => setForm({ ...form, phone: e.detail.value! })}
+              value={form.phone}
+              onIonChange={(e) => setForm({ 
+                ...form, 
+                phone: e.detail.value || '' 
+              })}
             />
             <IonInput
               placeholder="ORGANIZATION NAME"
-              onIonChange={(e) => setForm({ ...form, organization_name: e.detail.value! })}
+              value={form.organization_name}
+              onIonChange={(e) => setForm({ 
+                ...form, 
+                organization_name: e.detail.value?.toUpperCase() || '' 
+              })}
             />
             <IonInput
               type="password"
               placeholder="PASSWORD *"
-              onIonChange={(e) => setForm({ ...form, password: e.detail.value! })}
+              value={form.password}
+              onIonChange={(e) => setForm({ 
+                ...form, 
+                password: e.detail.value || '' 
+              })}
             />
             <IonButton expand="block" onClick={createClient}>
               CREATE CLIENT
