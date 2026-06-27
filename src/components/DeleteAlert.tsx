@@ -32,15 +32,16 @@ export default function DeleteAlert({
     return true;
   };
 
-  const inputs = requireTypeConfirm
+  // Only include inputs if requireTypeConfirm is true
+  const alertInputs = requireTypeConfirm
     ? [
         {
           name: 'confirm',
-          type: 'text',
+          type: 'text' as const,
           placeholder: `Type "${typeConfirmText}" to confirm`
         }
       ]
-    : [];
+    : undefined;
 
   return (
     <IonAlert
@@ -48,7 +49,7 @@ export default function DeleteAlert({
       onDidDismiss={onClose}
       header={title}
       message={message}
-      inputs={inputs}
+      inputs={alertInputs}
       buttons={[
         {
           text: 'CANCEL',
