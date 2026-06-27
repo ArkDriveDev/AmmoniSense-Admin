@@ -3,17 +3,15 @@ import { IonPage, IonContent, IonHeader, IonToolbar, IonTitle } from '@ionic/rea
 export default function Dashboard() {
   return (
     <IonPage>
-
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Admin Dashboard</IonTitle>
+          <IonTitle>DASHBOARD</IonTitle>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
-        <p>IoT Pig Farm Monitoring System</p>
+        <p>IOT PIG FARM MONITORING SYSTEM - ADMIN</p>
       </IonContent>
-
     </IonPage>
   );
 }
