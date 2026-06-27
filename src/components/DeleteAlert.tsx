@@ -32,7 +32,7 @@ export default function DeleteAlert({
     return true;
   };
 
-  // Only include inputs if requireTypeConfirm is true
+  // Always return an array, even if empty
   const alertInputs = requireTypeConfirm
     ? [
         {
@@ -41,7 +41,7 @@ export default function DeleteAlert({
           placeholder: `Type "${typeConfirmText}" to confirm`
         }
       ]
-    : undefined;
+    : [];
 
   return (
     <IonAlert

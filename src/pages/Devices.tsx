@@ -17,9 +17,7 @@ import {
   IonIcon,
   IonChip,
   IonToast,
-  IonItemSliding,
-  IonItemOptions,
-  IonItemOption
+  IonSearchbar
 } from '@ionic/react';
 
 import { useState, useEffect } from 'react';
@@ -32,7 +30,6 @@ import {
   createOutline
 } from 'ionicons/icons';
 
-import SearchSortBar from '../components/SearchSortBar';
 import DeleteAlert from '../components/DeleteAlert';
 import ConfirmAlert from '../components/ConfirmAlert';
 import EmptyState from '../components/EmptyState';
@@ -174,6 +171,31 @@ export default function Devices() {
     fetchDevices();
   };
 
+  const openEditModal = (device: any) => {
+    setSelectedDevice(device);
+    setForm({
+      device_uid: device.device_uid || '',
+      piggery_id: device.piggery_id?.toString() || '',
+      firmware_version: device.firmware_version || '',
+      status: device.status || 'ACTIVE'
+    });
+    setShowEditModal(true);
+  };
+
+  const openDeleteAlert = (device: any) => {
+    setSelectedDevice(device);
+    setShowDeleteAlert(true);
+  };
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status?.toUpperCase()) {
       case 'ACTIVE': return 'success';
@@ -194,26 +216,58 @@ export default function Devices() {
             </IonButton>
           </IonButtons>
         </IonToolbar>
-        <SearchSortBar
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          sortOrder={sortOrder}
-          setSortOrder={setSortOrder}
-          sortFields={[
-            { key: 'device_uid', label: 'UID' },
-            { key: 'piggery_name', label: 'PIGGERY' },
-            { key: 'status', label: 'STATUS' },
-            { key: 'installed_at', label: 'INSTALLED' }
-          ]}
-          onReset={() => {
-            setSearchTerm('');
-            setSortBy('installed_at');
-            setSortOrder('desc');
-          }}
-          placeholder="SEARCH DEVICES..."
-        />
+        <IonToolbar>
+          <IonSearchbar
+            placeholder="SEARCH DEVICES..."
+            value={searchTerm}
+            onIonChange={(e) => setSearchTerm(e.detail.value || '')}
+            animated
+          />
+        </IonToolbar>
+        <IonToolbar>
+          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap' }}>
+            <IonButton 
+              size="small" 
+              fill={sortBy === 'device_uid' ? 'solid' : 'outline'}
+              onClick={() => handleSort('device_uid')}
+            >
+              UID {sortBy === 'device_uid' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </IonButton>
+            <IonButton 
+              size="small" 
+              fill={sortBy === 'piggery_name' ? 'solid' : 'outline'}
+              onClick={() => handleSort('piggery_name')}
+            >
+              PIGGERY {sortBy === 'piggery_name' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </IonButton>
+            <IonButton 
+              size="small" 
+              fill={sortBy === 'status' ? 'solid' : 'outline'}
+              onClick={() => handleSort('status')}
+            >
+              STATUS {sortBy === 'status' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </IonButton>
+            <IonButton 
+              size="small" 
+              fill={sortBy === 'installed_at' ? 'solid' : 'outline'}
+              onClick={() => handleSort('installed_at')}
+            >
+              INSTALLED {sortBy === 'installed_at' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </IonButton>
+            <IonButton 
+              size="small" 
+              color="medium"
+              fill="outline"
+              onClick={() => {
+                setSearchTerm('');
+                setSortBy('installed_at');
+                setSortOrder('desc');
+              }}
+            >
+              RESET
+            </IonButton>
+          </div>
+        </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
@@ -227,48 +281,34 @@ export default function Devices() {
         ) : (
           <IonList>
             {filteredDevices.map((d) => (
-              <IonItemSliding key={d.id}>
-                <IonItem>
-                  <IonLabel>
-                    <h2><IonIcon icon={hardwareChipOutline} /> {d.device_uid}</h2>
-                    <p>
-                      <IonIcon icon={businessOutline} /> PIGGERY: {d.piggeries?.piggery_name || 'UNKNOWN'}
-                      {d.piggeries?.clients && ` (OWNER: ${d.piggeries.clients.full_name})`}
-                    </p>
-                    <p>FIRMWARE: {d.firmware_version || 'UNKNOWN'}</p>
-                    <p>INSTALLED: {new Date(d.installed_at).toLocaleDateString()}</p>
-                    {d.last_seen && <p style={{ fontSize: '12px', color: 'gray' }}>LAST SEEN: {new Date(d.last_seen).toLocaleString()}</p>}
-                  </IonLabel>
-                  <div style={{ textAlign: 'right' }}>
-                    <IonBadge color={getStatusColor(d.status)}>{d.status || 'UNKNOWN'}</IonBadge>
-                    {d.last_seen && (
-                      <IonChip color={new Date().getTime() - new Date(d.last_seen).getTime() < 60000 ? 'success' : 'warning'}>
-                        {new Date().getTime() - new Date(d.last_seen).getTime() < 60000 ? 'ONLINE' : 'OFFLINE'}
-                      </IonChip>
-                    )}
+              <IonItem key={d.id}>
+                <IonLabel>
+                  <h2><IonIcon icon={hardwareChipOutline} /> {d.device_uid}</h2>
+                  <p>
+                    <IonIcon icon={businessOutline} /> PIGGERY: {d.piggeries?.piggery_name || 'UNKNOWN'}
+                    {d.piggeries?.clients && ` (OWNER: ${d.piggeries.clients.full_name})`}
+                  </p>
+                  <p>FIRMWARE: {d.firmware_version || 'UNKNOWN'}</p>
+                  <p>INSTALLED: {new Date(d.installed_at).toLocaleDateString()}</p>
+                  {d.last_seen && <p style={{ fontSize: '12px', color: 'gray' }}>LAST SEEN: {new Date(d.last_seen).toLocaleString()}</p>}
+                </IonLabel>
+                <div style={{ textAlign: 'right' }}>
+                  <IonBadge color={getStatusColor(d.status)}>{d.status || 'UNKNOWN'}</IonBadge>
+                  {d.last_seen && (
+                    <IonChip color={new Date().getTime() - new Date(d.last_seen).getTime() < 60000 ? 'success' : 'warning'}>
+                      {new Date().getTime() - new Date(d.last_seen).getTime() < 60000 ? 'ONLINE' : 'OFFLINE'}
+                    </IonChip>
+                  )}
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px', justifyContent: 'flex-end' }}>
+                    <IonButton size="small" fill="clear" color="primary" onClick={() => openEditModal(d)}>
+                      <IonIcon icon={createOutline} />
+                    </IonButton>
+                    <IonButton size="small" fill="clear" color="danger" onClick={() => openDeleteAlert(d)}>
+                      <IonIcon icon={trashOutline} />
+                    </IonButton>
                   </div>
-                </IonItem>
-                <IonItemOptions side="end">
-                  <IonItemOption color="primary" onClick={() => {
-                    setSelectedDevice(d);
-                    setForm({
-                      device_uid: d.device_uid || '',
-                      piggery_id: d.piggery_id?.toString() || '',
-                      firmware_version: d.firmware_version || '',
-                      status: d.status || 'ACTIVE'
-                    });
-                    setShowEditModal(true);
-                  }}>
-                    <IonIcon icon={createOutline} />
-                  </IonItemOption>
-                  <IonItemOption color="danger" onClick={() => {
-                    setSelectedDevice(d);
-                    setShowDeleteAlert(true);
-                  }}>
-                    <IonIcon icon={trashOutline} />
-                  </IonItemOption>
-                </IonItemOptions>
-              </IonItemSliding>
+                </div>
+              </IonItem>
             ))}
           </IonList>
         )}

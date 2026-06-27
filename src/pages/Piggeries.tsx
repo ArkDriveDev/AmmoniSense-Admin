@@ -17,9 +17,7 @@ import {
   IonIcon,
   IonChip,
   IonToast,
-  IonItemSliding,
-  IonItemOptions,
-  IonItemOption
+  IonSearchbar
 } from '@ionic/react';
 
 import { useState, useEffect } from 'react';
@@ -32,7 +30,6 @@ import {
   createOutline
 } from 'ionicons/icons';
 
-import SearchSortBar from '../components/SearchSortBar';
 import DeleteAlert from '../components/DeleteAlert';
 import ConfirmAlert from '../components/ConfirmAlert';
 import EmptyState from '../components/EmptyState';
@@ -174,6 +171,31 @@ export default function Piggeries() {
     fetchPiggeries();
   };
 
+  const openEditModal = (piggery: any) => {
+    setSelectedPiggery(piggery);
+    setForm({
+      piggery_serial: piggery.piggery_serial || '',
+      piggery_name: piggery.piggery_name || '',
+      location: piggery.location || '',
+      client_id: piggery.client_id?.toString() || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const openDeleteAlert = (piggery: any) => {
+    setSelectedPiggery(piggery);
+    setShowDeleteAlert(true);
+  };
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
   return (
     <IonPage>
       <IonHeader>
@@ -185,26 +207,58 @@ export default function Piggeries() {
             </IonButton>
           </IonButtons>
         </IonToolbar>
-        <SearchSortBar
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          sortOrder={sortOrder}
-          setSortOrder={setSortOrder}
-          sortFields={[
-            { key: 'piggery_name', label: 'NAME' },
-            { key: 'piggery_serial', label: 'SERIAL' },
-            { key: 'client_name', label: 'CLIENT' },
-            { key: 'created_at', label: 'DATE' }
-          ]}
-          onReset={() => {
-            setSearchTerm('');
-            setSortBy('created_at');
-            setSortOrder('desc');
-          }}
-          placeholder="SEARCH PIGGERIES..."
-        />
+        <IonToolbar>
+          <IonSearchbar
+            placeholder="SEARCH PIGGERIES..."
+            value={searchTerm}
+            onIonChange={(e) => setSearchTerm(e.detail.value || '')}
+            animated
+          />
+        </IonToolbar>
+        <IonToolbar>
+          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap' }}>
+            <IonButton 
+              size="small" 
+              fill={sortBy === 'piggery_name' ? 'solid' : 'outline'}
+              onClick={() => handleSort('piggery_name')}
+            >
+              NAME {sortBy === 'piggery_name' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </IonButton>
+            <IonButton 
+              size="small" 
+              fill={sortBy === 'piggery_serial' ? 'solid' : 'outline'}
+              onClick={() => handleSort('piggery_serial')}
+            >
+              SERIAL {sortBy === 'piggery_serial' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </IonButton>
+            <IonButton 
+              size="small" 
+              fill={sortBy === 'client_name' ? 'solid' : 'outline'}
+              onClick={() => handleSort('client_name')}
+            >
+              CLIENT {sortBy === 'client_name' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </IonButton>
+            <IonButton 
+              size="small" 
+              fill={sortBy === 'created_at' ? 'solid' : 'outline'}
+              onClick={() => handleSort('created_at')}
+            >
+              DATE {sortBy === 'created_at' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </IonButton>
+            <IonButton 
+              size="small" 
+              color="medium"
+              fill="outline"
+              onClick={() => {
+                setSearchTerm('');
+                setSortBy('created_at');
+                setSortOrder('desc');
+              }}
+            >
+              RESET
+            </IonButton>
+          </div>
+        </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
@@ -218,44 +272,30 @@ export default function Piggeries() {
         ) : (
           <IonList>
             {filteredPiggeries.map((p) => (
-              <IonItemSliding key={p.id}>
-                <IonItem>
-                  <IonLabel>
-                    <h2>{p.piggery_name}</h2>
-                    <p>SERIAL: {p.piggery_serial}</p>
-                    <p>LOCATION: {p.location || 'NOT SPECIFIED'}</p>
-                    <p>
-                      <IonIcon icon={personOutline} /> OWNER: {p.clients?.full_name || 'UNASSIGNED'}
-                    </p>
-                  </IonLabel>
-                  <div style={{ textAlign: 'right' }}>
-                    <IonBadge color="primary">{deviceCounts[p.id] || 0} DEVICES</IonBadge>
-                    <IonChip color={p.clients ? 'success' : 'warning'}>
-                      {p.clients ? 'ASSIGNED' : 'UNASSIGNED'}
-                    </IonChip>
+              <IonItem key={p.id}>
+                <IonLabel>
+                  <h2>{p.piggery_name}</h2>
+                  <p>SERIAL: {p.piggery_serial}</p>
+                  <p>LOCATION: {p.location || 'NOT SPECIFIED'}</p>
+                  <p>
+                    <IonIcon icon={personOutline} /> OWNER: {p.clients?.full_name || 'UNASSIGNED'}
+                  </p>
+                </IonLabel>
+                <div style={{ textAlign: 'right' }}>
+                  <IonBadge color="primary">{deviceCounts[p.id] || 0} DEVICES</IonBadge>
+                  <IonChip color={p.clients ? 'success' : 'warning'}>
+                    {p.clients ? 'ASSIGNED' : 'UNASSIGNED'}
+                  </IonChip>
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px', justifyContent: 'flex-end' }}>
+                    <IonButton size="small" fill="clear" color="primary" onClick={() => openEditModal(p)}>
+                      <IonIcon icon={createOutline} />
+                    </IonButton>
+                    <IonButton size="small" fill="clear" color="danger" onClick={() => openDeleteAlert(p)}>
+                      <IonIcon icon={trashOutline} />
+                    </IonButton>
                   </div>
-                </IonItem>
-                <IonItemOptions side="end">
-                  <IonItemOption color="primary" onClick={() => {
-                    setSelectedPiggery(p);
-                    setForm({
-                      piggery_serial: p.piggery_serial || '',
-                      piggery_name: p.piggery_name || '',
-                      location: p.location || '',
-                      client_id: p.client_id?.toString() || ''
-                    });
-                    setShowEditModal(true);
-                  }}>
-                    <IonIcon icon={createOutline} />
-                  </IonItemOption>
-                  <IonItemOption color="danger" onClick={() => {
-                    setSelectedPiggery(p);
-                    setShowDeleteAlert(true);
-                  }}>
-                    <IonIcon icon={trashOutline} />
-                  </IonItemOption>
-                </IonItemOptions>
-              </IonItemSliding>
+                </div>
+              </IonItem>
             ))}
           </IonList>
         )}
