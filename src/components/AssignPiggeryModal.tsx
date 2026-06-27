@@ -50,7 +50,6 @@ export default function AssignPiggeryModal({
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch all piggeries
       const { data: allPiggeries, error: piggeryError } = await supabase
         .from('piggeries')
         .select('id, piggery_name, piggery_serial, location, client_id')
@@ -67,7 +66,6 @@ export default function AssignPiggeryModal({
 
       setPiggeries(allPiggeries || []);
 
-      // Fetch piggeries already assigned to this client
       const { data: assigned, error: assignedError } = await supabase
         .from('piggeries')
         .select('id')
@@ -104,7 +102,6 @@ export default function AssignPiggeryModal({
   const saveAssignment = async () => {
     setSaving(true);
     try {
-      // Get current assignments
       const { data: current } = await supabase
         .from('piggeries')
         .select('id')
@@ -112,13 +109,9 @@ export default function AssignPiggeryModal({
 
       const currentIds = current?.map(p => p.id) || [];
 
-      // Find piggeries to remove (in current but not selected)
       const toRemove = currentIds.filter(id => !assignedPiggeries.includes(id));
-
-      // Find piggeries to add (in selected but not current)
       const toAdd = assignedPiggeries.filter(id => !currentIds.includes(id));
 
-      // Remove assignments
       for (const id of toRemove) {
         await supabase
           .from('piggeries')
@@ -126,7 +119,6 @@ export default function AssignPiggeryModal({
           .eq('id', id);
       }
 
-      // Add assignments
       for (const id of toAdd) {
         await supabase
           .from('piggeries')
@@ -134,7 +126,7 @@ export default function AssignPiggeryModal({
           .eq('id', id);
       }
 
-      setToastMessage('Piggeries assigned successfully!');
+      setToastMessage('Piggeries assigned successfully');
       setToastColor('success');
       setShowToast(true);
       
@@ -152,48 +144,47 @@ export default function AssignPiggeryModal({
     }
   };
 
-  // Count how many piggeries are assigned
   const assignedCount = assignedPiggeries.length;
 
   return (
     <IonModal isOpen={isOpen} onDidDismiss={onClose}>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Assign Piggeries</IonTitle>
+          <IonTitle>ASSIGN PIGGERIES</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={onClose}>Close</IonButton>
+            <IonButton onClick={onClose}>CLOSE</IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding">
         <div style={{ marginBottom: '16px' }}>
-          <h3>Assign piggeries to: {clientName}</h3>
+          <h3>ASSIGN PIGGERIES TO: {clientName.toUpperCase()}</h3>
           <p style={{ fontSize: '14px', color: 'gray' }}>
-            Select all piggeries that this client should have access to.
+            SELECT ALL PIGGERIES THAT THIS CLIENT SHOULD HAVE ACCESS TO.
           </p>
           <p style={{ fontSize: '14px', color: 'var(--ion-color-primary)' }}>
-            {assignedCount} piggeries selected
+            {assignedCount} PIGGERIES SELECTED
           </p>
         </div>
 
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '40px' }}>
             <IonSpinner />
-            <p>Loading piggeries...</p>
+            <p>LOADING PIGGERIES...</p>
           </div>
         ) : piggeries.length === 0 ? (
           <div style={{ textAlign: 'center', marginTop: '40px' }}>
-            <p>No piggeries available.</p>
+            <p>NO PIGGERIES AVAILABLE</p>
             <p style={{ fontSize: '14px', color: 'gray' }}>
-              Create a piggery first in the Piggeries tab.
+              CREATE A PIGGERY FIRST IN THE PIGGERIES TAB.
             </p>
             <IonButton 
               fill="outline" 
               onClick={onClose}
               style={{ marginTop: '16px' }}
             >
-              Close
+              CLOSE
             </IonButton>
           </div>
         ) : (
@@ -206,18 +197,18 @@ export default function AssignPiggeryModal({
                 <IonItem key={p.id} disabled={isAlreadyAssigned}>
                   <IonLabel>
                     <h2>{p.piggery_name}</h2>
-                    <p>Serial: {p.piggery_serial}</p>
-                    {p.location && <p>Location: {p.location}</p>}
+                    <p>SERIAL: {p.piggery_serial}</p>
+                    {p.location && <p>LOCATION: {p.location}</p>}
                     {p.client_id && p.client_id !== clientId && (
                       <IonChip color="warning">
                         <IonIcon icon={closeCircleOutline} />
-                        <IonLabel>Assigned to another client</IonLabel>
+                        <IonLabel>ASSIGNED TO ANOTHER CLIENT</IonLabel>
                       </IonChip>
                     )}
                     {isAssigned && (
                       <IonChip color="success">
                         <IonIcon icon={checkmarkCircleOutline} />
-                        <IonLabel>Selected</IonLabel>
+                        <IonLabel>SELECTED</IonLabel>
                       </IonChip>
                     )}
                   </IonLabel>
@@ -242,10 +233,10 @@ export default function AssignPiggeryModal({
           {saving ? (
             <>
               <IonSpinner name="crescent" />
-              &nbsp;Saving...
+              &nbsp;SAVING...
             </>
           ) : (
-            `Save Assignments (${assignedCount})`
+            `SAVE ASSIGNMENTS (${assignedCount})`
           )}
         </IonButton>
 
