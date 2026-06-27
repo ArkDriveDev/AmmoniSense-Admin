@@ -227,7 +227,10 @@ export default function Piggeries() {
               labelPlacement="floating"
               placeholder="E.G. PIG-001"
               value={form.piggery_serial}
-              onIonChange={(e) => setForm({ ...form, piggery_serial: e.detail.value! })}
+              onIonChange={(e) => setForm({ 
+                ...form, 
+                piggery_serial: e.detail.value?.toUpperCase() || '' 
+              })}
               style={{ marginBottom: '16px' }}
             />
 
@@ -236,7 +239,10 @@ export default function Piggeries() {
               labelPlacement="floating"
               placeholder="E.G. MAIN PIGGERY"
               value={form.piggery_name}
-              onIonChange={(e) => setForm({ ...form, piggery_name: e.detail.value! })}
+              onIonChange={(e) => setForm({ 
+                ...form, 
+                piggery_name: e.detail.value?.toUpperCase() || '' 
+              })}
               style={{ marginBottom: '16px' }}
             />
 
@@ -245,7 +251,10 @@ export default function Piggeries() {
               labelPlacement="floating"
               placeholder="E.G. LAGUNA, PHILIPPINES"
               value={form.location}
-              onIonChange={(e) => setForm({ ...form, location: e.detail.value! })}
+              onIonChange={(e) => setForm({ 
+                ...form, 
+                location: e.detail.value?.toUpperCase() || '' 
+              })}
               style={{ marginBottom: '16px' }}
             />
 
