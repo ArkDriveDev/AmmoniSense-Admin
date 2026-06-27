@@ -1,0 +1,65 @@
+import { IonAlert } from '@ionic/react';
+
+interface DeleteAlertProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+  confirmText?: string;
+  requireTypeConfirm?: boolean;
+  typeConfirmText?: string;
+}
+
+export default function DeleteAlert({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  confirmText = 'DELETE',
+  requireTypeConfirm = false,
+  typeConfirmText = 'DELETE'
+}: DeleteAlertProps) {
+  const handleConfirm = (data?: any) => {
+    if (requireTypeConfirm) {
+      const inputValue = data?.confirm || '';
+      if (inputValue !== typeConfirmText) {
+        return false;
+      }
+    }
+    onConfirm();
+    return true;
+  };
+
+  const inputs = requireTypeConfirm
+    ? [
+        {
+          name: 'confirm',
+          type: 'text',
+          placeholder: `Type "${typeConfirmText}" to confirm`
+        }
+      ]
+    : [];
+
+  return (
+    <IonAlert
+      isOpen={isOpen}
+      onDidDismiss={onClose}
+      header={title}
+      message={message}
+      inputs={inputs}
+      buttons={[
+        {
+          text: 'CANCEL',
+          role: 'cancel'
+        },
+        {
+          text: confirmText,
+          role: 'destructive',
+          handler: handleConfirm
+        }
+      ]}
+    />
+  );
+}
