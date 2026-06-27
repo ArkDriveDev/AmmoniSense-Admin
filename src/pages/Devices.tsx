@@ -241,7 +241,10 @@ export default function Devices() {
               labelPlacement="floating"
               placeholder="E.G. ESP32-001"
               value={form.device_uid}
-              onIonChange={(e) => setForm({ ...form, device_uid: e.detail.value! })}
+              onIonChange={(e) => setForm({ 
+                ...form, 
+                device_uid: e.detail.value?.toUpperCase() || '' 
+              })}
               style={{ marginBottom: '16px' }}
             />
 
@@ -250,7 +253,10 @@ export default function Devices() {
               labelPlacement="floating"
               placeholder="E.G. 1.0.0"
               value={form.firmware_version}
-              onIonChange={(e) => setForm({ ...form, firmware_version: e.detail.value! })}
+              onIonChange={(e) => setForm({ 
+                ...form, 
+                firmware_version: e.detail.value || '' 
+              })}
               style={{ marginBottom: '16px' }}
             />
 
