@@ -29,7 +29,7 @@ import {
   businessOutline 
 } from 'ionicons/icons';
 import AssignPiggeryModal from '../components/AssignPiggeryModal';
-
+import ConfirmationModal from '../components/ConfirmationModal';
 
 export default function Clients() {
   const [clients, setClients] = useState<any[]>([]);
@@ -191,11 +191,11 @@ export default function Clients() {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Clients</IonTitle>
+          <IonTitle>CLIENTS</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={() => setShowModal(true)}>
               <IonIcon icon={personAddOutline} />
-              &nbsp;Add
+              &nbsp;ADD
             </IonButton>
           </IonButtons>
         </IonToolbar>
@@ -207,15 +207,15 @@ export default function Clients() {
           onIonChange={(e) => setSegment(e.detail.value as string)}
           style={{ marginBottom: '16px' }}
         >
-          <IonSegmentButton value="all">All</IonSegmentButton>
-          <IonSegmentButton value="approved">Approved</IonSegmentButton>
-          <IonSegmentButton value="pending">Pending</IonSegmentButton>
+          <IonSegmentButton value="all">ALL</IonSegmentButton>
+          <IonSegmentButton value="approved">APPROVED</IonSegmentButton>
+          <IonSegmentButton value="pending">PENDING</IonSegmentButton>
         </IonSegment>
 
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '20px' }}>
             <IonSpinner />
-            <p>Loading clients...</p>
+            <p>LOADING CLIENTS...</p>
           </div>
         ) : (
           <IonList>
@@ -223,23 +223,23 @@ export default function Clients() {
               <IonItem key={c.id}>
                 <IonLabel>
                   <h2>{c.full_name}</h2>
-                  <p>Email: {c.email}</p>
-                  {c.phone && <p>Phone: {c.phone}</p>}
-                  {c.organization_name && <p>Organization: {c.organization_name}</p>}
+                  <p>EMAIL: {c.email}</p>
+                  {c.phone && <p>PHONE: {c.phone}</p>}
+                  {c.organization_name && <p>ORGANIZATION: {c.organization_name}</p>}
                   <p style={{ fontSize: '12px', color: 'gray' }}>
-                    Registered: {new Date(c.created_at).toLocaleDateString()}
+                    REGISTERED: {new Date(c.created_at).toLocaleDateString()}
                   </p>
                 </IonLabel>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                   {c.profile_id ? (
                     <IonChip color="success">
                       <IonIcon icon={checkmarkCircleOutline} />
-                      <IonLabel>Approved</IonLabel>
+                      <IonLabel>APPROVED</IonLabel>
                     </IonChip>
                   ) : (
                     <IonChip color="warning">
                       <IonIcon icon={closeCircleOutline} />
-                      <IonLabel>Pending</IonLabel>
+                      <IonLabel>PENDING</IonLabel>
                     </IonChip>
                   )}
                   {c.profile_id && (
@@ -249,7 +249,7 @@ export default function Clients() {
                       onClick={() => openAssignModal(c)}
                     >
                       <IonIcon icon={businessOutline} />
-                      &nbsp;Assign Piggery
+                      &nbsp;ASSIGN PIGGERY
                     </IonButton>
                   )}
                 </div>
@@ -261,39 +261,39 @@ export default function Clients() {
         <IonModal isOpen={showModal}>
           <IonHeader>
             <IonToolbar>
-              <IonTitle>Create Client</IonTitle>
+              <IonTitle>CREATE CLIENT</IonTitle>
               <IonButtons slot="end">
-                <IonButton onClick={() => setShowModal(false)}>Close</IonButton>
+                <IonButton onClick={() => setShowModal(false)}>CLOSE</IonButton>
               </IonButtons>
             </IonToolbar>
           </IonHeader>
 
           <IonContent className="ion-padding">
             <IonInput
-              placeholder="Full Name *"
+              placeholder="FULL NAME *"
               onIonChange={(e) => setForm({ ...form, full_name: e.detail.value! })}
             />
             <IonInput
-              placeholder="Email *"
+              placeholder="EMAIL *"
               type="email"
               onIonChange={(e) => setForm({ ...form, email: e.detail.value! })}
             />
             <IonInput
-              placeholder="Phone"
+              placeholder="PHONE"
               type="tel"
               onIonChange={(e) => setForm({ ...form, phone: e.detail.value! })}
             />
             <IonInput
-              placeholder="Organization Name"
+              placeholder="ORGANIZATION NAME"
               onIonChange={(e) => setForm({ ...form, organization_name: e.detail.value! })}
             />
             <IonInput
               type="password"
-              placeholder="Password *"
+              placeholder="PASSWORD *"
               onIonChange={(e) => setForm({ ...form, password: e.detail.value! })}
             />
             <IonButton expand="block" onClick={createClient}>
-              Create Client
+              CREATE CLIENT
             </IonButton>
           </IonContent>
         </IonModal>
