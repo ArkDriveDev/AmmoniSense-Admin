@@ -22,6 +22,7 @@ import {
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
+import ConfirmationModal from '../components/ConfirmationModal';
 import { businessOutline, personOutline, addOutline } from 'ionicons/icons';
 
 export default function Piggeries() {
@@ -72,7 +73,6 @@ export default function Piggeries() {
 
       setPiggeries(data || []);
 
-      // Get device counts for each piggery
       const counts: Record<number, number> = {};
       for (const piggery of data || []) {
         const { count } = await supabase
@@ -112,7 +112,6 @@ export default function Piggeries() {
 
   const handleCreatePiggery = async () => {
     try {
-      // Validate form
       if (!form.piggery_serial || !form.piggery_name || !form.client_id) {
         setToastMessage('Please fill in all required fields');
         setToastColor('danger');
@@ -120,15 +119,14 @@ export default function Piggeries() {
         return;
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('piggeries')
         .insert([{
           piggery_serial: form.piggery_serial,
           piggery_name: form.piggery_name,
           location: form.location || null,
           client_id: parseInt(form.client_id)
-        }])
-        .select();
+        }]);
 
       if (error) {
         console.error('Error creating piggery:', error);
@@ -138,7 +136,7 @@ export default function Piggeries() {
         return;
       }
 
-      setToastMessage('Piggery created successfully!');
+      setToastMessage('Piggery created successfully');
       setToastColor('success');
       setShowToast(true);
       setShowModal(false);
@@ -156,11 +154,11 @@ export default function Piggeries() {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>Piggeries</IonTitle>
+          <IonTitle>PIGGERIES</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={() => setShowModal(true)}>
               <IonIcon icon={addOutline} />
-              &nbsp;Add
+              &nbsp;ADD
             </IonButton>
           </IonButtons>
         </IonToolbar>
@@ -170,13 +168,13 @@ export default function Piggeries() {
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '20px' }}>
             <IonSpinner />
-            <p>Loading piggeries...</p>
+            <p>LOADING PIGGERIES...</p>
           </div>
         ) : piggeries.length === 0 ? (
           <div style={{ textAlign: 'center', marginTop: '40px' }}>
-            <p>No piggeries found.</p>
+            <p>NO PIGGERIES FOUND</p>
             <p style={{ fontSize: '14px', color: 'gray' }}>
-              Click the Add button to create your first piggery.
+              CLICK THE ADD BUTTON TO CREATE YOUR FIRST PIGGERY
             </p>
           </div>
         ) : (
@@ -185,27 +183,27 @@ export default function Piggeries() {
               <IonItem key={p.id}>
                 <IonLabel>
                   <h2>{p.piggery_name}</h2>
-                  <p>Serial: {p.piggery_serial}</p>
-                  <p>Location: {p.location || 'Not specified'}</p>
+                  <p>SERIAL: {p.piggery_serial}</p>
+                  <p>LOCATION: {p.location || 'NOT SPECIFIED'}</p>
                   {p.clients ? (
                     <p>
                       <IonIcon icon={personOutline} style={{ marginRight: '4px' }} />
-                      Owner: {p.clients.full_name}
+                      OWNER: {p.clients.full_name}
                       {p.clients.email && ` (${p.clients.email})`}
                     </p>
                   ) : (
-                    <p style={{ color: 'orange' }}>No client assigned</p>
+                    <p style={{ color: 'orange' }}>NO CLIENT ASSIGNED</p>
                   )}
                 </IonLabel>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                   <IonBadge color="primary">
                     <IonIcon icon={businessOutline} />
-                    &nbsp;{deviceCounts[p.id] || 0} Devices
+                    &nbsp;{deviceCounts[p.id] || 0} DEVICES
                   </IonBadge>
                   {p.clients ? (
-                    <IonChip color="success">Assigned</IonChip>
+                    <IonChip color="success">ASSIGNED</IonChip>
                   ) : (
-                    <IonChip color="warning">Unassigned</IonChip>
+                    <IonChip color="warning">UNASSIGNED</IonChip>
                   )}
                 </div>
               </IonItem>
@@ -213,55 +211,48 @@ export default function Piggeries() {
           </IonList>
         )}
 
-        {/* CREATE PIGGERY MODAL */}
         <IonModal isOpen={showModal}>
           <IonHeader>
             <IonToolbar>
-              <IonTitle>Create Piggery</IonTitle>
+              <IonTitle>CREATE PIGGERY</IonTitle>
               <IonButtons slot="end">
-                <IonButton onClick={() => setShowModal(false)}>Close</IonButton>
+                <IonButton onClick={() => setShowModal(false)}>CLOSE</IonButton>
               </IonButtons>
             </IonToolbar>
           </IonHeader>
 
           <IonContent className="ion-padding">
-            <div style={{ marginBottom: '16px' }}>
-              <p style={{ fontSize: '14px', color: 'gray' }}>
-                Fill in the details below to create a new piggery.
-              </p>
-            </div>
-
             <IonInput
-              label="Piggery Serial"
+              label="PIGGERY SERIAL"
               labelPlacement="floating"
-              placeholder="e.g. PIG-001"
+              placeholder="E.G. PIG-001"
               value={form.piggery_serial}
               onIonChange={(e) => setForm({ ...form, piggery_serial: e.detail.value! })}
               style={{ marginBottom: '16px' }}
             />
 
             <IonInput
-              label="Piggery Name"
+              label="PIGGERY NAME"
               labelPlacement="floating"
-              placeholder="e.g. Main Piggery"
+              placeholder="E.G. MAIN PIGGERY"
               value={form.piggery_name}
               onIonChange={(e) => setForm({ ...form, piggery_name: e.detail.value! })}
               style={{ marginBottom: '16px' }}
             />
 
             <IonInput
-              label="Location"
+              label="LOCATION"
               labelPlacement="floating"
-              placeholder="e.g. Laguna, Philippines"
+              placeholder="E.G. LAGUNA, PHILIPPINES"
               value={form.location}
               onIonChange={(e) => setForm({ ...form, location: e.detail.value! })}
               style={{ marginBottom: '16px' }}
             />
 
             <IonSelect
-              label="Select Client"
+              label="SELECT CLIENT"
               labelPlacement="floating"
-              placeholder="Choose a client"
+              placeholder="CHOOSE A CLIENT"
               value={form.client_id}
               onIonChange={(e) => setForm({ ...form, client_id: e.detail.value })}
               style={{ marginBottom: '16px' }}
@@ -278,7 +269,7 @@ export default function Piggeries() {
               onClick={handleCreatePiggery}
               style={{ marginTop: '16px' }}
             >
-              Create Piggery
+              CREATE PIGGERY
             </IonButton>
           </IonContent>
         </IonModal>
