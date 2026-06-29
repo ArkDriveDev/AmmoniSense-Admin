@@ -1,4 +1,4 @@
-import { Route, Redirect } from 'react-router-dom';
+import { Route, Redirect, Switch } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 
@@ -26,7 +26,6 @@ export default function AppRouter() {
     try {
       console.log('AppRouter: Checking if admin exists via RPC...');
       
-      // Use the database function that bypasses RLS
       const { data, error } = await supabase
         .rpc('check_admin_exists');
 
@@ -55,7 +54,7 @@ export default function AppRouter() {
   }
 
   return (
-    <>
+    <Switch>
       <Route exact path="/">
         {hasAdmin ? <Redirect to="/login" /> : <Redirect to="/setup" />}
       </Route>
@@ -76,6 +75,7 @@ export default function AppRouter() {
           </ProtectedRoute>
         )}
       />
+
       <Route
         path="/clients"
         render={() => (
@@ -86,6 +86,7 @@ export default function AppRouter() {
           </ProtectedRoute>
         )}
       />
+
       <Route
         path="/piggeries"
         render={() => (
@@ -96,6 +97,7 @@ export default function AppRouter() {
           </ProtectedRoute>
         )}
       />
+
       <Route
         path="/devices"
         render={() => (
@@ -106,6 +108,7 @@ export default function AppRouter() {
           </ProtectedRoute>
         )}
       />
+
       <Route
         path="/sensor-data"
         render={() => (
@@ -116,6 +119,7 @@ export default function AppRouter() {
           </ProtectedRoute>
         )}
       />
+
       <Route
         path="/notifications"
         render={() => (
@@ -126,6 +130,6 @@ export default function AppRouter() {
           </ProtectedRoute>
         )}
       />
-    </>
+    </Switch>
   );
 }
