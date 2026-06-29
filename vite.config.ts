@@ -3,7 +3,7 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react()],
-  base: './',
+  base: '/',  // ← Change from './' to '/'
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
