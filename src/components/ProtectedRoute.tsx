@@ -15,7 +15,6 @@ export default function ProtectedRoute({ children }: any) {
         setUser(currentUser);
 
         if (currentUser) {
-          // Case-insensitive check for admin role
           const { data: profile, error } = await supabase
             .from('profiles')
             .select('role')
@@ -25,7 +24,6 @@ export default function ProtectedRoute({ children }: any) {
           if (error) {
             console.error('Error fetching profile:', error);
           } else {
-            // Check if role is admin (case insensitive)
             setIsAdmin(profile?.role?.toLowerCase() === 'admin');
           }
         }
