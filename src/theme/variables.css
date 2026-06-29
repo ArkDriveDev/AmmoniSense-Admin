@@ -1,0 +1,21 @@
+/* For information on how to create your own theme, please refer to:
+http://ionicframework.com/docs/theming/ */
+/* Force uppercase on all text inputs except password and email */
+ion-input:not([type="password"]):not([type="email"]) {
+  text-transform: uppercase;
+}
+
+/* For ion-textarea */
+ion-textarea {
+  text-transform: uppercase;
+}
+
+/* For ion-select (dropdowns) */
+ion-select {
+  text-transform: uppercase;
+}
+
+/* For ion-label */
+ion-label {
+  text-transform: uppercase;
+}
