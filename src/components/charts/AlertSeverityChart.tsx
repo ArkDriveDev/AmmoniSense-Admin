@@ -1,4 +1,3 @@
-import React from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -19,10 +18,9 @@ interface AlertSeverityChartProps {
       borderWidth: number;
     }[];
   };
-  title?: string;
 }
 
-export default function AlertSeverityChart({ data, title = 'Alert Distribution' }: AlertSeverityChartProps) {
+export default function AlertSeverityChart({ data }: AlertSeverityChartProps) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -32,7 +30,7 @@ export default function AlertSeverityChart({ data, title = 'Alert Distribution' 
       },
       title: {
         display: true,
-        text: title,
+        text: 'Alert Distribution by Severity',
         font: {
           size: 16,
           weight: 'bold' as const,
