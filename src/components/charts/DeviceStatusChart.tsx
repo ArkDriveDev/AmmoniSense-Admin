@@ -1,4 +1,3 @@
-import React from 'react';
 import { Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -19,10 +18,9 @@ interface DeviceStatusChartProps {
       borderWidth: number;
     }[];
   };
-  title?: string;
 }
 
-export default function DeviceStatusChart({ data, title = 'Device Status' }: DeviceStatusChartProps) {
+export default function DeviceStatusChart({ data }: DeviceStatusChartProps) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -32,7 +30,7 @@ export default function DeviceStatusChart({ data, title = 'Device Status' }: Dev
       },
       title: {
         display: true,
-        text: title,
+        text: 'Device Status Distribution',
         font: {
           size: 16,
           weight: 'bold' as const,
