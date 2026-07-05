@@ -1,5 +1,4 @@
-import React from 'react';
-import { IonCard, IonCardContent, IonIcon, IonText } from '@ionic/react';
+import { IonCard, IonCardContent, IonIcon } from '@ionic/react';
 
 interface StatsCardProps {
   title: string;
@@ -27,9 +26,9 @@ export default function StatsCard({ title, value, icon, color = 'primary', subti
           {title}
         </p>
         {subtitle && (
-          <IonText color="medium" style={{ fontSize: '12px' }}>
-            <p style={{ margin: '4px 0 0 0' }}>{subtitle}</p>
-          </IonText>
+          <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--ion-color-medium)' }}>
+            {subtitle}
+          </p>
         )}
       </IonCardContent>
     </IonCard>
