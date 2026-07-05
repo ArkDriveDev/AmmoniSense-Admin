@@ -9,14 +9,12 @@ import {
   IonCol,
   IonSpinner,
   IonRefresher,
-  IonCard,
   IonRefresherContent,
+  IonCard,
   IonCardContent,
   IonIcon
 } from '@ionic/react';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '../services/supabase';
 import {
   businessOutline,
   hardwareChipOutline,
@@ -25,7 +23,6 @@ import {
   barChartOutline
 } from 'ionicons/icons';
 
-// Import chart components
 import {
   StatsCard,
   AmmoniaTrendChart,
@@ -36,129 +33,17 @@ import {
   ClientsPiggeriesChart
 } from '../components/charts';
 
+import { useDashboardData } from '../hooks/useDashboardData';
+
 export default function Dashboard() {
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
-    piggeries: 0,
-    devices: 0,
-    alerts: 0,
-    clients: 0,
-    sensorReadings: 0
-  });
-
-  const [chartData, setChartData] = useState({
-    ammoniaTrend: {
-      labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'],
-      datasets: [
-        {
-          label: 'Average Ammonia (ppm)',
-          data: [12, 15, 35, 45, 30, 18],
-          borderColor: '#3880ff',
-          backgroundColor: 'rgba(56, 128, 255, 0.2)',
-          fill: true,
-        },
-      ],
-    },
-    alertSeverity: {
-      labels: ['SEVERE', 'MODERATE', 'LOW'],
-      datasets: [
-        {
-          data: [5, 8, 3],
-          backgroundColor: ['#eb445a', '#ffc409', '#2dd36f'],
-          borderColor: ['#eb445a', '#ffc409', '#2dd36f'],
-          borderWidth: 1,
-        },
-      ],
-    },
-    alertTrend: {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      datasets: [
-        {
-          label: 'Alerts',
-          data: [3, 5, 2, 8, 6, 4, 2],
-          backgroundColor: '#ffc409',
-          borderColor: '#ffc409',
-          borderWidth: 1,
-        },
-      ],
-    },
-    deviceStatus: {
-      labels: ['ACTIVE', 'INACTIVE', 'PENDING'],
-      datasets: [
-        {
-          data: [280, 45, 20],
-          backgroundColor: ['#2dd36f', '#eb445a', '#ffc409'],
-          borderColor: ['#2dd36f', '#eb445a', '#ffc409'],
-          borderWidth: 1,
-        },
-      ],
-    },
-    topAlertingDevices: {
-      labels: ['ESP32-001', 'ESP32-045', 'ESP32-023', 'ESP32-089', 'ESP32-012'],
-      datasets: [
-        {
-          label: 'Alerts',
-          data: [12, 8, 6, 5, 4],
-          backgroundColor: '#3880ff',
-          borderColor: '#3880ff',
-          borderWidth: 1,
-        },
-      ],
-    },
-    clientsPiggeries: {
-      labels: ['Client A', 'Client B', 'Client C', 'Client D', 'Client E'],
-      datasets: [
-        {
-          label: 'Piggeries',
-          data: [8, 6, 5, 4, 3],
-          backgroundColor: '#3dc2ff',
-          borderColor: '#3dc2ff',
-          borderWidth: 1,
-        },
-      ],
-    },
-  });
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    try {
-      // Fetch stats from Supabase
-      const [piggeriesRes, devicesRes, alertsRes, clientsRes, sensorRes] = await Promise.all([
-        supabase.from('piggeries').select('id', { count: 'exact', head: true }),
-        supabase.from('devices').select('id', { count: 'exact', head: true }),
-        supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('is_read', false),
-        supabase.from('clients').select('id', { count: 'exact', head: true }),
-        supabase.from('sensor_data').select('id', { count: 'exact', head: true })
-      ]);
-
-      setStats({
-        piggeries: piggeriesRes.count || 0,
-        devices: devicesRes.count || 0,
-        alerts: alertsRes.count || 0,
-        clients: clientsRes.count || 0,
-        sensorReadings: sensorRes.count || 0
-      });
-
-      // Fetch real chart data from database (mock data shown above)
-      // In production, replace with actual Supabase queries
-
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { stats, chartData, loading, refresh } = useDashboardData();
 
   const handleRefresh = async (event: CustomEvent) => {
-    await fetchDashboardData();
+    await refresh();
     event.detail.complete();
   };
 
-  if (loading) {
+  if (loading || !chartData) {
     return (
       <IonPage>
         <IonHeader>
@@ -186,8 +71,8 @@ export default function Dashboard() {
           <IonRefresherContent />
         </IonRefresher>
 
-        {/* Stats Cards */}
         <IonGrid>
+          {/* Stats Cards */}
           <IonRow>
             <IonCol size="6" size-md="3">
               <StatsCard
@@ -210,7 +95,7 @@ export default function Dashboard() {
                 title="Active Alerts"
                 value={stats.alerts}
                 icon={alertCircleOutline}
-                color="danger"
+                color={stats.alerts > 0 ? 'danger' : 'success'}
                 subtitle={stats.alerts > 0 ? 'Action required!' : 'All clear'}
               />
             </IonCol>

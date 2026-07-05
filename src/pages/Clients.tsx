@@ -8,8 +8,8 @@ import {
   IonItem,
   IonLabel,
   IonButton,
-  IonInput,
   IonModal,
+  IonInput,
   IonButtons,
   IonBadge,
   IonChip,
@@ -25,7 +25,6 @@ import { supabase } from '../services/supabase';
 import { 
   checkmarkCircleOutline, 
   closeCircleOutline, 
-  personAddOutline,
   businessOutline,
   trashOutline,
   createOutline
@@ -40,7 +39,6 @@ import { useClients } from '../hooks/useClients';
 
 export default function Clients() {
   const { clients, loading, fetchClients } = useClients();
-  const [showModal, setShowModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
@@ -58,8 +56,7 @@ export default function Clients() {
     full_name: '',
     email: '',
     phone: '',
-    organization_name: '',
-    password: ''
+    organization_name: ''
   });
 
   useEffect(() => {
@@ -87,75 +84,6 @@ export default function Clients() {
     if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
     return 0;
   });
-
-  const createClient = async () => {
-    try {
-      const { data: existing } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('email', form.email)
-        .single();
-
-      if (existing) {
-        setToastMessage('Email already exists');
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: {
-          data: {
-            full_name: form.full_name,
-            role: 'client'
-          }
-        }
-      });
-
-      if (authError) {
-        setToastMessage('Auth error: ' + authError.message);
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      const user = authData.user ?? authData.session?.user;
-      if (!user) {
-        setToastMessage('Failed to create user');
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      await supabase.from('profiles').insert([{
-        id: user.id,
-        full_name: form.full_name,
-        role: 'client'
-      }]);
-
-      await supabase.from('clients').insert([{
-        full_name: form.full_name,
-        email: form.email,
-        phone: form.phone || null,
-        organization_name: form.organization_name || null,
-        profile_id: user.id
-      }]);
-
-      setToastMessage('Client created successfully');
-      setToastColor('success');
-      setShowToast(true);
-      setShowModal(false);
-      setForm({ full_name: '', email: '', phone: '', organization_name: '', password: '' });
-      fetchClients();
-    } catch (err) {
-      console.error(err);
-      setToastMessage('An error occurred');
-      setToastColor('danger');
-      setShowToast(true);
-    }
-  };
 
   const handleEdit = async () => {
     const { error } = await supabase
@@ -215,11 +143,6 @@ export default function Clients() {
       <IonHeader>
         <IonToolbar>
           <IonTitle>CLIENTS</IonTitle>
-          <IonButtons slot="end">
-            <IonButton onClick={() => setShowModal(true)}>
-              <IonIcon icon={personAddOutline} /> ADD
-            </IonButton>
-          </IonButtons>
         </IonToolbar>
         <IonToolbar>
           <IonSearchbar
@@ -263,7 +186,7 @@ export default function Clients() {
         ) : filteredClients.length === 0 ? (
           <EmptyState
             title="NO CLIENTS FOUND"
-            message={searchTerm ? 'TRY A DIFFERENT SEARCH' : 'CLICK ADD TO CREATE YOUR FIRST CLIENT'}
+            message={searchTerm ? 'TRY A DIFFERENT SEARCH' : 'CLIENTS WILL APPEAR HERE AFTER REGISTRATION'}
           />
         ) : (
           <IonList>
@@ -296,8 +219,7 @@ export default function Clients() {
                         full_name: c.full_name || '',
                         email: c.email || '',
                         phone: c.phone || '',
-                        organization_name: c.organization_name || '',
-                        password: ''
+                        organization_name: c.organization_name || ''
                       });
                       setShowEditModal(true);
                     }}>
@@ -315,31 +237,6 @@ export default function Clients() {
             ))}
           </IonList>
         )}
-
-        {/* Create Modal */}
-        <IonModal isOpen={showModal}>
-          <IonHeader>
-            <IonToolbar>
-              <IonTitle>CREATE CLIENT</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={() => setShowModal(false)}>CLOSE</IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="ion-padding">
-            <IonInput placeholder="FULL NAME *" value={form.full_name}
-              onIonChange={(e) => setForm({ ...form, full_name: e.detail.value?.toUpperCase() || '' })} />
-            <IonInput placeholder="EMAIL *" type="email" value={form.email}
-              onIonChange={(e) => setForm({ ...form, email: e.detail.value || '' })} />
-            <IonInput placeholder="PHONE" type="tel" value={form.phone}
-              onIonChange={(e) => setForm({ ...form, phone: e.detail.value || '' })} />
-            <IonInput placeholder="ORGANIZATION" value={form.organization_name}
-              onIonChange={(e) => setForm({ ...form, organization_name: e.detail.value?.toUpperCase() || '' })} />
-            <IonInput type="password" placeholder="PASSWORD *" value={form.password}
-              onIonChange={(e) => setForm({ ...form, password: e.detail.value || '' })} />
-            <IonButton expand="block" onClick={createClient}>CREATE</IonButton>
-          </IonContent>
-        </IonModal>
 
         {/* Edit Modal */}
         <IonModal isOpen={showEditModal}>
