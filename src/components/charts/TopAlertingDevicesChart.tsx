@@ -1,4 +1,3 @@
-import React from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -30,21 +29,20 @@ interface TopAlertingDevicesChartProps {
       borderWidth: number;
     }[];
   };
-  title?: string;
 }
 
-export default function TopAlertingDevicesChart({ data, title = 'Top Alerting Devices' }: TopAlertingDevicesChartProps) {
+export default function TopAlertingDevicesChart({ data }: TopAlertingDevicesChartProps) {
   const options = {
     indexAxis: 'y' as const,
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
+        display: false,
       },
       title: {
         display: true,
-        text: title,
+        text: 'Top Alerting Devices (Last 30 Days)',
         font: {
           size: 16,
           weight: 'bold' as const,
