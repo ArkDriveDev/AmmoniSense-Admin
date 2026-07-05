@@ -1,4 +1,3 @@
-import React from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -32,12 +31,12 @@ interface AmmoniaTrendChartProps {
       borderColor: string;
       backgroundColor: string;
       fill?: boolean;
+      tension?: number;
     }[];
   };
-  title?: string;
 }
 
-export default function AmmoniaTrendChart({ data, title = 'Ammonia Levels Over Time' }: AmmoniaTrendChartProps) {
+export default function AmmoniaTrendChart({ data }: AmmoniaTrendChartProps) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -47,7 +46,7 @@ export default function AmmoniaTrendChart({ data, title = 'Ammonia Levels Over T
       },
       title: {
         display: true,
-        text: title,
+        text: 'Ammonia Levels Over Time',
         font: {
           size: 16,
           weight: 'bold' as const,
@@ -65,7 +64,7 @@ export default function AmmoniaTrendChart({ data, title = 'Ammonia Levels Over T
       x: {
         title: {
           display: true,
-          text: 'Time',
+          text: 'Date',
         },
       },
     },
