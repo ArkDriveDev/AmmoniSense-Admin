@@ -1,4 +1,3 @@
-import React from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -30,10 +29,9 @@ interface AlertTrendChartProps {
       borderWidth: number;
     }[];
   };
-  title?: string;
 }
 
-export default function AlertTrendChart({ data, title = 'Alert Trends' }: AlertTrendChartProps) {
+export default function AlertTrendChart({ data }: AlertTrendChartProps) {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
@@ -43,7 +41,7 @@ export default function AlertTrendChart({ data, title = 'Alert Trends' }: AlertT
       },
       title: {
         display: true,
-        text: title,
+        text: 'Alert Trends (Last 7 Days)',
         font: {
           size: 16,
           weight: 'bold' as const,
@@ -61,7 +59,7 @@ export default function AlertTrendChart({ data, title = 'Alert Trends' }: AlertT
       x: {
         title: {
           display: true,
-          text: 'Date',
+          text: 'Day',
         },
       },
     },
