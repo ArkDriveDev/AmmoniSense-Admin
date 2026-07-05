@@ -1,4 +1,3 @@
-import React from 'react';
 import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -30,21 +29,20 @@ interface ClientsPiggeriesChartProps {
       borderWidth: number;
     }[];
   };
-  title?: string;
 }
 
-export default function ClientsPiggeriesChart({ data, title = 'Clients with Most Piggeries' }: ClientsPiggeriesChartProps) {
+export default function ClientsPiggeriesChart({ data }: ClientsPiggeriesChartProps) {
   const options = {
     indexAxis: 'y' as const,
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
+        display: false,
       },
       title: {
         display: true,
-        text: title,
+        text: 'Clients with Most Piggeries',
         font: {
           size: 16,
           weight: 'bold' as const,
