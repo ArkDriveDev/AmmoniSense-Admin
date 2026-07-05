@@ -1,0 +1,45 @@
+import React from 'react';
+import { Doughnut } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend
+} from 'chart.js';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
+
+interface DeviceStatusChartProps {
+  data: {
+    labels: string[];
+    datasets: {
+      data: number[];
+      backgroundColor: string[];
+      borderColor: string[];
+      borderWidth: number;
+    }[];
+  };
+  title?: string;
+}
+
+export default function DeviceStatusChart({ data, title = 'Device Status' }: DeviceStatusChartProps) {
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+      },
+      title: {
+        display: true,
+        text: title,
+        font: {
+          size: 16,
+          weight: 'bold' as const,
+        },
+      },
+    },
+  };
+
+  return <Doughnut options={options} data={data} />;
+}
