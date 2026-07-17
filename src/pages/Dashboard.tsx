@@ -30,7 +30,7 @@ import {
   AlertTrendChart,
   DeviceStatusChart,
   TopAlertingDevicesChart,
-  ClientsPiggeriesChart
+  ClientsLivestockChart
 } from '../components/charts';
 
 import { useDashboardData } from '../hooks/useDashboardData';
@@ -76,8 +76,8 @@ export default function Dashboard() {
           <IonRow>
             <IonCol size="6" size-md="3">
               <StatsCard
-                title="Piggeries"
-                value={stats.piggeries}
+                title="Livestock"
+                value={stats.livestock}
                 icon={businessOutline}
                 color="primary"
               />
@@ -149,7 +149,7 @@ export default function Dashboard() {
             </IonCol>
           </IonRow>
 
-          {/* Top Alerting Devices and Clients Piggeries */}
+          {/* Top Alerting Devices and Clients Livestock */}
           <IonRow>
             <IonCol size="12" size-md="6">
               <IonCard>
@@ -161,7 +161,7 @@ export default function Dashboard() {
             <IonCol size="12" size-md="6">
               <IonCard>
                 <IonCardContent style={{ height: '300px' }}>
-                  <ClientsPiggeriesChart data={chartData.clientsPiggeries} />
+                  <ClientsLivestockChart data={chartData.clientsLivestock} />
                 </IonCardContent>
               </IonCard>
             </IonCol>

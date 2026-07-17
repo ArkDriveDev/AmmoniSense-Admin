@@ -13,6 +13,7 @@ import {
   IonSelect,
   IonSelectOption,
   IonButtons,
+  IonSpinner,
   IonBadge,
   IonIcon,
   IonChip,
@@ -20,7 +21,7 @@ import {
   IonSearchbar
 } from '@ionic/react';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { 
   hardwareChipOutline, 
@@ -34,11 +35,12 @@ import DeleteAlert from '../components/DeleteAlert';
 import ConfirmAlert from '../components/ConfirmAlert';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { useDevices } from '../hooks/useDevices';
 
 export default function Devices() {
-  const { devices, loading, fetchDevices } = useDevices();
-  const [piggeries, setPiggeries] = useState<any[]>([]);
+  const [devices, setDevices] = useState<any[]>([]);
+  const [filteredDevices, setFilteredDevices] = useState<any[]>([]);
+  const [livestock, setLivestock] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
@@ -52,130 +54,228 @@ export default function Devices() {
   const [sortOrder, setSortOrder] = useState('desc');
 
   const [form, setForm] = useState({
-    piggery_id: '',
+    livestock_id: '',
     device_uid: '',
     firmware_version: '',
     status: 'ACTIVE'
   });
 
   useEffect(() => {
-    fetchPiggeries();
+    fetchData();
   }, []);
 
-  const fetchPiggeries = async () => {
-    const { data } = await supabase
-      .from('piggeries')
-      .select('id, piggery_name, piggery_serial, clients(id, full_name)');
-    setPiggeries(data || []);
+  useEffect(() => {
+    filterAndSortDevices();
+  }, [devices, searchTerm, sortBy, sortOrder]);
+
+  const filterAndSortDevices = () => {
+    let result = [...devices];
+
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(d =>
+        d.device_uid?.toLowerCase().includes(term) ||
+        d.livestock?.livestock_name?.toLowerCase().includes(term) ||
+        d.firmware_version?.toLowerCase().includes(term) ||
+        d.status?.toLowerCase().includes(term)
+      );
+    }
+
+    result.sort((a, b) => {
+      let aVal = a[sortBy] || '';
+      let bVal = b[sortBy] || '';
+      
+      if (sortBy === 'livestock_name') {
+        aVal = a.livestock?.livestock_name || '';
+        bVal = b.livestock?.livestock_name || '';
+      }
+      
+      if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = bVal.toLowerCase();
+      }
+      
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    setFilteredDevices(result);
   };
 
-  const filteredDevices = devices.filter(d => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      d.device_uid?.toLowerCase().includes(term) ||
-      d.piggeries?.piggery_name?.toLowerCase().includes(term) ||
-      d.firmware_version?.toLowerCase().includes(term) ||
-      d.status?.toLowerCase().includes(term)
-    );
-  }).sort((a, b) => {
-    let aVal = a[sortBy] || '';
-    let bVal = b[sortBy] || '';
-    if (sortBy === 'piggery_name') {
-      aVal = a.piggeries?.piggery_name || '';
-      bVal = b.piggeries?.piggery_name || '';
-    }
-    if (typeof aVal === 'string') {
-      aVal = aVal.toLowerCase();
-      bVal = bVal.toLowerCase();
-    }
-    if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
-    if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
-  });
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [devicesRes, livestockRes] = await Promise.all([
+        supabase
+          .from('devices')
+          .select(`
+            *,
+            livestock (
+              id,
+              livestock_name,
+              livestock_serial,
+              clients (
+                id,
+                full_name
+              )
+            )
+          `)
+          .order('installed_at', { ascending: false }),
+        supabase
+          .from('livestock')
+          .select(`
+            id, 
+            livestock_name, 
+            livestock_serial,
+            clients (
+              id,
+              full_name
+            )
+          `)
+      ]);
 
-  const handleCreate = async () => {
-    if (!form.device_uid || !form.piggery_id) {
-      setToastMessage('Please fill in all required fields');
+      if (devicesRes.error) {
+        console.error('Error fetching devices:', devicesRes.error);
+        setToastMessage('Failed to fetch devices: ' + devicesRes.error.message);
+        setToastColor('danger');
+        setShowToast(true);
+        return;
+      }
+
+      if (livestockRes.error) {
+        console.error('Error fetching livestock:', livestockRes.error);
+        setToastMessage('Failed to fetch livestock: ' + livestockRes.error.message);
+        setToastColor('danger');
+        setShowToast(true);
+        return;
+      }
+
+      setDevices(devicesRes.data || []);
+      setLivestock(livestockRes.data || []);
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setToastMessage('An unexpected error occurred');
       setToastColor('danger');
       setShowToast(true);
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    const { error } = await supabase.from('devices').insert([{
-      device_uid: form.device_uid,
-      piggery_id: parseInt(form.piggery_id),
-      status: form.status || 'ACTIVE',
-      firmware_version: form.firmware_version || '1.0.0',
-      installed_at: new Date().toISOString(),
-      last_seen: new Date().toISOString()
-    }]);
-
-    if (error) {
-      setToastMessage('Error: ' + error.message);
-      setToastColor('danger');
-      setShowToast(true);
-      return;
-    }
-
-    setToastMessage('Device created');
-    setToastColor('success');
-    setShowToast(true);
-    setShowModal(false);
-    setForm({ device_uid: '', piggery_id: '', firmware_version: '', status: 'ACTIVE' });
-    fetchDevices();
   };
 
-  const handleUpdate = async () => {
-    const { error } = await supabase
-      .from('devices')
-      .update({
+  const handleCreateDevice = async () => {
+    try {
+      if (!form.device_uid || !form.livestock_id) {
+        setToastMessage('Please fill in all required fields');
+        setToastColor('danger');
+        setShowToast(true);
+        return;
+      }
+
+      const { error } = await supabase.from('devices').insert([{
         device_uid: form.device_uid,
-        piggery_id: parseInt(form.piggery_id),
+        livestock_id: parseInt(form.livestock_id),
         status: form.status || 'ACTIVE',
-        firmware_version: form.firmware_version || '1.0.0'
-      })
-      .eq('id', selectedDevice.id);
+        firmware_version: form.firmware_version || '1.0.0',
+        installed_at: new Date().toISOString(),
+        last_seen: new Date().toISOString()
+      }]);
 
-    if (error) {
-      setToastMessage('Error: ' + error.message);
+      if (error) {
+        console.error('Error creating device:', error);
+        setToastMessage('Error creating device: ' + error.message);
+        setToastColor('danger');
+        setShowToast(true);
+        return;
+      }
+
+      setToastMessage('Device created successfully');
+      setToastColor('success');
+      setShowToast(true);
+      setShowModal(false);
+      setForm({ device_uid: '', livestock_id: '', firmware_version: '', status: 'ACTIVE' });
+      fetchData();
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setToastMessage('An unexpected error occurred');
       setToastColor('danger');
       setShowToast(true);
-      return;
     }
-
-    setToastMessage('Device updated');
-    setToastColor('success');
-    setShowToast(true);
-    setShowUpdateConfirm(false);
-    setShowEditModal(false);
-    setSelectedDevice(null);
-    fetchDevices();
   };
 
-  const handleDelete = async () => {
-    const { error } = await supabase.from('devices').delete().eq('id', selectedDevice.id);
+  const handleEditDevice = async () => {
+    try {
+      if (!form.device_uid || !form.livestock_id) {
+        setToastMessage('Please fill in all required fields');
+        setToastColor('danger');
+        setShowToast(true);
+        return;
+      }
 
-    if (error) {
-      setToastMessage('Error: ' + error.message);
+      const { error } = await supabase
+        .from('devices')
+        .update({
+          device_uid: form.device_uid,
+          livestock_id: parseInt(form.livestock_id),
+          status: form.status || 'ACTIVE',
+          firmware_version: form.firmware_version || '1.0.0'
+        })
+        .eq('id', selectedDevice.id);
+
+      if (error) {
+        console.error('Error updating device:', error);
+        setToastMessage('Error updating device: ' + error.message);
+        setToastColor('danger');
+        setShowToast(true);
+        return;
+      }
+
+      setToastMessage('Device updated successfully');
+      setToastColor('success');
+      setShowToast(true);
+      setShowUpdateConfirm(false);
+      setShowEditModal(false);
+      setSelectedDevice(null);
+      fetchData();
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setToastMessage('An unexpected error occurred');
       setToastColor('danger');
       setShowToast(true);
-      return;
     }
+  };
 
-    setToastMessage('Device deleted');
-    setToastColor('success');
-    setShowToast(true);
-    setShowDeleteAlert(false);
-    setSelectedDevice(null);
-    fetchDevices();
+  const handleDeleteDevice = async () => {
+    try {
+      const { error } = await supabase.from('devices').delete().eq('id', selectedDevice.id);
+
+      if (error) {
+        console.error('Error deleting device:', error);
+        setToastMessage('Error deleting device: ' + error.message);
+        setToastColor('danger');
+        setShowToast(true);
+        return;
+      }
+
+      setToastMessage('Device deleted successfully');
+      setToastColor('success');
+      setShowToast(true);
+      setShowDeleteAlert(false);
+      setSelectedDevice(null);
+      fetchData();
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setToastMessage('An unexpected error occurred');
+      setToastColor('danger');
+      setShowToast(true);
+    }
   };
 
   const openEditModal = (device: any) => {
     setSelectedDevice(device);
     setForm({
       device_uid: device.device_uid || '',
-      piggery_id: device.piggery_id?.toString() || '',
+      livestock_id: device.livestock_id?.toString() || '',
       firmware_version: device.firmware_version || '',
       status: device.status || 'ACTIVE'
     });
@@ -235,10 +335,10 @@ export default function Devices() {
             </IonButton>
             <IonButton 
               size="small" 
-              fill={sortBy === 'piggery_name' ? 'solid' : 'outline'}
-              onClick={() => handleSort('piggery_name')}
+              fill={sortBy === 'livestock_name' ? 'solid' : 'outline'}
+              onClick={() => handleSort('livestock_name')}
             >
-              PIGGERY {sortBy === 'piggery_name' && (sortOrder === 'asc' ? '▲' : '▼')}
+              LIVESTOCK {sortBy === 'livestock_name' && (sortOrder === 'asc' ? '▲' : '▼')}
             </IonButton>
             <IonButton 
               size="small" 
@@ -283,37 +383,44 @@ export default function Devices() {
             {filteredDevices.map((d) => (
               <IonItem key={d.id}>
                 <IonLabel>
-                  <h2><IonIcon icon={hardwareChipOutline} /> {d.device_uid}</h2>
+                  <h2>
+                    <IonIcon icon={hardwareChipOutline} />
+                    &nbsp;{d.device_uid}
+                  </h2>
                   <p>
-                    <IonIcon icon={businessOutline} /> PIGGERY: {d.piggeries?.piggery_name || 'UNKNOWN'}
-                    {d.piggeries?.clients && ` (OWNER: ${d.piggeries.clients.full_name})`}
+                    <IonIcon icon={businessOutline} style={{ marginRight: '4px' }} />
+                    LIVESTOCK: {d.livestock?.livestock_name || 'UNKNOWN'}
+                    {d.livestock?.clients && (
+                      <span style={{ fontSize: '12px', color: 'gray' }}>
+                        {' '}(OWNER: {d.livestock.clients.full_name})
+                      </span>
+                    )}
                   </p>
                   <p>FIRMWARE: {d.firmware_version || 'UNKNOWN'}</p>
                   <p>INSTALLED: {new Date(d.installed_at).toLocaleDateString()}</p>
-                  {d.last_seen && <p style={{ fontSize: '12px', color: 'gray' }}>LAST SEEN: {new Date(d.last_seen).toLocaleString()}</p>}
+                  {d.last_seen && (
+                    <p style={{ fontSize: '12px', color: 'gray' }}>
+                      LAST SEEN: {new Date(d.last_seen).toLocaleString()}
+                    </p>
+                  )}
                 </IonLabel>
-                <div style={{ textAlign: 'right' }}>
-                  <IonBadge color={getStatusColor(d.status)}>{d.status || 'UNKNOWN'}</IonBadge>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                  <IonBadge color={getStatusColor(d.status)}>
+                    {d.status || 'UNKNOWN'}
+                  </IonBadge>
                   {d.last_seen && (
                     <IonChip color={new Date().getTime() - new Date(d.last_seen).getTime() < 60000 ? 'success' : 'warning'}>
-                      {new Date().getTime() - new Date(d.last_seen).getTime() < 60000 ? 'ONLINE' : 'OFFLINE'}
+                      <IonLabel>
+                        {new Date().getTime() - new Date(d.last_seen).getTime() < 60000 ? 'ONLINE' : 'OFFLINE'}
+                      </IonLabel>
                     </IonChip>
                   )}
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px', justifyContent: 'flex-end' }}>
-                    <IonButton size="small" fill="clear" color="primary" onClick={() => openEditModal(d)}>
-                      <IonIcon icon={createOutline} />
-                    </IonButton>
-                    <IonButton size="small" fill="clear" color="danger" onClick={() => openDeleteAlert(d)}>
-                      <IonIcon icon={trashOutline} />
-                    </IonButton>
-                  </div>
                 </div>
               </IonItem>
             ))}
           </IonList>
         )}
 
-        {/* Create Modal */}
         <IonModal isOpen={showModal}>
           <IonHeader>
             <IonToolbar>
@@ -323,34 +430,61 @@ export default function Devices() {
               </IonButtons>
             </IonToolbar>
           </IonHeader>
+
           <IonContent className="ion-padding">
-            <IonInput label="DEVICE UID" labelPlacement="floating" placeholder="ESP32-001"
+            <IonInput
+              label="DEVICE UID"
+              labelPlacement="floating"
+              placeholder="E.G. ESP32-001"
               value={form.device_uid}
-              onIonChange={(e) => setForm({ ...form, device_uid: e.detail.value?.toUpperCase() || '' })} />
-            <IonInput label="FIRMWARE" labelPlacement="floating" placeholder="1.0.0"
+              onIonChange={(e) => setForm({ ...form, device_uid: e.detail.value?.toUpperCase() || '' })}
+              style={{ marginBottom: '16px' }}
+            />
+
+            <IonInput
+              label="FIRMWARE VERSION"
+              labelPlacement="floating"
+              placeholder="E.G. 1.0.0"
               value={form.firmware_version}
-              onIonChange={(e) => setForm({ ...form, firmware_version: e.detail.value || '' })} />
-            <IonSelect label="PIGGERY" labelPlacement="floating" placeholder="SELECT PIGGERY"
-              value={form.piggery_id}
-              onIonChange={(e) => setForm({ ...form, piggery_id: e.detail.value })}>
-              {piggeries.map((p) => (
-                <IonSelectOption key={p.id} value={p.id}>
-                  {p.piggery_name} ({p.piggery_serial}) {p.clients && `- ${p.clients.full_name}`}
+              onIonChange={(e) => setForm({ ...form, firmware_version: e.detail.value || '' })}
+              style={{ marginBottom: '16px' }}
+            />
+
+            <IonSelect
+              label="SELECT LIVESTOCK"
+              labelPlacement="floating"
+              placeholder="CHOOSE A LIVESTOCK"
+              value={form.livestock_id}
+              onIonChange={(e) => setForm({ ...form, livestock_id: e.detail.value })}
+              style={{ marginBottom: '16px' }}
+            >
+              {livestock.map((l) => (
+                <IonSelectOption key={l.id} value={l.id}>
+                  {l.livestock_name} ({l.livestock_serial})
+                  {l.clients && ` - OWNER: ${l.clients.full_name}`}
                 </IonSelectOption>
               ))}
             </IonSelect>
-            <IonSelect label="STATUS" labelPlacement="floating" placeholder="SELECT STATUS"
+
+            <IonSelect
+              label="STATUS"
+              labelPlacement="floating"
+              placeholder="CHOOSE STATUS"
               value={form.status}
-              onIonChange={(e) => setForm({ ...form, status: e.detail.value })}>
+              onIonChange={(e) => setForm({ ...form, status: e.detail.value })}
+              style={{ marginBottom: '16px' }}
+            >
               <IonSelectOption value="ACTIVE">ACTIVE</IonSelectOption>
               <IonSelectOption value="INACTIVE">INACTIVE</IonSelectOption>
               <IonSelectOption value="PENDING">PENDING</IonSelectOption>
             </IonSelect>
-            <IonButton expand="block" onClick={handleCreate}>CREATE</IonButton>
+
+            <IonButton expand="block" onClick={handleCreateDevice} style={{ marginTop: '16px' }}>
+              CREATE DEVICE
+            </IonButton>
           </IonContent>
         </IonModal>
 
-        {/* Edit Modal */}
         <IonModal isOpen={showEditModal}>
           <IonHeader>
             <IonToolbar>
@@ -360,37 +494,65 @@ export default function Devices() {
               </IonButtons>
             </IonToolbar>
           </IonHeader>
+
           <IonContent className="ion-padding">
-            <IonInput label="DEVICE UID" labelPlacement="floating" placeholder="ESP32-001"
+            <IonInput
+              label="DEVICE UID"
+              labelPlacement="floating"
+              placeholder="E.G. ESP32-001"
               value={form.device_uid}
-              onIonChange={(e) => setForm({ ...form, device_uid: e.detail.value?.toUpperCase() || '' })} />
-            <IonInput label="FIRMWARE" labelPlacement="floating" placeholder="1.0.0"
+              onIonChange={(e) => setForm({ ...form, device_uid: e.detail.value?.toUpperCase() || '' })}
+              style={{ marginBottom: '16px' }}
+            />
+
+            <IonInput
+              label="FIRMWARE VERSION"
+              labelPlacement="floating"
+              placeholder="E.G. 1.0.0"
               value={form.firmware_version}
-              onIonChange={(e) => setForm({ ...form, firmware_version: e.detail.value || '' })} />
-            <IonSelect label="PIGGERY" labelPlacement="floating" placeholder="SELECT PIGGERY"
-              value={form.piggery_id}
-              onIonChange={(e) => setForm({ ...form, piggery_id: e.detail.value })}>
-              {piggeries.map((p) => (
-                <IonSelectOption key={p.id} value={p.id}>
-                  {p.piggery_name} ({p.piggery_serial}) {p.clients && `- ${p.clients.full_name}`}
+              onIonChange={(e) => setForm({ ...form, firmware_version: e.detail.value || '' })}
+              style={{ marginBottom: '16px' }}
+            />
+
+            <IonSelect
+              label="SELECT LIVESTOCK"
+              labelPlacement="floating"
+              placeholder="CHOOSE A LIVESTOCK"
+              value={form.livestock_id}
+              onIonChange={(e) => setForm({ ...form, livestock_id: e.detail.value })}
+              style={{ marginBottom: '16px' }}
+            >
+              {livestock.map((l) => (
+                <IonSelectOption key={l.id} value={l.id}>
+                  {l.livestock_name} ({l.livestock_serial})
+                  {l.clients && ` - OWNER: ${l.clients.full_name}`}
                 </IonSelectOption>
               ))}
             </IonSelect>
-            <IonSelect label="STATUS" labelPlacement="floating" placeholder="SELECT STATUS"
+
+            <IonSelect
+              label="STATUS"
+              labelPlacement="floating"
+              placeholder="CHOOSE STATUS"
               value={form.status}
-              onIonChange={(e) => setForm({ ...form, status: e.detail.value })}>
+              onIonChange={(e) => setForm({ ...form, status: e.detail.value })}
+              style={{ marginBottom: '16px' }}
+            >
               <IonSelectOption value="ACTIVE">ACTIVE</IonSelectOption>
               <IonSelectOption value="INACTIVE">INACTIVE</IonSelectOption>
               <IonSelectOption value="PENDING">PENDING</IonSelectOption>
             </IonSelect>
-            <IonButton expand="block" onClick={() => setShowUpdateConfirm(true)}>UPDATE</IonButton>
+
+            <IonButton expand="block" onClick={() => setShowUpdateConfirm(true)} style={{ marginTop: '16px' }}>
+              UPDATE DEVICE
+            </IonButton>
           </IonContent>
         </IonModal>
 
         <ConfirmAlert
           isOpen={showUpdateConfirm}
           onClose={() => setShowUpdateConfirm(false)}
-          onConfirm={handleUpdate}
+          onConfirm={handleEditDevice}
           title="UPDATE DEVICE?"
           message={`Update "${selectedDevice?.device_uid}"?`}
         />
@@ -398,7 +560,7 @@ export default function Devices() {
         <DeleteAlert
           isOpen={showDeleteAlert}
           onClose={() => setShowDeleteAlert(false)}
-          onConfirm={handleDelete}
+          onConfirm={handleDeleteDevice}
           title="DELETE DEVICE?"
           message={`Delete "${selectedDevice?.device_uid}"?`}
           requireTypeConfirm={false}

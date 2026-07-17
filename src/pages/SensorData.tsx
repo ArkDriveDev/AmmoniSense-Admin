@@ -81,7 +81,7 @@ export default function SensorData() {
           *,
           devices (
             device_uid,
-            piggery_id
+            livestock_id
           )
         `)
         .order('created_at', { ascending: false })

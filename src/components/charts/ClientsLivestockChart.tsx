@@ -18,7 +18,7 @@ ChartJS.register(
   Legend
 );
 
-interface ClientsPiggeriesChartProps {
+interface ClientsLivestockChartProps {
   data: {
     labels: string[];
     datasets: {
@@ -31,7 +31,7 @@ interface ClientsPiggeriesChartProps {
   };
 }
 
-export default function ClientsPiggeriesChart({ data }: ClientsPiggeriesChartProps) {
+export default function ClientsLivestockChart({ data }: ClientsLivestockChartProps) {
   const options = {
     indexAxis: 'y' as const,
     responsive: true,
@@ -42,7 +42,7 @@ export default function ClientsPiggeriesChart({ data }: ClientsPiggeriesChartPro
       },
       title: {
         display: true,
-        text: 'Clients with Most Piggeries',
+        text: 'Clients with Most Livestock',
         font: {
           size: 16,
           weight: 'bold' as const,
@@ -54,7 +54,7 @@ export default function ClientsPiggeriesChart({ data }: ClientsPiggeriesChartPro
         beginAtZero: true,
         title: {
           display: true,
-          text: 'Number of Piggeries',
+          text: 'Number of Livestock',
         },
       },
       y: {

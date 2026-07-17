@@ -6,7 +6,7 @@ import Setup from '../pages/Setup';
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
 import Clients from '../pages/Clients';
-import Piggeries from '../pages/Piggeries';
+import Livestock from '../pages/Livestock';
 import Devices from '../pages/Devices';
 import SensorData from '../pages/SensorData';
 import Notifications from '../pages/Notifications';
@@ -88,11 +88,11 @@ export default function AppRouter() {
       />
 
       <Route
-        path="/piggeries"
+        path="/livestock"
         render={() => (
           <ProtectedRoute>
             <AdminLayout>
-              <Piggeries />
+              <Livestock />
             </AdminLayout>
           </ProtectedRoute>
         )}
