@@ -20,21 +20,21 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { checkmarkCircleOutline, closeCircleOutline } from 'ionicons/icons';
 
-interface AssignPiggeryModalProps {
+interface AssignLivestockModalProps {
   isOpen: boolean;
   onClose: () => void;
   clientId: number;
   clientName: string;
 }
 
-export default function AssignPiggeryModal({
+export default function AssignLivestockModal({
   isOpen,
   onClose,
   clientId,
   clientName
-}: AssignPiggeryModalProps) {
-  const [piggeries, setPiggeries] = useState<any[]>([]);
-  const [assignedPiggeries, setAssignedPiggeries] = useState<number[]>([]);
+}: AssignLivestockModalProps) {
+  const [livestock, setLivestock] = useState<any[]>([]);
+  const [assignedLivestock, setAssignedLivestock] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showToast, setShowToast] = useState(false);
@@ -50,37 +50,37 @@ export default function AssignPiggeryModal({
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: allPiggeries, error: piggeryError } = await supabase
-        .from('piggeries')
-        .select('id, piggery_name, piggery_serial, location, client_id')
+      const { data: allLivestock, error: livestockError } = await supabase
+        .from('livestock')
+        .select('id, livestock_name, livestock_serial, location, client_id')
         .order('created_at', { ascending: false });
 
-      if (piggeryError) {
-        console.error('Error fetching piggeries:', piggeryError);
-        setToastMessage('Failed to fetch piggeries');
+      if (livestockError) {
+        console.error('Error fetching livestock:', livestockError);
+        setToastMessage('Failed to fetch livestock');
         setToastColor('danger');
         setShowToast(true);
         setLoading(false);
         return;
       }
 
-      setPiggeries(allPiggeries || []);
+      setLivestock(allLivestock || []);
 
       const { data: assigned, error: assignedError } = await supabase
-        .from('piggeries')
+        .from('livestock')
         .select('id')
         .eq('client_id', clientId);
 
       if (assignedError) {
-        console.error('Error fetching assigned piggeries:', assignedError);
-        setToastMessage('Failed to fetch assigned piggeries');
+        console.error('Error fetching assigned livestock:', assignedError);
+        setToastMessage('Failed to fetch assigned livestock');
         setToastColor('danger');
         setShowToast(true);
         setLoading(false);
         return;
       }
 
-      setAssignedPiggeries(assigned?.map(p => p.id) || []);
+      setAssignedLivestock(assigned?.map(p => p.id) || []);
     } catch (err) {
       console.error('Unexpected error:', err);
       setToastMessage('An unexpected error occurred');
@@ -91,11 +91,11 @@ export default function AssignPiggeryModal({
     }
   };
 
-  const togglePiggery = (piggeryId: number) => {
-    setAssignedPiggeries(prev => 
-      prev.includes(piggeryId)
-        ? prev.filter(id => id !== piggeryId)
-        : [...prev, piggeryId]
+  const toggleLivestock = (id: number) => {
+    setAssignedLivestock(prev => 
+      prev.includes(id)
+        ? prev.filter(item => item !== id)
+        : [...prev, id]
     );
   };
 
@@ -103,30 +103,30 @@ export default function AssignPiggeryModal({
     setSaving(true);
     try {
       const { data: current } = await supabase
-        .from('piggeries')
+        .from('livestock')
         .select('id')
         .eq('client_id', clientId);
 
       const currentIds = current?.map(p => p.id) || [];
 
-      const toRemove = currentIds.filter(id => !assignedPiggeries.includes(id));
-      const toAdd = assignedPiggeries.filter(id => !currentIds.includes(id));
+      const toRemove = currentIds.filter(id => !assignedLivestock.includes(id));
+      const toAdd = assignedLivestock.filter(id => !currentIds.includes(id));
 
       for (const id of toRemove) {
         await supabase
-          .from('piggeries')
+          .from('livestock')
           .update({ client_id: null })
           .eq('id', id);
       }
 
       for (const id of toAdd) {
         await supabase
-          .from('piggeries')
+          .from('livestock')
           .update({ client_id: clientId })
           .eq('id', id);
       }
 
-      setToastMessage('Piggeries assigned successfully');
+      setToastMessage('Livestock assigned successfully');
       setToastColor('success');
       setShowToast(true);
       
@@ -144,13 +144,13 @@ export default function AssignPiggeryModal({
     }
   };
 
-  const assignedCount = assignedPiggeries.length;
+  const assignedCount = assignedLivestock.length;
 
   return (
     <IonModal isOpen={isOpen} onDidDismiss={onClose}>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>ASSIGN PIGGERIES</IonTitle>
+          <IonTitle>ASSIGN LIVESTOCK</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={onClose}>CLOSE</IonButton>
           </IonButtons>
@@ -159,47 +159,43 @@ export default function AssignPiggeryModal({
 
       <IonContent className="ion-padding">
         <div style={{ marginBottom: '16px' }}>
-          <h3>ASSIGN PIGGERIES TO: {clientName.toUpperCase()}</h3>
+          <h3>ASSIGN LIVESTOCK TO: {clientName.toUpperCase()}</h3>
           <p style={{ fontSize: '14px', color: 'gray' }}>
-            SELECT ALL PIGGERIES THAT THIS CLIENT SHOULD HAVE ACCESS TO.
+            SELECT ALL LIVESTOCK THAT THIS CLIENT SHOULD HAVE ACCESS TO.
           </p>
           <p style={{ fontSize: '14px', color: 'var(--ion-color-primary)' }}>
-            {assignedCount} PIGGERIES SELECTED
+            {assignedCount} LIVESTOCK SELECTED
           </p>
         </div>
 
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '40px' }}>
             <IonSpinner />
-            <p>LOADING PIGGERIES...</p>
+            <p>LOADING LIVESTOCK...</p>
           </div>
-        ) : piggeries.length === 0 ? (
+        ) : livestock.length === 0 ? (
           <div style={{ textAlign: 'center', marginTop: '40px' }}>
-            <p>NO PIGGERIES AVAILABLE</p>
+            <p>NO LIVESTOCK AVAILABLE</p>
             <p style={{ fontSize: '14px', color: 'gray' }}>
-              CREATE A PIGGERY FIRST IN THE PIGGERIES TAB.
+              CREATE LIVESTOCK FIRST IN THE LIVESTOCK TAB.
             </p>
-            <IonButton 
-              fill="outline" 
-              onClick={onClose}
-              style={{ marginTop: '16px' }}
-            >
+            <IonButton fill="outline" onClick={onClose} style={{ marginTop: '16px' }}>
               CLOSE
             </IonButton>
           </div>
         ) : (
           <IonList>
-            {piggeries.map((p) => {
-              const isAssigned = assignedPiggeries.includes(p.id);
-              const isAlreadyAssigned = p.client_id && p.client_id !== clientId;
+            {livestock.map((l) => {
+              const isAssigned = assignedLivestock.includes(l.id);
+              const isAlreadyAssigned = l.client_id && l.client_id !== clientId;
               
               return (
-                <IonItem key={p.id} disabled={isAlreadyAssigned}>
+                <IonItem key={l.id} disabled={isAlreadyAssigned}>
                   <IonLabel>
-                    <h2>{p.piggery_name}</h2>
-                    <p>SERIAL: {p.piggery_serial}</p>
-                    {p.location && <p>LOCATION: {p.location}</p>}
-                    {p.client_id && p.client_id !== clientId && (
+                    <h2>{l.livestock_name}</h2>
+                    <p>SERIAL: {l.livestock_serial}</p>
+                    {l.location && <p>LOCATION: {l.location}</p>}
+                    {l.client_id && l.client_id !== clientId && (
                       <IonChip color="warning">
                         <IonIcon icon={closeCircleOutline} />
                         <IonLabel>ASSIGNED TO ANOTHER CLIENT</IonLabel>
@@ -215,7 +211,7 @@ export default function AssignPiggeryModal({
                   {!isAlreadyAssigned && (
                     <IonCheckbox
                       checked={isAssigned}
-                      onIonChange={() => togglePiggery(p.id)}
+                      onIonChange={() => toggleLivestock(l.id)}
                     />
                   )}
                 </IonItem>
@@ -227,7 +223,7 @@ export default function AssignPiggeryModal({
         <IonButton
           expand="block"
           onClick={saveAssignment}
-          disabled={saving || piggeries.length === 0 || loading}
+          disabled={saving || livestock.length === 0 || loading}
           style={{ marginTop: '16px' }}
         >
           {saving ? (

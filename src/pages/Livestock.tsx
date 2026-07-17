@@ -13,6 +13,7 @@ import {
   IonButtons,
   IonSelect,
   IonSelectOption,
+  IonSpinner,
   IonBadge,
   IonIcon,
   IonChip,
@@ -34,16 +35,16 @@ import DeleteAlert from '../components/DeleteAlert';
 import ConfirmAlert from '../components/ConfirmAlert';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { usePiggeries } from '../hooks/usePiggeries';
+import { useLivestock } from '../hooks/useLivestock';
 
-export default function Piggeries() {
-  const { piggeries, loading, deviceCounts, fetchPiggeries } = usePiggeries();
+export default function Livestock() {
+  const { livestock, loading, deviceCounts, fetchLivestock } = useLivestock();
   const [clients, setClients] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteAlert, setShowDeleteAlert] = useState(false);
   const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
-  const [selectedPiggery, setSelectedPiggery] = useState<any>(null);
+  const [selectedLivestock, setSelectedLivestock] = useState<any>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState('success');
@@ -52,8 +53,8 @@ export default function Piggeries() {
   const [sortOrder, setSortOrder] = useState('desc');
 
   const [form, setForm] = useState({
-    piggery_serial: '',
-    piggery_name: '',
+    livestock_serial: '',
+    livestock_name: '',
     location: '',
     client_id: ''
   });
@@ -70,14 +71,14 @@ export default function Piggeries() {
     setClients(data || []);
   };
 
-  const filteredPiggeries = piggeries.filter(p => {
+  const filteredLivestock = livestock.filter(l => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
-      p.piggery_name?.toLowerCase().includes(term) ||
-      p.piggery_serial?.toLowerCase().includes(term) ||
-      p.location?.toLowerCase().includes(term) ||
-      p.clients?.full_name?.toLowerCase().includes(term)
+      l.livestock_name?.toLowerCase().includes(term) ||
+      l.livestock_serial?.toLowerCase().includes(term) ||
+      l.location?.toLowerCase().includes(term) ||
+      l.clients?.full_name?.toLowerCase().includes(term)
     );
   }).sort((a, b) => {
     let aVal = a[sortBy] || '';
@@ -96,16 +97,16 @@ export default function Piggeries() {
   });
 
   const handleCreate = async () => {
-    if (!form.piggery_serial || !form.piggery_name || !form.client_id) {
+    if (!form.livestock_serial || !form.livestock_name || !form.client_id) {
       setToastMessage('Please fill in all required fields');
       setToastColor('danger');
       setShowToast(true);
       return;
     }
 
-    const { error } = await supabase.from('piggeries').insert([{
-      piggery_serial: form.piggery_serial,
-      piggery_name: form.piggery_name,
+    const { error } = await supabase.from('livestock').insert([{
+      livestock_serial: form.livestock_serial,
+      livestock_name: form.livestock_name,
       location: form.location || null,
       client_id: parseInt(form.client_id)
     }]);
@@ -117,24 +118,24 @@ export default function Piggeries() {
       return;
     }
 
-    setToastMessage('Piggery created');
+    setToastMessage('Livestock created');
     setToastColor('success');
     setShowToast(true);
     setShowModal(false);
-    setForm({ piggery_serial: '', piggery_name: '', location: '', client_id: '' });
-    fetchPiggeries();
+    setForm({ livestock_serial: '', livestock_name: '', location: '', client_id: '' });
+    fetchLivestock();
   };
 
   const handleUpdate = async () => {
     const { error } = await supabase
-      .from('piggeries')
+      .from('livestock')
       .update({
-        piggery_serial: form.piggery_serial,
-        piggery_name: form.piggery_name,
+        livestock_serial: form.livestock_serial,
+        livestock_name: form.livestock_name,
         location: form.location || null,
         client_id: parseInt(form.client_id)
       })
-      .eq('id', selectedPiggery.id);
+      .eq('id', selectedLivestock.id);
 
     if (error) {
       setToastMessage('Error: ' + error.message);
@@ -143,18 +144,18 @@ export default function Piggeries() {
       return;
     }
 
-    setToastMessage('Piggery updated');
+    setToastMessage('Livestock updated');
     setToastColor('success');
     setShowToast(true);
     setShowUpdateConfirm(false);
     setShowEditModal(false);
-    setSelectedPiggery(null);
-    fetchPiggeries();
+    setSelectedLivestock(null);
+    fetchLivestock();
   };
 
   const handleDelete = async () => {
-    const deviceCount = deviceCounts[selectedPiggery.id] || 0;
-    const { error } = await supabase.from('piggeries').delete().eq('id', selectedPiggery.id);
+    const deviceCount = deviceCounts[selectedLivestock.id] || 0;
+    const { error } = await supabase.from('livestock').delete().eq('id', selectedLivestock.id);
 
     if (error) {
       setToastMessage('Error: ' + error.message);
@@ -167,23 +168,23 @@ export default function Piggeries() {
     setToastColor('success');
     setShowToast(true);
     setShowDeleteAlert(false);
-    setSelectedPiggery(null);
-    fetchPiggeries();
+    setSelectedLivestock(null);
+    fetchLivestock();
   };
 
-  const openEditModal = (piggery: any) => {
-    setSelectedPiggery(piggery);
+  const openEditModal = (item: any) => {
+    setSelectedLivestock(item);
     setForm({
-      piggery_serial: piggery.piggery_serial || '',
-      piggery_name: piggery.piggery_name || '',
-      location: piggery.location || '',
-      client_id: piggery.client_id?.toString() || ''
+      livestock_serial: item.livestock_serial || '',
+      livestock_name: item.livestock_name || '',
+      location: item.location || '',
+      client_id: item.client_id?.toString() || ''
     });
     setShowEditModal(true);
   };
 
-  const openDeleteAlert = (piggery: any) => {
-    setSelectedPiggery(piggery);
+  const openDeleteAlert = (item: any) => {
+    setSelectedLivestock(item);
     setShowDeleteAlert(true);
   };
 
@@ -200,7 +201,7 @@ export default function Piggeries() {
     <IonPage>
       <IonHeader>
         <IonToolbar>
-          <IonTitle>PIGGERIES</IonTitle>
+          <IonTitle>LIVESTOCK</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={() => setShowModal(true)}>
               <IonIcon icon={addOutline} /> ADD
@@ -209,7 +210,7 @@ export default function Piggeries() {
         </IonToolbar>
         <IonToolbar>
           <IonSearchbar
-            placeholder="SEARCH PIGGERIES..."
+            placeholder="SEARCH LIVESTOCK..."
             value={searchTerm}
             onIonChange={(e) => setSearchTerm(e.detail.value || '')}
             animated
@@ -219,17 +220,17 @@ export default function Piggeries() {
           <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap' }}>
             <IonButton 
               size="small" 
-              fill={sortBy === 'piggery_name' ? 'solid' : 'outline'}
-              onClick={() => handleSort('piggery_name')}
+              fill={sortBy === 'livestock_name' ? 'solid' : 'outline'}
+              onClick={() => handleSort('livestock_name')}
             >
-              NAME {sortBy === 'piggery_name' && (sortOrder === 'asc' ? '▲' : '▼')}
+              NAME {sortBy === 'livestock_name' && (sortOrder === 'asc' ? '▲' : '▼')}
             </IonButton>
             <IonButton 
               size="small" 
-              fill={sortBy === 'piggery_serial' ? 'solid' : 'outline'}
-              onClick={() => handleSort('piggery_serial')}
+              fill={sortBy === 'livestock_serial' ? 'solid' : 'outline'}
+              onClick={() => handleSort('livestock_serial')}
             >
-              SERIAL {sortBy === 'piggery_serial' && (sortOrder === 'asc' ? '▲' : '▼')}
+              SERIAL {sortBy === 'livestock_serial' && (sortOrder === 'asc' ? '▲' : '▼')}
             </IonButton>
             <IonButton 
               size="small" 
@@ -264,33 +265,33 @@ export default function Piggeries() {
       <IonContent className="ion-padding">
         {loading ? (
           <LoadingSpinner />
-        ) : filteredPiggeries.length === 0 ? (
+        ) : filteredLivestock.length === 0 ? (
           <EmptyState
-            title="NO PIGGERIES FOUND"
-            message={searchTerm ? 'TRY A DIFFERENT SEARCH' : 'CLICK ADD TO CREATE YOUR FIRST PIGGERY'}
+            title="NO LIVESTOCK FOUND"
+            message={searchTerm ? 'TRY A DIFFERENT SEARCH' : 'CLICK ADD TO CREATE YOUR FIRST LIVESTOCK'}
           />
         ) : (
           <IonList>
-            {filteredPiggeries.map((p) => (
-              <IonItem key={p.id}>
+            {filteredLivestock.map((l) => (
+              <IonItem key={l.id}>
                 <IonLabel>
-                  <h2>{p.piggery_name}</h2>
-                  <p>SERIAL: {p.piggery_serial}</p>
-                  <p>LOCATION: {p.location || 'NOT SPECIFIED'}</p>
+                  <h2>{l.livestock_name}</h2>
+                  <p>SERIAL: {l.livestock_serial}</p>
+                  <p>LOCATION: {l.location || 'NOT SPECIFIED'}</p>
                   <p>
-                    <IonIcon icon={personOutline} /> OWNER: {p.clients?.full_name || 'UNASSIGNED'}
+                    <IonIcon icon={personOutline} /> OWNER: {l.clients?.full_name || 'UNASSIGNED'}
                   </p>
                 </IonLabel>
                 <div style={{ textAlign: 'right' }}>
-                  <IonBadge color="primary">{deviceCounts[p.id] || 0} DEVICES</IonBadge>
-                  <IonChip color={p.clients ? 'success' : 'warning'}>
-                    {p.clients ? 'ASSIGNED' : 'UNASSIGNED'}
+                  <IonBadge color="primary">{deviceCounts[l.id] || 0} DEVICES</IonBadge>
+                  <IonChip color={l.clients ? 'success' : 'warning'}>
+                    {l.clients ? 'ASSIGNED' : 'UNASSIGNED'}
                   </IonChip>
                   <div style={{ display: 'flex', gap: '4px', marginTop: '4px', justifyContent: 'flex-end' }}>
-                    <IonButton size="small" fill="clear" color="primary" onClick={() => openEditModal(p)}>
+                    <IonButton size="small" fill="clear" color="primary" onClick={() => openEditModal(l)}>
                       <IonIcon icon={createOutline} />
                     </IonButton>
-                    <IonButton size="small" fill="clear" color="danger" onClick={() => openDeleteAlert(p)}>
+                    <IonButton size="small" fill="clear" color="danger" onClick={() => openDeleteAlert(l)}>
                       <IonIcon icon={trashOutline} />
                     </IonButton>
                   </div>
@@ -300,23 +301,22 @@ export default function Piggeries() {
           </IonList>
         )}
 
-        {/* Create Modal */}
         <IonModal isOpen={showModal}>
           <IonHeader>
             <IonToolbar>
-              <IonTitle>CREATE PIGGERY</IonTitle>
+              <IonTitle>CREATE LIVESTOCK</IonTitle>
               <IonButtons slot="end">
                 <IonButton onClick={() => setShowModal(false)}>CLOSE</IonButton>
               </IonButtons>
             </IonToolbar>
           </IonHeader>
           <IonContent className="ion-padding">
-            <IonInput label="SERIAL" labelPlacement="floating" placeholder="PIG-001"
-              value={form.piggery_serial}
-              onIonChange={(e) => setForm({ ...form, piggery_serial: e.detail.value?.toUpperCase() || '' })} />
-            <IonInput label="NAME" labelPlacement="floating" placeholder="MAIN PIGGERY"
-              value={form.piggery_name}
-              onIonChange={(e) => setForm({ ...form, piggery_name: e.detail.value?.toUpperCase() || '' })} />
+            <IonInput label="SERIAL" labelPlacement="floating" placeholder="LV-001"
+              value={form.livestock_serial}
+              onIonChange={(e) => setForm({ ...form, livestock_serial: e.detail.value?.toUpperCase() || '' })} />
+            <IonInput label="NAME" labelPlacement="floating" placeholder="MAIN LIVESTOCK"
+              value={form.livestock_name}
+              onIonChange={(e) => setForm({ ...form, livestock_name: e.detail.value?.toUpperCase() || '' })} />
             <IonInput label="LOCATION" labelPlacement="floating" placeholder="LAGUNA"
               value={form.location}
               onIonChange={(e) => setForm({ ...form, location: e.detail.value?.toUpperCase() || '' })} />
@@ -331,23 +331,22 @@ export default function Piggeries() {
           </IonContent>
         </IonModal>
 
-        {/* Edit Modal */}
         <IonModal isOpen={showEditModal}>
           <IonHeader>
             <IonToolbar>
-              <IonTitle>EDIT PIGGERY</IonTitle>
+              <IonTitle>EDIT LIVESTOCK</IonTitle>
               <IonButtons slot="end">
                 <IonButton onClick={() => setShowEditModal(false)}>CLOSE</IonButton>
               </IonButtons>
             </IonToolbar>
           </IonHeader>
           <IonContent className="ion-padding">
-            <IonInput label="SERIAL" labelPlacement="floating" placeholder="PIG-001"
-              value={form.piggery_serial}
-              onIonChange={(e) => setForm({ ...form, piggery_serial: e.detail.value?.toUpperCase() || '' })} />
-            <IonInput label="NAME" labelPlacement="floating" placeholder="MAIN PIGGERY"
-              value={form.piggery_name}
-              onIonChange={(e) => setForm({ ...form, piggery_name: e.detail.value?.toUpperCase() || '' })} />
+            <IonInput label="SERIAL" labelPlacement="floating" placeholder="LV-001"
+              value={form.livestock_serial}
+              onIonChange={(e) => setForm({ ...form, livestock_serial: e.detail.value?.toUpperCase() || '' })} />
+            <IonInput label="NAME" labelPlacement="floating" placeholder="MAIN LIVESTOCK"
+              value={form.livestock_name}
+              onIonChange={(e) => setForm({ ...form, livestock_name: e.detail.value?.toUpperCase() || '' })} />
             <IonInput label="LOCATION" labelPlacement="floating" placeholder="LAGUNA"
               value={form.location}
               onIonChange={(e) => setForm({ ...form, location: e.detail.value?.toUpperCase() || '' })} />
@@ -366,16 +365,16 @@ export default function Piggeries() {
           isOpen={showUpdateConfirm}
           onClose={() => setShowUpdateConfirm(false)}
           onConfirm={handleUpdate}
-          title="UPDATE PIGGERY?"
-          message={`Update "${selectedPiggery?.piggery_name}"?`}
+          title="UPDATE LIVESTOCK?"
+          message={`Update "${selectedLivestock?.livestock_name}"?`}
         />
 
         <DeleteAlert
           isOpen={showDeleteAlert}
           onClose={() => setShowDeleteAlert(false)}
           onConfirm={handleDelete}
-          title="DELETE PIGGERY?"
-          message={`Delete "${selectedPiggery?.piggery_name}"? ${deviceCounts[selectedPiggery?.id] || 0} devices will be removed.`}
+          title="DELETE LIVESTOCK?"
+          message={`Delete "${selectedLivestock?.livestock_name}"? ${deviceCounts[selectedLivestock?.id] || 0} devices will be removed.`}
           requireTypeConfirm={true}
           typeConfirmText="DELETE"
         />

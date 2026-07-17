@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 
-export function usePiggeries() {
-  const [piggeries, setPiggeries] = useState<any[]>([]);
+export function useLivestock() {
+  const [livestock, setLivestock] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [deviceCounts, setDeviceCounts] = useState<Record<number, number>>({});
 
-  const fetchPiggeries = async () => {
+  const fetchLivestock = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('piggeries')
+        .from('livestock')
         .select(`
           *,
           clients (
@@ -24,27 +24,27 @@ export function usePiggeries() {
 
       if (error) throw error;
 
-      setPiggeries(data || []);
+      setLivestock(data || []);
 
       const counts: Record<number, number> = {};
-      for (const piggery of data || []) {
+      for (const item of data || []) {
         const { count } = await supabase
           .from('devices')
           .select('id', { count: 'exact', head: true })
-          .eq('piggery_id', piggery.id);
-        counts[piggery.id] = count || 0;
+          .eq('livestock_id', item.id);
+        counts[item.id] = count || 0;
       }
       setDeviceCounts(counts);
     } catch (err) {
-      console.error('Error fetching piggeries:', err);
+      console.error('Error fetching livestock:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPiggeries();
+    fetchLivestock();
   }, []);
 
-  return { piggeries, setPiggeries, loading, deviceCounts, fetchPiggeries };
+  return { livestock, setLivestock, loading, deviceCounts, fetchLivestock };
 }

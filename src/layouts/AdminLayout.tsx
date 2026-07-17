@@ -164,15 +164,15 @@ export default function AdminLayout({ children }: any) {
 
             <IonItem 
               button 
-              onClick={() => history.push('/piggeries')}
-              color={isActive('/piggeries') ? 'primary' : undefined}
-              style={isActive('/piggeries') ? { 
+              onClick={() => history.push('/livestock')}
+              color={isActive('/livestock') ? 'primary' : undefined}
+              style={isActive('/livestock') ? { 
                 borderLeft: '4px solid var(--ion-color-primary)',
                 fontWeight: 'bold'
               } : {}}
             >
               <IonIcon icon={businessOutline} slot="start" />
-              <IonLabel>PIGGERIES</IonLabel>
+              <IonLabel>LIVESTOCK</IonLabel>
             </IonItem>
 
             <IonItem 

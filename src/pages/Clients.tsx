@@ -34,7 +34,7 @@ import DeleteAlert from '../components/DeleteAlert';
 import ConfirmAlert from '../components/ConfirmAlert';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
-import AssignPiggeryModal from '../components/AssignPiggeryModal';
+import AssignLivestockModal from '../components/AssignLivestockModal';
 import { useClients } from '../hooks/useClients';
 
 export default function Clients() {
@@ -238,7 +238,6 @@ export default function Clients() {
           </IonList>
         )}
 
-        {/* Edit Modal */}
         <IonModal isOpen={showEditModal}>
           <IonHeader>
             <IonToolbar>
@@ -272,13 +271,13 @@ export default function Clients() {
           onClose={() => setShowDeleteAlert(false)}
           onConfirm={handleDelete}
           title="DELETE CLIENT?"
-          message={`Delete "${selectedClient?.full_name}"? This will also delete all their piggeries and devices.`}
+          message={`Delete "${selectedClient?.full_name}"? This will also delete all their livestock and devices.`}
           requireTypeConfirm={true}
           typeConfirmText="DELETE"
         />
 
         {selectedClient && (
-          <AssignPiggeryModal
+          <AssignLivestockModal
             isOpen={showAssignModal}
             onClose={() => {
               setShowAssignModal(false);

@@ -3,7 +3,7 @@ import { supabase } from '../services/supabase';
 
 export function useDashboardData() {
   const [stats, setStats] = useState({
-    piggeries: 0,
+    livestock: 0,
     devices: 0,
     alerts: 0,
     clients: 0,
@@ -19,9 +19,9 @@ export function useDashboardData() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // 1. Get basic stats
-      const [piggeriesRes, devicesRes, alertsRes, clientsRes, sensorRes] = await Promise.all([
-        supabase.from('piggeries').select('id', { count: 'exact', head: true }),
+      // Get stats
+      const [livestockRes, devicesRes, alertsRes, clientsRes, sensorRes] = await Promise.all([
+        supabase.from('livestock').select('id', { count: 'exact', head: true }),
         supabase.from('devices').select('id', { count: 'exact', head: true }),
         supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('is_read', false),
         supabase.from('clients').select('id', { count: 'exact', head: true }),
@@ -29,52 +29,46 @@ export function useDashboardData() {
       ]);
 
       setStats({
-        piggeries: piggeriesRes.count || 0,
+        livestock: livestockRes.count || 0,
         devices: devicesRes.count || 0,
         alerts: alertsRes.count || 0,
         clients: clientsRes.count || 0,
         sensorReadings: sensorRes.count || 0
       });
 
-      // 2. Fetch ammonia trend data (last 7 days)
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      
-      const { data: ammoniaData } = await supabase
+      // Fetch ammonia trend data - NO DATE FILTER (get all data)
+      const { data: ammoniaData, error: ammoniaError } = await supabase
         .from('sensor_data')
         .select('ammonia, created_at')
-        .gte('created_at', sevenDaysAgo.toISOString())
         .order('created_at', { ascending: true });
 
-      // 3. Fetch alert severity distribution
+      console.log('Ammonia Data (raw):', ammoniaData);
+      console.log('Ammonia Data count:', ammoniaData?.length || 0);
+
+      // Fetch alert severity distribution
       const { data: severityData } = await supabase
         .from('alerts')
         .select('severity');
 
-      // 4. Fetch alert trend (last 7 days)
+      // Fetch alert trend - NO DATE FILTER
       const { data: alertTrendData } = await supabase
         .from('alerts')
-        .select('created_at')
-        .gte('created_at', sevenDaysAgo.toISOString());
+        .select('created_at');
 
-      // 5. Fetch device status distribution
+      // Fetch device status distribution
       const { data: deviceStatusData } = await supabase
         .from('devices')
         .select('status');
 
-      // 6. Fetch top alerting devices (last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
+      // Fetch top alerting devices
       const { data: topDevices } = await supabase
         .from('alerts')
         .select('device_uid')
-        .gte('created_at', thirtyDaysAgo.toISOString())
         .limit(1000);
 
-      // 7. Fetch clients with most piggeries
-      const { data: clientPiggeries } = await supabase
-        .from('piggeries')
+      // Fetch clients with most livestock
+      const { data: clientLivestock } = await supabase
+        .from('livestock')
         .select('clients(full_name)');
 
       // Process data for charts
@@ -84,7 +78,7 @@ export function useDashboardData() {
         alertTrendData || [],
         deviceStatusData || [],
         topDevices || [],
-        clientPiggeries || []
+        clientLivestock || []
       );
 
       setChartData(processedData);
@@ -102,59 +96,54 @@ export function useDashboardData() {
     alertTrendData: any[],
     deviceStatusData: any[],
     topDevices: any[],
-    clientPiggeries: any[]
+    clientLivestock: any[]
   ) => {
-    const ammoniaTrend = processAmmoniaTrend(ammoniaData);
-    const alertSeverity = processAlertSeverity(severityData);
-    const alertTrend = processAlertTrend(alertTrendData);
-    const deviceStatus = processDeviceStatus(deviceStatusData);
-    const topAlertingDevices = processTopDevices(topDevices);
-    const clientsPiggeries = processClientPiggeries(clientPiggeries);
-
-    return {
-      ammoniaTrend,
-      alertSeverity,
-      alertTrend,
-      deviceStatus,
-      topAlertingDevices,
-      clientsPiggeries
-    };
-  };
-
-  const processAmmoniaTrend = (data: any[]) => {
+    // ============================================
+    // Process Ammonia Trend
+    // ============================================
     const grouped: Record<string, number[]> = {};
     
-    data.forEach((item) => {
-      const date = new Date(item.created_at).toLocaleDateString();
-      if (!grouped[date]) grouped[date] = [];
-      grouped[date].push(item.ammonia || 0);
-    });
+    if (ammoniaData && ammoniaData.length > 0) {
+      ammoniaData.forEach((item) => {
+        if (item.ammonia !== null && item.ammonia !== undefined) {
+          const date = new Date(item.created_at);
+          const dateKey = date.toISOString().split('T')[0];
+          if (!grouped[dateKey]) grouped[dateKey] = [];
+          grouped[dateKey].push(item.ammonia);
+        }
+      });
+    }
 
-    const labels = Object.keys(grouped).slice(-7);
+    const sortedDates = Object.keys(grouped).sort();
+    const labels = sortedDates;
     const values = labels.map((key) => {
       const avg = grouped[key].reduce((a, b) => a + b, 0) / grouped[key].length;
-      return Math.round(avg);
+      return Math.round(avg * 10) / 10;
     });
 
-    return {
-      labels,
+    console.log('Ammonia labels:', labels);
+    console.log('Ammonia values:', values);
+
+    const ammoniaTrend = {
+      labels: labels.length > 0 ? labels : ['No Data'],
       datasets: [{
         label: 'Average Ammonia (ppm)',
-        data: values,
+        data: values.length > 0 ? values : [0],
         borderColor: '#3880ff',
         backgroundColor: 'rgba(56, 128, 255, 0.2)',
         fill: true,
         tension: 0.4,
       }],
     };
-  };
 
-  const processAlertSeverity = (data: any[]) => {
-    const severe = data.filter((d) => d.severity === 'SEVERE').length;
-    const moderate = data.filter((d) => d.severity === 'MODERATE').length;
-    const low = data.filter((d) => d.severity === 'LOW').length;
+    // ============================================
+    // Process Alert Severity
+    // ============================================
+    const severe = severityData?.filter((d) => d.severity === 'SEVERE').length || 0;
+    const moderate = severityData?.filter((d) => d.severity === 'MODERATE').length || 0;
+    const low = severityData?.filter((d) => d.severity === 'LOW').length || 0;
 
-    return {
+    const alertSeverity = {
       labels: ['SEVERE', 'MODERATE', 'LOW'],
       datasets: [{
         data: [severe, moderate, low],
@@ -163,18 +152,19 @@ export function useDashboardData() {
         borderWidth: 1,
       }],
     };
-  };
 
-  const processAlertTrend = (data: any[]) => {
+    // ============================================
+    // Process Alert Trend
+    // ============================================
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const counts = days.map(() => 0);
 
-    data.forEach((item) => {
+    alertTrendData?.forEach((item) => {
       const day = new Date(item.created_at).getDay();
       counts[day] += 1;
     });
 
-    return {
+    const alertTrend = {
       labels: days,
       datasets: [{
         label: 'Alerts',
@@ -184,14 +174,15 @@ export function useDashboardData() {
         borderWidth: 1,
       }],
     };
-  };
 
-  const processDeviceStatus = (data: any[]) => {
-    const active = data.filter((d) => d.status === 'ACTIVE').length;
-    const inactive = data.filter((d) => d.status === 'INACTIVE').length;
-    const pending = data.filter((d) => d.status === 'PENDING' || !d.status).length;
+    // ============================================
+    // Process Device Status
+    // ============================================
+    const active = deviceStatusData?.filter((d) => d.status === 'ACTIVE').length || 0;
+    const inactive = deviceStatusData?.filter((d) => d.status === 'INACTIVE').length || 0;
+    const pending = deviceStatusData?.filter((d) => d.status === 'PENDING' || !d.status).length || 0;
 
-    return {
+    const deviceStatus = {
       labels: ['ACTIVE', 'INACTIVE', 'PENDING'],
       datasets: [{
         data: [active, inactive, pending],
@@ -200,51 +191,62 @@ export function useDashboardData() {
         borderWidth: 1,
       }],
     };
-  };
 
-  const processTopDevices = (data: any[]) => {
+    // ============================================
+    // Process Top Alerting Devices
+    // ============================================
     const deviceCounts: Record<string, number> = {};
-    data.forEach((item) => {
+    topDevices?.forEach((item) => {
       const uid = item.device_uid || 'Unknown';
       deviceCounts[uid] = (deviceCounts[uid] || 0) + 1;
     });
 
-    const sorted = Object.entries(deviceCounts)
+    const sortedDevices = Object.entries(deviceCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
-    return {
-      labels: sorted.map(([uid]) => uid),
+    const topAlertingDevices = {
+      labels: sortedDevices.map(([uid]) => uid),
       datasets: [{
         label: 'Alerts',
-        data: sorted.map(([, count]) => count),
+        data: sortedDevices.map(([, count]) => count),
         backgroundColor: '#3880ff',
         borderColor: '#3880ff',
         borderWidth: 1,
       }],
     };
-  };
 
-  const processClientPiggeries = (data: any[]) => {
+    // ============================================
+    // Process Clients with Most Livestock
+    // ============================================
     const clientCounts: Record<string, number> = {};
-    data.forEach((item: any) => {
+    clientLivestock?.forEach((item: any) => {
       const name = item.clients?.full_name || 'Unknown';
       clientCounts[name] = (clientCounts[name] || 0) + 1;
     });
 
-    const sorted = Object.entries(clientCounts)
+    const sortedClients = Object.entries(clientCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
-    return {
-      labels: sorted.map(([name]) => name),
+    const clientsLivestock = {
+      labels: sortedClients.map(([name]) => name),
       datasets: [{
-        label: 'Piggeries',
-        data: sorted.map(([, count]) => count),
+        label: 'Livestock',
+        data: sortedClients.map(([, count]) => count),
         backgroundColor: '#3dc2ff',
         borderColor: '#3dc2ff',
         borderWidth: 1,
       }],
+    };
+
+    return {
+      ammoniaTrend,
+      alertSeverity,
+      alertTrend,
+      deviceStatus,
+      topAlertingDevices,
+      clientsLivestock
     };
   };
 
