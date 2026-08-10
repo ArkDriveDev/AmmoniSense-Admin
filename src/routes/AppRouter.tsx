@@ -9,7 +9,6 @@ import Clients from '../pages/Clients';
 import Livestock from '../pages/Livestock';
 import Devices from '../pages/Devices';
 import SensorData from '../pages/SensorData';
-import Notifications from '../pages/Notifications';
 
 import ProtectedRoute from '../components/ProtectedRoute';
 import AdminLayout from '../layouts/AdminLayout';
@@ -118,17 +117,6 @@ export default function AppRouter() {
           <ProtectedRoute>
             <AdminLayout>
               <SensorData />
-            </AdminLayout>
-          </ProtectedRoute>
-        )}
-      />
-
-      <Route
-        path="/notifications"
-        render={() => (
-          <ProtectedRoute>
-            <AdminLayout>
-              <Notifications />
             </AdminLayout>
           </ProtectedRoute>
         )}
