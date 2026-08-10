@@ -24,19 +24,22 @@ export default function AppRouter() {
 
   const checkAdminExists = async () => {
     try {
-      console.log('AppRouter: Checking if admin exists via RPC...');
+      console.log('AppRouter: Checking if admin exists...');
       
-      const { data, error } = await supabase
-        .rpc('check_admin_exists');
+      const { data, error } = await supabase.rpc('check_admin_exists');
 
-      console.log('AppRouter: RPC Result:', data, error);
-
-      if (error) {
-        console.error('AppRouter: RPC Error:', error);
-        setHasAdmin(false);
-      } else {
-        setHasAdmin(data === true);
+      if (!error && data === true) {
+        setHasAdmin(true);
+        return;
       }
+
+      // Direct fallback query on profiles table for menro_admin role
+      const { count } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'menro_admin');
+
+      setHasAdmin((count || 0) > 0);
     } catch (err) {
       console.error('AppRouter: Unexpected error:', err);
       setHasAdmin(false);
