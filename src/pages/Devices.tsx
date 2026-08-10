@@ -15,7 +15,6 @@ import {
   IonButtons,
   IonBadge,
   IonIcon,
-  IonChip,
   IonToast,
   IonSearchbar
 } from '@ionic/react';
@@ -38,7 +37,7 @@ import MapViewerModal from '../components/map/MapViewerModal';
 export default function Devices() {
   const [devices, setDevices] = useState<any[]>([]);
   const [filteredDevices, setFilteredDevices] = useState<any[]>([]);
-  const [livestock, setLivestock] = useState<any[]>([]);
+  const [sites, setSites] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -57,7 +56,7 @@ export default function Devices() {
   const [mapTargetDevice, setMapTargetDevice] = useState<any>(null);
 
   const [form, setForm] = useState({
-    livestock_id: '',
+    site_id: '',
     device_uid: '',
     firmware_version: '',
     status: 'ACTIVE'
@@ -78,7 +77,7 @@ export default function Devices() {
       const term = searchTerm.toLowerCase();
       result = result.filter(d =>
         d.device_uid?.toLowerCase().includes(term) ||
-        d.livestock?.livestock_name?.toLowerCase().includes(term) ||
+        d.monitoring_sites?.site_name?.toLowerCase().includes(term) ||
         d.firmware_version?.toLowerCase().includes(term) ||
         d.status?.toLowerCase().includes(term)
       );
@@ -88,9 +87,9 @@ export default function Devices() {
       let aVal = a[sortBy] || '';
       let bVal = b[sortBy] || '';
       
-      if (sortBy === 'livestock_name') {
-        aVal = a.livestock?.livestock_name || '';
-        bVal = b.livestock?.livestock_name || '';
+      if (sortBy === 'site_name') {
+        aVal = a.monitoring_sites?.site_name || '';
+        bVal = b.monitoring_sites?.site_name || '';
       }
       
       if (typeof aVal === 'string') {
@@ -109,7 +108,7 @@ export default function Devices() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [devicesRes, livestockRes] = await Promise.all([
+      const [devicesRes, sitesRes] = await Promise.all([
         supabase
           .from('devices')
           .select(`
@@ -117,30 +116,26 @@ export default function Devices() {
             monitoring_sites (
               id,
               site_name,
+              site_code,
               current_latitude,
               current_longitude,
-              current_grid_cell_id
-            ),
-            livestock (
-              id,
-              livestock_name,
-              livestock_serial,
-              clients (
+              current_grid_cell_id,
+              site_owners (
                 id,
-                full_name
+                owner_name
               )
             )
           `)
           .order('installed_at', { ascending: false }),
         supabase
-          .from('livestock')
+          .from('monitoring_sites')
           .select(`
             id, 
-            livestock_name, 
-            livestock_serial,
-            clients (
+            site_name, 
+            site_code,
+            site_owners (
               id,
-              full_name
+              owner_name
             )
           `)
       ]);
@@ -153,16 +148,8 @@ export default function Devices() {
         return;
       }
 
-      if (livestockRes.error) {
-        console.error('Error fetching livestock:', livestockRes.error);
-        setToastMessage('Failed to fetch livestock: ' + livestockRes.error.message);
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
       setDevices(devicesRes.data || []);
-      setLivestock(livestockRes.data || []);
+      setSites(sitesRes.data || []);
     } catch (err) {
       console.error('Unexpected error:', err);
       setToastMessage('An unexpected error occurred');
@@ -184,6 +171,7 @@ export default function Devices() {
 
       const { error } = await supabase.from('devices').insert([{
         device_uid: form.device_uid,
+        site_id: form.site_id ? parseInt(form.site_id) : null,
         status: form.status || 'ACTIVE',
         firmware_version: form.firmware_version || '1.0.0',
         installed_at: new Date().toISOString()
@@ -201,7 +189,7 @@ export default function Devices() {
       setToastColor('success');
       setShowToast(true);
       setShowModal(false);
-      setForm({ device_uid: '', livestock_id: '', firmware_version: '', status: 'ACTIVE' });
+      setForm({ device_uid: '', site_id: '', firmware_version: '', status: 'ACTIVE' });
       fetchData();
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -224,6 +212,7 @@ export default function Devices() {
         .from('devices')
         .update({
           device_uid: form.device_uid,
+          site_id: form.site_id ? parseInt(form.site_id) : null,
           status: form.status || 'ACTIVE',
           firmware_version: form.firmware_version || '1.0.0'
         })
@@ -327,6 +316,13 @@ export default function Devices() {
             </IonButton>
             <IonButton 
               size="small" 
+              fill={sortBy === 'site_name' ? 'solid' : 'outline'}
+              onClick={() => handleSort('site_name')}
+            >
+              SITE {sortBy === 'site_name' && (sortOrder === 'asc' ? '▲' : '▼')}
+            </IonButton>
+            <IonButton 
+              size="small" 
               fill={sortBy === 'status' ? 'solid' : 'outline'}
               onClick={() => handleSort('status')}
             >
@@ -355,8 +351,7 @@ export default function Devices() {
           <IonList style={{ background: 'transparent' }}>
             {filteredDevices.map((d) => {
               const site = d.monitoring_sites;
-              const lat = site?.current_latitude || 14.5995;
-              const lng = site?.current_longitude || 120.9842;
+              const owner = site?.site_owners?.owner_name;
 
               return (
                 <IonItem key={d.id} style={{ '--background': '#ffffff', borderRadius: '10px', marginBottom: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
@@ -368,6 +363,7 @@ export default function Devices() {
                     <p style={{ color: '#475569' }}>
                       <IonIcon icon={businessOutline} style={{ marginRight: '4px' }} />
                       SITE: {site?.site_name || 'UNASSIGNED SITE'}
+                      {owner && <span style={{ color: '#64748b' }}> (OWNER: {owner})</span>}
                     </p>
                     <p style={{ color: '#64748b' }}>FIRMWARE: {d.firmware_version || '1.0.0'}</p>
                     <p style={{ fontSize: '12px', color: '#94a3b8' }}>INSTALLED: {new Date(d.installed_at).toLocaleDateString()}</p>
@@ -422,6 +418,21 @@ export default function Devices() {
               onIonChange={(e) => setForm({ ...form, firmware_version: e.detail.value || '' })}
               style={{ marginBottom: '16px' }}
             />
+
+            <IonSelect
+              label="ASSIGN MONITORING SITE"
+              labelPlacement="floating"
+              placeholder="CHOOSE A SITE"
+              value={form.site_id}
+              onIonChange={(e) => setForm({ ...form, site_id: e.detail.value })}
+              style={{ marginBottom: '16px' }}
+            >
+              {sites.map((s) => (
+                <IonSelectOption key={s.id} value={s.id}>
+                  {s.site_name} ({s.site_code})
+                </IonSelectOption>
+              ))}
+            </IonSelect>
 
             <IonSelect
               label="STATUS"
