@@ -24,7 +24,8 @@ export default function ProtectedRoute({ children }: any) {
           if (error) {
             console.error('Error fetching profile:', error);
           } else {
-            setIsAdmin(profile?.role?.toLowerCase() === 'admin');
+            const role = profile?.role?.toLowerCase() || '';
+            setIsAdmin(role === 'menro_admin' || role === 'admin' || role.includes('admin'));
           }
         }
       } catch (err) {
@@ -46,7 +47,8 @@ export default function ProtectedRoute({ children }: any) {
             .eq('id', session.user.id)
             .single()
             .then(({ data }) => {
-              setIsAdmin(data?.role?.toLowerCase() === 'admin');
+              const role = data?.role?.toLowerCase() || '';
+              setIsAdmin(role === 'menro_admin' || role === 'admin' || role.includes('admin'));
             });
         } else {
           setIsAdmin(false);
