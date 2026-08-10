@@ -8,23 +8,36 @@ export function useDevices() {
   const fetchDevices = async () => {
     setLoading(true);
     try {
+      // 1. Query devices table referencing monitoring_sites
       const { data, error } = await supabase
         .from('devices')
         .select(`
           *,
-          piggeries (
+          monitoring_sites (
             id,
-            piggery_name,
-            piggery_serial,
-            clients (
+            site_name,
+            site_code,
+            current_latitude,
+            current_longitude,
+            current_grid_cell_id,
+            site_owners (
               id,
-              full_name
+              owner_name
             )
           )
         `)
         .order('installed_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Fallback: simple devices query without relation join
+        const { data: simpleData } = await supabase
+          .from('devices')
+          .select('*')
+          .order('installed_at', { ascending: false });
+        setDevices(simpleData || []);
+        return;
+      }
+
       setDevices(data || []);
     } catch (err) {
       console.error('Error fetching devices:', err);

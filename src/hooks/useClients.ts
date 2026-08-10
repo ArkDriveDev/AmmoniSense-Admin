@@ -8,22 +8,33 @@ export function useClients() {
   const fetchClients = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select(`
-          *,
-          profiles (
-            id,
-            full_name,
-            role
-          )
-        `)
+      // 1. Try querying site_owners table (official schema)
+      const { data: ownersData, error: ownersErr } = await supabase
+        .from('site_owners')
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setClients(data || []);
+      if (!ownersErr && ownersData) {
+        setClients(ownersData.map(o => ({
+          ...o,
+          full_name: o.owner_name,
+          phone: o.contact_number,
+          email: o.email,
+          organization_name: o.address
+        })));
+        return;
+      }
+
+      // 2. Fallback query on clients table if site_owners query fails
+      const { data: clientsData, error: clientsErr } = await supabase
+        .from('clients')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (clientsErr) throw clientsErr;
+      setClients(clientsData || []);
     } catch (err) {
-      console.error('Error fetching clients:', err);
+      console.error('Error fetching site owners/clients:', err);
     } finally {
       setLoading(false);
     }
