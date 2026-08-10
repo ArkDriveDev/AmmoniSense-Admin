@@ -92,29 +92,18 @@ export default function Clients() {
       return;
     }
 
-    // Try site_owners insert first
-    const { error: ownersErr } = await supabase.from('site_owners').insert([{
+    const { error } = await supabase.from('site_owners').insert([{
       owner_name: form.full_name,
       contact_number: form.phone || null,
       email: form.email || null,
       address: form.organization_name || null
     }]);
 
-    if (ownersErr) {
-      // Fallback clients insert
-      const { error: clientsErr } = await supabase.from('clients').insert([{
-        full_name: form.full_name,
-        email: form.email || null,
-        phone: form.phone || null,
-        organization_name: form.organization_name || null
-      }]);
-
-      if (clientsErr) {
-        setToastMessage('Error: ' + clientsErr.message);
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
+    if (error) {
+      setToastMessage('Error creating site owner: ' + error.message);
+      setToastColor('danger');
+      setShowToast(true);
+      return;
     }
 
     setToastMessage('Site Owner created successfully');
@@ -126,7 +115,7 @@ export default function Clients() {
   };
 
   const handleEdit = async () => {
-    const { error: ownersErr } = await supabase
+    const { error } = await supabase
       .from('site_owners')
       .update({
         owner_name: form.full_name,
@@ -136,15 +125,11 @@ export default function Clients() {
       })
       .eq('id', selectedClient.id);
 
-    if (ownersErr) {
-      await supabase
-        .from('clients')
-        .update({
-          full_name: form.full_name,
-          phone: form.phone || null,
-          organization_name: form.organization_name || null
-        })
-        .eq('id', selectedClient.id);
+    if (error) {
+      setToastMessage('Error updating owner: ' + error.message);
+      setToastColor('danger');
+      setShowToast(true);
+      return;
     }
 
     setToastMessage('Owner details updated');
@@ -157,9 +142,13 @@ export default function Clients() {
   };
 
   const handleDelete = async () => {
-    const { error: ownersErr } = await supabase.from('site_owners').delete().eq('id', selectedClient.id);
-    if (ownersErr) {
-      await supabase.from('clients').delete().eq('id', selectedClient.id);
+    const { error } = await supabase.from('site_owners').delete().eq('id', selectedClient.id);
+
+    if (error) {
+      setToastMessage('Error deleting owner: ' + error.message);
+      setToastColor('danger');
+      setShowToast(true);
+      return;
     }
 
     setToastMessage('Owner record deleted');
@@ -183,7 +172,7 @@ export default function Clients() {
     <IonPage>
       <IonHeader>
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-          <IonTitle style={{ fontWeight: 'bold' }}>SITE OWNERS & CLIENTS</IonTitle>
+          <IonTitle style={{ fontWeight: 'bold' }}>SITE OWNERS</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={() => setShowAddModal(true)}>
               <IonIcon icon={addOutline} /> ADD OWNER
