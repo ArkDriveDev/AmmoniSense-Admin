@@ -18,21 +18,22 @@ export default function Setup() {
 
   const checkAdminExists = async () => {
     try {
-      console.log('Checking if admin exists via RPC...');
+      console.log('Checking if admin exists...');
       
-      // Use the database function that bypasses RLS
-      const { data, error } = await supabase
-        .rpc('check_admin_exists');
+      const { data, error } = await supabase.rpc('check_admin_exists');
 
-      console.log('RPC Result:', data, error);
-
-      if (error) {
-        console.error('RPC Error:', error);
-        // Fallback: Try a direct query with service role key?
-        setAdminExists(false);
-      } else {
-        setAdminExists(data === true);
+      if (!error && data === true) {
+        setAdminExists(true);
+        return;
       }
+
+      // Fallback query directly on profiles table
+      const { count } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'menro_admin');
+
+      setAdminExists((count || 0) > 0);
     } catch (err) {
       console.error('Unexpected error:', err);
       setAdminExists(false);
@@ -63,7 +64,7 @@ export default function Setup() {
         options: {
           data: {
             full_name: fullName,
-            role: 'admin'
+            role: 'menro_admin'
           }
         }
       });
@@ -89,7 +90,8 @@ export default function Setup() {
         .insert({
           id: data.user.id,
           full_name: fullName,
-          role: 'admin',
+          email: email,
+          role: 'menro_admin',
         });
 
       if (profileError) {
