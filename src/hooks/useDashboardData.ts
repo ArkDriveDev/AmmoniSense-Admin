@@ -3,10 +3,10 @@ import { supabase } from '../services/supabase';
 
 export function useDashboardData() {
   const [stats, setStats] = useState({
-    livestock: 0,
+    livestock: 0, // Monitoring Sites
     devices: 0,
     alerts: 0,
-    clients: 0,
+    clients: 0, // Site Owners
     sensorReadings: 0
   });
   const [chartData, setChartData] = useState<any>(null);
@@ -19,57 +19,57 @@ export function useDashboardData() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      // Get stats
-      const [livestockRes, devicesRes, alertsRes, clientsRes, sensorRes] = await Promise.all([
-        supabase.from('livestock').select('id', { count: 'exact', head: true }),
+      // 1. Get stats from official schema tables (monitoring_sites, devices, site_owners, sensor_data)
+      const [sitesRes, devicesRes, ownersRes, sensorRes, warningSensorRes] = await Promise.all([
+        supabase.from('monitoring_sites').select('id', { count: 'exact', head: true }),
         supabase.from('devices').select('id', { count: 'exact', head: true }),
-        supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('is_read', false),
-        supabase.from('clients').select('id', { count: 'exact', head: true }),
-        supabase.from('sensor_data').select('id', { count: 'exact', head: true })
+        supabase.from('site_owners').select('id', { count: 'exact', head: true }),
+        supabase.from('sensor_data').select('id', { count: 'exact', head: true }),
+        supabase.from('sensor_data').select('id', { count: 'exact', head: true }).or('status.eq.warning,status.eq.critical,ammonia.gt.25')
       ]);
 
       setStats({
-        livestock: livestockRes.count || 0,
+        livestock: sitesRes.count || 0,
         devices: devicesRes.count || 0,
-        alerts: alertsRes.count || 0,
-        clients: clientsRes.count || 0,
+        alerts: warningSensorRes.count || 0,
+        clients: ownersRes.count || 0,
         sensorReadings: sensorRes.count || 0
       });
 
-      // Fetch ammonia trend data - NO DATE FILTER (get all data)
-      const { data: ammoniaData, error: ammoniaError } = await supabase
+      // 2. Fetch ammonia trend data
+      const { data: ammoniaData } = await supabase
         .from('sensor_data')
         .select('ammonia, created_at')
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true })
+        .limit(1000);
 
-      console.log('Ammonia Data (raw):', ammoniaData);
-      console.log('Ammonia Data count:', ammoniaData?.length || 0);
-
-      // Fetch alert severity distribution
+      // 3. Fetch alert severity / status distribution from sensor_data
       const { data: severityData } = await supabase
-        .from('alerts')
-        .select('severity');
+        .from('sensor_data')
+        .select('status, ammonia');
 
-      // Fetch alert trend - NO DATE FILTER
+      // 4. Fetch reading timestamp trend
       const { data: alertTrendData } = await supabase
-        .from('alerts')
-        .select('created_at');
+        .from('sensor_data')
+        .select('created_at, status, ammonia')
+        .or('status.eq.warning,status.eq.critical,ammonia.gt.25');
 
-      // Fetch device status distribution
+      // 5. Fetch device status distribution
       const { data: deviceStatusData } = await supabase
         .from('devices')
         .select('status');
 
-      // Fetch top alerting devices
+      // 6. Fetch top alerting devices from sensor_data
       const { data: topDevices } = await supabase
-        .from('alerts')
+        .from('sensor_data')
         .select('device_uid')
+        .or('status.eq.warning,status.eq.critical,ammonia.gt.25')
         .limit(1000);
 
-      // Fetch clients with most livestock
-      const { data: clientLivestock } = await supabase
-        .from('livestock')
-        .select('clients(full_name)');
+      // 7. Fetch owners with monitoring sites
+      const { data: clientSites } = await supabase
+        .from('monitoring_sites')
+        .select('site_owners(owner_name)');
 
       // Process data for charts
       const processedData = processChartData(
@@ -78,7 +78,7 @@ export function useDashboardData() {
         alertTrendData || [],
         deviceStatusData || [],
         topDevices || [],
-        clientLivestock || []
+        clientSites || []
       );
 
       setChartData(processedData);
@@ -96,17 +96,15 @@ export function useDashboardData() {
     alertTrendData: any[],
     deviceStatusData: any[],
     topDevices: any[],
-    clientLivestock: any[]
+    clientSites: any[]
   ) => {
-    // ============================================
-    // Process Ammonia Trend
-    // ============================================
+    // Ammonia Trend
     const grouped: Record<string, number[]> = {};
     
     if (ammoniaData && ammoniaData.length > 0) {
       ammoniaData.forEach((item) => {
         if (item.ammonia !== null && item.ammonia !== undefined) {
-          const date = new Date(item.created_at);
+          const date = new Date(item.created_at || item.submitted_at || Date.now());
           const dateKey = date.toISOString().split('T')[0];
           if (!grouped[dateKey]) grouped[dateKey] = [];
           grouped[dateKey].push(item.ammonia);
@@ -121,41 +119,34 @@ export function useDashboardData() {
       return Math.round(avg * 10) / 10;
     });
 
-    console.log('Ammonia labels:', labels);
-    console.log('Ammonia values:', values);
-
     const ammoniaTrend = {
       labels: labels.length > 0 ? labels : ['No Data'],
       datasets: [{
         label: 'Average Ammonia (ppm)',
         data: values.length > 0 ? values : [0],
-        borderColor: '#3880ff',
-        backgroundColor: 'rgba(56, 128, 255, 0.2)',
+        borderColor: '#1a365d',
+        backgroundColor: 'rgba(26, 54, 93, 0.2)',
         fill: true,
         tension: 0.4,
       }],
     };
 
-    // ============================================
-    // Process Alert Severity
-    // ============================================
-    const severe = severityData?.filter((d) => d.severity === 'SEVERE').length || 0;
-    const moderate = severityData?.filter((d) => d.severity === 'MODERATE').length || 0;
-    const low = severityData?.filter((d) => d.severity === 'LOW').length || 0;
+    // Alert Severity
+    const severe = severityData?.filter((d) => d.status === 'critical' || d.ammonia > 50).length || 0;
+    const moderate = severityData?.filter((d) => (d.status === 'warning' || (d.ammonia > 25 && d.ammonia <= 50))).length || 0;
+    const low = severityData?.filter((d) => d.status === 'normal' || d.ammonia <= 25).length || 0;
 
     const alertSeverity = {
-      labels: ['SEVERE', 'MODERATE', 'LOW'],
+      labels: ['CRITICAL (>50 ppm)', 'WARNING (25-50 ppm)', 'NORMAL (<25 ppm)'],
       datasets: [{
         data: [severe, moderate, low],
-        backgroundColor: ['#eb445a', '#ffc409', '#2dd36f'],
-        borderColor: ['#eb445a', '#ffc409', '#2dd36f'],
+        backgroundColor: ['#dc2626', '#f59e0b', '#2d7d46'],
+        borderColor: ['#dc2626', '#f59e0b', '#2d7d46'],
         borderWidth: 1,
       }],
     };
 
-    // ============================================
-    // Process Alert Trend
-    // ============================================
+    // Alert Trend
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const counts = days.map(() => 0);
 
@@ -167,34 +158,30 @@ export function useDashboardData() {
     const alertTrend = {
       labels: days,
       datasets: [{
-        label: 'Alerts',
+        label: 'Alerts Logged',
         data: counts,
-        backgroundColor: '#ffc409',
-        borderColor: '#ffc409',
+        backgroundColor: '#f59e0b',
+        borderColor: '#f59e0b',
         borderWidth: 1,
       }],
     };
 
-    // ============================================
-    // Process Device Status
-    // ============================================
+    // Device Status
     const active = deviceStatusData?.filter((d) => d.status === 'ACTIVE').length || 0;
-    const inactive = deviceStatusData?.filter((d) => d.status === 'INACTIVE').length || 0;
-    const pending = deviceStatusData?.filter((d) => d.status === 'PENDING' || !d.status).length || 0;
+    const inactive = deviceStatusData?.filter((d) => d.status === 'INACTIVE' || d.status === 'OFFLINE').length || 0;
+    const maintenance = deviceStatusData?.filter((d) => d.status === 'MAINTENANCE' || !d.status).length || 0;
 
     const deviceStatus = {
-      labels: ['ACTIVE', 'INACTIVE', 'PENDING'],
+      labels: ['ACTIVE', 'INACTIVE/OFFLINE', 'MAINTENANCE'],
       datasets: [{
-        data: [active, inactive, pending],
-        backgroundColor: ['#2dd36f', '#eb445a', '#ffc409'],
-        borderColor: ['#2dd36f', '#eb445a', '#ffc409'],
+        data: [active, inactive, maintenance],
+        backgroundColor: ['#2d7d46', '#dc2626', '#f59e0b'],
+        borderColor: ['#2d7d46', '#dc2626', '#f59e0b'],
         borderWidth: 1,
       }],
     };
 
-    // ============================================
-    // Process Top Alerting Devices
-    // ============================================
+    // Top Alerting Devices
     const deviceCounts: Record<string, number> = {};
     topDevices?.forEach((item) => {
       const uid = item.device_uid || 'Unknown';
@@ -208,34 +195,32 @@ export function useDashboardData() {
     const topAlertingDevices = {
       labels: sortedDevices.map(([uid]) => uid),
       datasets: [{
-        label: 'Alerts',
+        label: 'High Ammonia Alerts',
         data: sortedDevices.map(([, count]) => count),
-        backgroundColor: '#3880ff',
-        borderColor: '#3880ff',
+        backgroundColor: '#1a365d',
+        borderColor: '#1a365d',
         borderWidth: 1,
       }],
     };
 
-    // ============================================
-    // Process Clients with Most Livestock
-    // ============================================
-    const clientCounts: Record<string, number> = {};
-    clientLivestock?.forEach((item: any) => {
-      const name = item.clients?.full_name || 'Unknown';
-      clientCounts[name] = (clientCounts[name] || 0) + 1;
+    // Site Owners with Most Sites
+    const ownerCounts: Record<string, number> = {};
+    clientSites?.forEach((item: any) => {
+      const name = item.site_owners?.owner_name || 'Unassigned';
+      ownerCounts[name] = (ownerCounts[name] || 0) + 1;
     });
 
-    const sortedClients = Object.entries(clientCounts)
+    const sortedOwners = Object.entries(ownerCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
     const clientsLivestock = {
-      labels: sortedClients.map(([name]) => name),
+      labels: sortedOwners.map(([name]) => name),
       datasets: [{
-        label: 'Livestock',
-        data: sortedClients.map(([, count]) => count),
-        backgroundColor: '#3dc2ff',
-        borderColor: '#3dc2ff',
+        label: 'Monitoring Sites',
+        data: sortedOwners.map(([, count]) => count),
+        backgroundColor: '#2d7d46',
+        borderColor: '#2d7d46',
         borderWidth: 1,
       }],
     };
