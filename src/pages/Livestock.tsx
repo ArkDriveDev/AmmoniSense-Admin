@@ -69,11 +69,22 @@ export default function Livestock() {
   }, []);
 
   const fetchClients = async () => {
-    const { data } = await supabase
-      .from('clients')
-      .select('id, full_name, organization_name')
-      .order('full_name');
-    setClients(data || []);
+    try {
+      const { data } = await supabase
+        .from('site_owners')
+        .select('id, owner_name, email')
+        .order('owner_name');
+      
+      if (data) {
+        setClients(data.map(o => ({
+          id: o.id,
+          full_name: o.owner_name,
+          organization_name: o.email
+        })));
+      }
+    } catch (err) {
+      console.error('Error fetching site owners:', err);
+    }
   };
 
   const filteredLivestock = livestock.filter(l => {
