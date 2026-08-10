@@ -13,7 +13,6 @@ import {
   IonButtons,
   IonSelect,
   IonSelectOption,
-  IonSpinner,
   IonBadge,
   IonIcon,
   IonChip,
@@ -28,7 +27,8 @@ import {
   personOutline, 
   addOutline,
   trashOutline,
-  createOutline
+  createOutline,
+  locationOutline
 } from 'ionicons/icons';
 
 import DeleteAlert from '../components/DeleteAlert';
@@ -36,6 +36,7 @@ import ConfirmAlert from '../components/ConfirmAlert';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useLivestock } from '../hooks/useLivestock';
+import MapViewerModal from '../components/map/MapViewerModal';
 
 export default function Livestock() {
   const { livestock, loading, deviceCounts, fetchLivestock } = useLivestock();
@@ -51,6 +52,10 @@ export default function Livestock() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
+
+  // Map modal state
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [mapTarget, setMapTarget] = useState<any>(null);
 
   const [form, setForm] = useState({
     livestock_serial: '',
@@ -97,18 +102,18 @@ export default function Livestock() {
   });
 
   const handleCreate = async () => {
-    if (!form.livestock_serial || !form.livestock_name || !form.client_id) {
-      setToastMessage('Please fill in all required fields');
+    if (!form.livestock_serial || !form.livestock_name) {
+      setToastMessage('Please fill in Serial and Site Name');
       setToastColor('danger');
       setShowToast(true);
       return;
     }
 
-    const { error } = await supabase.from('livestock').insert([{
-      livestock_serial: form.livestock_serial,
-      livestock_name: form.livestock_name,
-      location: form.location || null,
-      client_id: parseInt(form.client_id)
+    const { error } = await supabase.from('monitoring_sites').insert([{
+      site_code: form.livestock_serial,
+      site_name: form.livestock_name,
+      address: form.location || null,
+      owner_id: form.client_id ? parseInt(form.client_id) : undefined
     }]);
 
     if (error) {
@@ -118,7 +123,7 @@ export default function Livestock() {
       return;
     }
 
-    setToastMessage('Livestock created');
+    setToastMessage('Monitoring Site created');
     setToastColor('success');
     setShowToast(true);
     setShowModal(false);
@@ -128,12 +133,11 @@ export default function Livestock() {
 
   const handleUpdate = async () => {
     const { error } = await supabase
-      .from('livestock')
+      .from('monitoring_sites')
       .update({
-        livestock_serial: form.livestock_serial,
-        livestock_name: form.livestock_name,
-        location: form.location || null,
-        client_id: parseInt(form.client_id)
+        site_code: form.livestock_serial,
+        site_name: form.livestock_name,
+        address: form.location || null
       })
       .eq('id', selectedLivestock.id);
 
@@ -144,7 +148,7 @@ export default function Livestock() {
       return;
     }
 
-    setToastMessage('Livestock updated');
+    setToastMessage('Site updated');
     setToastColor('success');
     setShowToast(true);
     setShowUpdateConfirm(false);
@@ -155,7 +159,7 @@ export default function Livestock() {
 
   const handleDelete = async () => {
     const deviceCount = deviceCounts[selectedLivestock.id] || 0;
-    const { error } = await supabase.from('livestock').delete().eq('id', selectedLivestock.id);
+    const { error } = await supabase.from('monitoring_sites').delete().eq('id', selectedLivestock.id);
 
     if (error) {
       setToastMessage('Error: ' + error.message);
@@ -164,7 +168,7 @@ export default function Livestock() {
       return;
     }
 
-    setToastMessage(`Deleted. ${deviceCount} devices removed.`);
+    setToastMessage(`Deleted. ${deviceCount} devices unlinked.`);
     setToastColor('success');
     setShowToast(true);
     setShowDeleteAlert(false);
@@ -175,10 +179,10 @@ export default function Livestock() {
   const openEditModal = (item: any) => {
     setSelectedLivestock(item);
     setForm({
-      livestock_serial: item.livestock_serial || '',
-      livestock_name: item.livestock_name || '',
-      location: item.location || '',
-      client_id: item.client_id?.toString() || ''
+      livestock_serial: item.livestock_serial || item.site_code || '',
+      livestock_name: item.livestock_name || item.site_name || '',
+      location: item.location || item.address || '',
+      client_id: item.client_id?.toString() || item.owner_id?.toString() || ''
     });
     setShowEditModal(true);
   };
@@ -200,23 +204,23 @@ export default function Livestock() {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar>
-          <IonTitle>LIVESTOCK</IonTitle>
+        <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
+          <IonTitle style={{ fontWeight: 'bold' }}>MONITORING SITES / LIVESTOCK</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={() => setShowModal(true)}>
-              <IonIcon icon={addOutline} /> ADD
+              <IonIcon icon={addOutline} /> ADD SITE
             </IonButton>
           </IonButtons>
         </IonToolbar>
-        <IonToolbar>
+        <IonToolbar style={{ '--background': '#f8fafc' }}>
           <IonSearchbar
-            placeholder="SEARCH LIVESTOCK..."
+            placeholder="SEARCH MONITORING SITES..."
             value={searchTerm}
             onIonChange={(e) => setSearchTerm(e.detail.value || '')}
             animated
           />
         </IonToolbar>
-        <IonToolbar>
+        <IonToolbar style={{ '--background': '#ffffff' }}>
           <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap' }}>
             <IonButton 
               size="small" 
@@ -230,151 +234,155 @@ export default function Livestock() {
               fill={sortBy === 'livestock_serial' ? 'solid' : 'outline'}
               onClick={() => handleSort('livestock_serial')}
             >
-              SERIAL {sortBy === 'livestock_serial' && (sortOrder === 'asc' ? '▲' : '▼')}
+              CODE {sortBy === 'livestock_serial' && (sortOrder === 'asc' ? '▲' : '▼')}
             </IonButton>
             <IonButton 
               size="small" 
               fill={sortBy === 'client_name' ? 'solid' : 'outline'}
               onClick={() => handleSort('client_name')}
             >
-              CLIENT {sortBy === 'client_name' && (sortOrder === 'asc' ? '▲' : '▼')}
-            </IonButton>
-            <IonButton 
-              size="small" 
-              fill={sortBy === 'created_at' ? 'solid' : 'outline'}
-              onClick={() => handleSort('created_at')}
-            >
-              DATE {sortBy === 'created_at' && (sortOrder === 'asc' ? '▲' : '▼')}
-            </IonButton>
-            <IonButton 
-              size="small" 
-              color="medium"
-              fill="outline"
-              onClick={() => {
-                setSearchTerm('');
-                setSortBy('created_at');
-                setSortOrder('desc');
-              }}
-            >
-              RESET
+              OWNER {sortBy === 'client_name' && (sortOrder === 'asc' ? '▲' : '▼')}
             </IonButton>
           </div>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="ion-padding">
+      <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>
         {loading ? (
           <LoadingSpinner />
         ) : filteredLivestock.length === 0 ? (
           <EmptyState
-            title="NO LIVESTOCK FOUND"
-            message={searchTerm ? 'TRY A DIFFERENT SEARCH' : 'CLICK ADD TO CREATE YOUR FIRST LIVESTOCK'}
+            title="NO MONITORING SITES FOUND"
+            message={searchTerm ? 'TRY A DIFFERENT SEARCH' : 'CLICK ADD SITE TO REGISTER A NEW MONITORING SITE'}
           />
         ) : (
-          <IonList>
-            {filteredLivestock.map((l) => (
-              <IonItem key={l.id}>
-                <IonLabel>
-                  <h2>{l.livestock_name}</h2>
-                  <p>SERIAL: {l.livestock_serial}</p>
-                  <p>LOCATION: {l.location || 'NOT SPECIFIED'}</p>
-                  <p>
-                    <IonIcon icon={personOutline} /> OWNER: {l.clients?.full_name || 'UNASSIGNED'}
-                  </p>
-                </IonLabel>
-                <div style={{ textAlign: 'right' }}>
-                  <IonBadge color="primary">{deviceCounts[l.id] || 0} DEVICES</IonBadge>
-                  <IonChip color={l.clients ? 'success' : 'warning'}>
-                    {l.clients ? 'ASSIGNED' : 'UNASSIGNED'}
-                  </IonChip>
-                  <div style={{ display: 'flex', gap: '4px', marginTop: '4px', justifyContent: 'flex-end' }}>
-                    <IonButton size="small" fill="clear" color="primary" onClick={() => openEditModal(l)}>
-                      <IonIcon icon={createOutline} />
-                    </IonButton>
-                    <IonButton size="small" fill="clear" color="danger" onClick={() => openDeleteAlert(l)}>
-                      <IonIcon icon={trashOutline} />
-                    </IonButton>
+          <IonList style={{ background: 'transparent' }}>
+            {filteredLivestock.map((l) => {
+              const lat = l.current_latitude || l.latitude || 14.5995;
+              const lng = l.current_longitude || l.longitude || 120.9842;
+              const siteName = l.site_name || l.livestock_name || 'Monitoring Site';
+
+              return (
+                <IonItem key={l.id} style={{ '--background': '#ffffff', borderRadius: '10px', marginBottom: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
+                  <IonLabel>
+                    <h2 style={{ color: '#1a365d', fontWeight: 'bold' }}>
+                      <IonIcon icon={businessOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                      {siteName}
+                    </h2>
+                    <p style={{ color: '#475569' }}>CODE: {l.site_code || l.livestock_serial || 'N/A'}</p>
+                    <p style={{ color: '#64748b' }}>LOCATION: {l.address || l.location || 'MANILA, PHILIPPINES'}</p>
+                    <p style={{ color: '#64748b' }}>
+                      <IonIcon icon={personOutline} style={{ marginRight: '4px' }} /> OWNER: {l.clients?.full_name || l.site_owners?.owner_name || 'UNASSIGNED'}
+                    </p>
+                  </IonLabel>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    <IonBadge color="primary">{deviceCounts[l.id] || 0} DEVICES</IonBadge>
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px', justifyContent: 'flex-end' }}>
+                      <IonButton
+                        size="small"
+                        fill="outline"
+                        color="secondary"
+                        onClick={() => {
+                          setMapTarget(l);
+                          setShowMapModal(true);
+                        }}
+                      >
+                        <IonIcon icon={locationOutline} slot="start" /> Map
+                      </IonButton>
+                      <IonButton size="small" fill="clear" color="primary" onClick={() => openEditModal(l)}>
+                        <IonIcon icon={createOutline} />
+                      </IonButton>
+                      <IonButton size="small" fill="clear" color="danger" onClick={() => openDeleteAlert(l)}>
+                        <IonIcon icon={trashOutline} />
+                      </IonButton>
+                    </div>
                   </div>
-                </div>
-              </IonItem>
-            ))}
+                </IonItem>
+              );
+            })}
           </IonList>
         )}
 
         <IonModal isOpen={showModal}>
           <IonHeader>
-            <IonToolbar>
-              <IonTitle>CREATE LIVESTOCK</IonTitle>
+            <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
+              <IonTitle>CREATE MONITORING SITE</IonTitle>
               <IonButtons slot="end">
                 <IonButton onClick={() => setShowModal(false)}>CLOSE</IonButton>
               </IonButtons>
             </IonToolbar>
           </IonHeader>
           <IonContent className="ion-padding">
-            <IonInput label="SERIAL" labelPlacement="floating" placeholder="LV-001"
+            <IonInput label="SITE CODE" labelPlacement="floating" placeholder="SITE-001"
               value={form.livestock_serial}
               onIonChange={(e) => setForm({ ...form, livestock_serial: e.detail.value?.toUpperCase() || '' })} />
-            <IonInput label="NAME" labelPlacement="floating" placeholder="MAIN LIVESTOCK"
+            <IonInput label="SITE NAME" labelPlacement="floating" placeholder="MAIN MONITORING SITE"
               value={form.livestock_name}
               onIonChange={(e) => setForm({ ...form, livestock_name: e.detail.value?.toUpperCase() || '' })} />
-            <IonInput label="LOCATION" labelPlacement="floating" placeholder="LAGUNA"
+            <IonInput label="LOCATION / ADDRESS" labelPlacement="floating" placeholder="LAGUNA, PHILIPPINES"
               value={form.location}
               onIonChange={(e) => setForm({ ...form, location: e.detail.value?.toUpperCase() || '' })} />
-            <IonSelect label="CLIENT" labelPlacement="floating" placeholder="SELECT CLIENT"
+            <IonSelect label="SITE OWNER" labelPlacement="floating" placeholder="SELECT OWNER"
               value={form.client_id}
               onIonChange={(e) => setForm({ ...form, client_id: e.detail.value })}>
               {clients.map((c) => (
                 <IonSelectOption key={c.id} value={c.id}>{c.full_name}</IonSelectOption>
               ))}
             </IonSelect>
-            <IonButton expand="block" onClick={handleCreate}>CREATE</IonButton>
+            <IonButton expand="block" onClick={handleCreate} style={{ marginTop: '16px', '--background': '#1a365d' }}>CREATE SITE</IonButton>
           </IonContent>
         </IonModal>
 
         <IonModal isOpen={showEditModal}>
           <IonHeader>
-            <IonToolbar>
-              <IonTitle>EDIT LIVESTOCK</IonTitle>
+            <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
+              <IonTitle>EDIT MONITORING SITE</IonTitle>
               <IonButtons slot="end">
                 <IonButton onClick={() => setShowEditModal(false)}>CLOSE</IonButton>
               </IonButtons>
             </IonToolbar>
           </IonHeader>
           <IonContent className="ion-padding">
-            <IonInput label="SERIAL" labelPlacement="floating" placeholder="LV-001"
+            <IonInput label="SITE CODE" labelPlacement="floating" placeholder="SITE-001"
               value={form.livestock_serial}
               onIonChange={(e) => setForm({ ...form, livestock_serial: e.detail.value?.toUpperCase() || '' })} />
-            <IonInput label="NAME" labelPlacement="floating" placeholder="MAIN LIVESTOCK"
+            <IonInput label="SITE NAME" labelPlacement="floating" placeholder="MAIN MONITORING SITE"
               value={form.livestock_name}
               onIonChange={(e) => setForm({ ...form, livestock_name: e.detail.value?.toUpperCase() || '' })} />
-            <IonInput label="LOCATION" labelPlacement="floating" placeholder="LAGUNA"
+            <IonInput label="LOCATION / ADDRESS" labelPlacement="floating" placeholder="LAGUNA, PHILIPPINES"
               value={form.location}
               onIonChange={(e) => setForm({ ...form, location: e.detail.value?.toUpperCase() || '' })} />
-            <IonSelect label="CLIENT" labelPlacement="floating" placeholder="SELECT CLIENT"
-              value={form.client_id}
-              onIonChange={(e) => setForm({ ...form, client_id: e.detail.value })}>
-              {clients.map((c) => (
-                <IonSelectOption key={c.id} value={c.id}>{c.full_name}</IonSelectOption>
-              ))}
-            </IonSelect>
-            <IonButton expand="block" onClick={() => setShowUpdateConfirm(true)}>UPDATE</IonButton>
+            <IonButton expand="block" onClick={() => setShowUpdateConfirm(true)} style={{ marginTop: '16px', '--background': '#1a365d' }}>UPDATE SITE</IonButton>
           </IonContent>
         </IonModal>
+
+        {/* Map Modal for Monitoring Site Spatial Grid inspection */}
+        {mapTarget && (
+          <MapViewerModal
+            isOpen={showMapModal}
+            onDismiss={() => setShowMapModal(false)}
+            title={`Site ${mapTarget.site_name || mapTarget.livestock_name} Map`}
+            siteName={mapTarget.site_name || mapTarget.livestock_name}
+            gridCellId={mapTarget.current_grid_cell_id}
+            latitude={mapTarget.current_latitude || mapTarget.latitude || 14.5995}
+            longitude={mapTarget.current_longitude || mapTarget.longitude || 120.9842}
+          />
+        )}
 
         <ConfirmAlert
           isOpen={showUpdateConfirm}
           onClose={() => setShowUpdateConfirm(false)}
           onConfirm={handleUpdate}
-          title="UPDATE LIVESTOCK?"
-          message={`Update "${selectedLivestock?.livestock_name}"?`}
+          title="UPDATE SITE?"
+          message={`Update "${selectedLivestock?.site_name || selectedLivestock?.livestock_name}"?`}
         />
 
         <DeleteAlert
           isOpen={showDeleteAlert}
           onClose={() => setShowDeleteAlert(false)}
           onConfirm={handleDelete}
-          title="DELETE LIVESTOCK?"
-          message={`Delete "${selectedLivestock?.livestock_name}"? ${deviceCounts[selectedLivestock?.id] || 0} devices will be removed.`}
+          title="DELETE SITE?"
+          message={`Delete "${selectedLivestock?.site_name || selectedLivestock?.livestock_name}"?`}
           requireTypeConfirm={true}
           typeConfirmText="DELETE"
         />
