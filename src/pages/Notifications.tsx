@@ -10,14 +10,13 @@ import {
   IonBadge,
   IonButton,
   IonButtons,
-  IonSpinner,
   IonSearchbar,
   IonIcon
 } from '@ionic/react';
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
-import { refreshOutline, checkmarkCircleOutline } from 'ionicons/icons';
+import { refreshOutline, alertCircleOutline } from 'ionicons/icons';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -39,19 +38,45 @@ export default function Notifications() {
   const fetchAlerts = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // 1. Query sensor_data for high NH3 readings / warnings / critical status
+      const { data: sensorAlerts, error: sensorErr } = await supabase
+        .from('sensor_data')
+        .select('*')
+        .or('status.eq.warning,status.eq.critical,ammonia.gt.25')
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (!sensorErr && sensorAlerts && sensorAlerts.length > 0) {
+        const formatted = sensorAlerts.map(s => {
+          const isCritical = s.ammonia > 50 || s.status === 'critical';
+          return {
+            id: s.id,
+            device_uid: s.device_uid,
+            ammonia: s.ammonia,
+            severity: isCritical ? 'SEVERE' : 'MODERATE',
+            created_at: s.created_at || s.submitted_at,
+            grid_cell_id: s.grid_cell_id,
+            is_read: false
+          };
+        });
+        setAlerts(formatted);
+        return;
+      }
+
+      // 2. Fallback query on legacy alerts table if present
+      const { data: legacyData, error: legacyErr } = await supabase
         .from('alerts')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching alerts:', error);
-        return;
+      if (!legacyErr && legacyData) {
+        setAlerts(legacyData);
+      } else {
+        setAlerts([]);
       }
-
-      setAlerts(data || []);
     } catch (err) {
-      console.error('Unexpected error:', err);
+      console.error('Unexpected error fetching notifications:', err);
+      setAlerts([]);
     } finally {
       setLoading(false);
     }
@@ -69,6 +94,7 @@ export default function Notifications() {
       result = result.filter(a =>
         a.device_uid?.toLowerCase().includes(term) ||
         a.severity?.toLowerCase().includes(term) ||
+        a.grid_cell_id?.toLowerCase().includes(term) ||
         a.ammonia?.toString().includes(term)
       );
     }
@@ -76,50 +102,19 @@ export default function Notifications() {
     setFilteredAlerts(result);
   };
 
-  const markAsRead = async (id: number) => {
-    try {
-      const { error } = await supabase
-        .from('alerts')
-        .update({ is_read: true })
-        .eq('id', id);
-
-      if (error) {
-        console.error('Error marking alert as read:', error);
-        return;
-      }
-
-      setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_read: true } : a));
-    } catch (err) {
-      console.error('Unexpected error:', err);
-    }
+  const markAsRead = (id: number) => {
+    setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_read: true } : a));
   };
 
-  const markAllAsRead = async () => {
-    try {
-      const unreadIds = alerts.filter(a => !a.is_read).map(a => a.id);
-      if (unreadIds.length === 0) return;
-
-      const { error } = await supabase
-        .from('alerts')
-        .update({ is_read: true })
-        .in('id', unreadIds);
-
-      if (error) {
-        console.error('Error marking all as read:', error);
-        return;
-      }
-
-      setAlerts(prev => prev.map(a => ({ ...a, is_read: true })));
-    } catch (err) {
-      console.error('Unexpected error:', err);
-    }
+  const markAllAsRead = () => {
+    setAlerts(prev => prev.map(a => ({ ...a, is_read: true })));
   };
 
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar>
-          <IonTitle>ALERTS</IonTitle>
+        <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
+          <IonTitle style={{ fontWeight: 'bold' }}>ENVIRONMENTAL ALERTS</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={markAllAsRead}>MARK ALL READ</IonButton>
             <IonButton onClick={fetchAlerts}>
@@ -127,15 +122,15 @@ export default function Notifications() {
             </IonButton>
           </IonButtons>
         </IonToolbar>
-        <IonToolbar>
+        <IonToolbar style={{ '--background': '#f8fafc' }}>
           <IonSearchbar
-            placeholder="SEARCH ALERTS..."
+            placeholder="SEARCH ALERTS OR DEVICE..."
             value={searchTerm}
             onIonChange={(e) => setSearchTerm(e.detail.value || '')}
             animated
           />
         </IonToolbar>
-        <IonToolbar>
+        <IonToolbar style={{ '--background': '#ffffff' }}>
           <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap' }}>
             <IonButton 
               size="small" 
@@ -150,7 +145,7 @@ export default function Notifications() {
               color="danger"
               onClick={() => setFilterSeverity('SEVERE')}
             >
-              SEVERE
+              {"SEVERE (>50 PPM)"}
             </IonButton>
             <IonButton 
               size="small" 
@@ -158,55 +153,37 @@ export default function Notifications() {
               color="warning"
               onClick={() => setFilterSeverity('MODERATE')}
             >
-              MODERATE
-            </IonButton>
-            <IonButton 
-              size="small" 
-              fill={filterSeverity === 'LOW' ? 'solid' : 'outline'}
-              color="success"
-              onClick={() => setFilterSeverity('LOW')}
-            >
-              LOW
-            </IonButton>
-            <IonButton 
-              size="small" 
-              color="medium"
-              fill="outline"
-              onClick={() => {
-                setSearchTerm('');
-                setFilterSeverity('all');
-              }}
-            >
-              RESET
+              {"MODERATE (25-50 PPM)"}
             </IonButton>
           </div>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="ion-padding">
+      <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>
         {loading ? (
           <LoadingSpinner />
         ) : filteredAlerts.length === 0 ? (
           <EmptyState
-            title="NO ALERTS"
-            message={searchTerm || filterSeverity !== 'all' ? 'TRY DIFFERENT FILTERS' : 'ALL SYSTEMS NORMAL'}
+            title="NO ACTIVE ALERTS"
+            message={searchTerm || filterSeverity !== 'all' ? 'TRY DIFFERENT FILTERS' : 'ALL MONITORING SITES NORMAL'}
           />
         ) : (
-          <IonList>
+          <IonList style={{ background: 'transparent' }}>
             {filteredAlerts.map((a) => (
-              <IonItem key={a.id} button onClick={() => markAsRead(a.id)}>
+              <IonItem key={a.id} button onClick={() => markAsRead(a.id)} style={{ '--background': '#ffffff', borderRadius: '10px', marginBottom: '8px' }}>
                 <IonLabel>
-                  <h2 style={{ color: a.severity === 'SEVERE' ? 'red' : a.severity === 'MODERATE' ? 'orange' : 'green' }}>
-                    {a.severity} ALERT
+                  <h2 style={{ color: a.severity === 'SEVERE' ? '#dc2626' : '#f59e0b', fontWeight: 'bold' }}>
+                    <IonIcon icon={alertCircleOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                    {a.severity} AMMONIA ALERT
                   </h2>
-                  <p>AMMONIA: {a.ammonia} PPM</p>
-                  <p>DEVICE: {a.device_uid || 'UNKNOWN'}</p>
-                  <p style={{ fontSize: '12px', color: 'gray' }}>
+                  <p style={{ color: '#1a365d', fontWeight: 'bold' }}>AMMONIA: {a.ammonia} PPM</p>
+                  <p style={{ color: '#475569' }}>DEVICE: {a.device_uid || 'N/A'} {a.grid_cell_id ? `• Grid: ${a.grid_cell_id}` : ''}</p>
+                  <p style={{ fontSize: '12px', color: '#94a3b8' }}>
                     {new Date(a.created_at).toLocaleString()}
                   </p>
                 </IonLabel>
-                <div style={{ textAlign: 'right' }}>
-                  <IonBadge color={a.severity === 'SEVERE' ? 'danger' : a.severity === 'MODERATE' ? 'warning' : 'success'}>
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                  <IonBadge color={a.severity === 'SEVERE' ? 'danger' : 'warning'}>
                     {a.severity}
                   </IonBadge>
                   {a.is_read ? (

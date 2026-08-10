@@ -50,35 +50,32 @@ export default function AssignLivestockModal({
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: allLivestock, error: livestockError } = await supabase
-        .from('livestock')
-        .select('id, livestock_name, livestock_serial, location, client_id')
+      const { data: allSites, error: sitesError } = await supabase
+        .from('monitoring_sites')
+        .select('id, site_name, site_code, address, owner_id')
         .order('created_at', { ascending: false });
 
-      if (livestockError) {
-        console.error('Error fetching livestock:', livestockError);
-        setToastMessage('Failed to fetch livestock');
+      if (sitesError) {
+        console.error('Error fetching sites:', sitesError);
+        setToastMessage('Failed to fetch monitoring sites');
         setToastColor('danger');
         setShowToast(true);
         setLoading(false);
         return;
       }
 
-      setLivestock(allLivestock || []);
+      setLivestock(allSites?.map(s => ({
+        id: s.id,
+        livestock_name: s.site_name,
+        livestock_serial: s.site_code,
+        location: s.address,
+        client_id: s.owner_id
+      })) || []);
 
-      const { data: assigned, error: assignedError } = await supabase
-        .from('livestock')
+      const { data: assigned } = await supabase
+        .from('monitoring_sites')
         .select('id')
-        .eq('client_id', clientId);
-
-      if (assignedError) {
-        console.error('Error fetching assigned livestock:', assignedError);
-        setToastMessage('Failed to fetch assigned livestock');
-        setToastColor('danger');
-        setShowToast(true);
-        setLoading(false);
-        return;
-      }
+        .eq('owner_id', clientId);
 
       setAssignedLivestock(assigned?.map(p => p.id) || []);
     } catch (err) {
@@ -103,9 +100,9 @@ export default function AssignLivestockModal({
     setSaving(true);
     try {
       const { data: current } = await supabase
-        .from('livestock')
+        .from('monitoring_sites')
         .select('id')
-        .eq('client_id', clientId);
+        .eq('owner_id', clientId);
 
       const currentIds = current?.map(p => p.id) || [];
 
@@ -114,25 +111,25 @@ export default function AssignLivestockModal({
 
       for (const id of toRemove) {
         await supabase
-          .from('livestock')
-          .update({ client_id: null })
+          .from('monitoring_sites')
+          .update({ owner_id: null })
           .eq('id', id);
       }
 
       for (const id of toAdd) {
         await supabase
-          .from('livestock')
-          .update({ client_id: clientId })
+          .from('monitoring_sites')
+          .update({ owner_id: clientId })
           .eq('id', id);
       }
 
-      setToastMessage('Livestock assigned successfully');
+      setToastMessage('Sites assigned successfully');
       setToastColor('success');
       setShowToast(true);
       
       setTimeout(() => {
         onClose();
-      }, 1500);
+      }, 1200);
 
     } catch (err) {
       console.error('Error saving assignments:', err);
@@ -149,8 +146,8 @@ export default function AssignLivestockModal({
   return (
     <IonModal isOpen={isOpen} onDidDismiss={onClose}>
       <IonHeader>
-        <IonToolbar>
-          <IonTitle>ASSIGN LIVESTOCK</IonTitle>
+        <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
+          <IonTitle style={{ fontWeight: 'bold' }}>ASSIGN MONITORING SITES</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={onClose}>CLOSE</IonButton>
           </IonButtons>
@@ -159,26 +156,23 @@ export default function AssignLivestockModal({
 
       <IonContent className="ion-padding">
         <div style={{ marginBottom: '16px' }}>
-          <h3>ASSIGN LIVESTOCK TO: {clientName.toUpperCase()}</h3>
-          <p style={{ fontSize: '14px', color: 'gray' }}>
-            SELECT ALL LIVESTOCK THAT THIS CLIENT SHOULD HAVE ACCESS TO.
+          <h3 style={{ color: '#1a365d', fontWeight: 'bold' }}>ASSIGN SITES TO: {clientName.toUpperCase()}</h3>
+          <p style={{ fontSize: '13px', color: '#64748b' }}>
+            SELECT ALL MONITORING SITES OPERATED BY THIS SITE OWNER.
           </p>
-          <p style={{ fontSize: '14px', color: 'var(--ion-color-primary)' }}>
-            {assignedCount} LIVESTOCK SELECTED
+          <p style={{ fontSize: '13px', color: '#2d7d46', fontWeight: 600 }}>
+            {assignedCount} SITES SELECTED
           </p>
         </div>
 
         {loading ? (
           <div style={{ textAlign: 'center', marginTop: '40px' }}>
             <IonSpinner />
-            <p>LOADING LIVESTOCK...</p>
+            <p>LOADING MONITORING SITES...</p>
           </div>
         ) : livestock.length === 0 ? (
           <div style={{ textAlign: 'center', marginTop: '40px' }}>
-            <p>NO LIVESTOCK AVAILABLE</p>
-            <p style={{ fontSize: '14px', color: 'gray' }}>
-              CREATE LIVESTOCK FIRST IN THE LIVESTOCK TAB.
-            </p>
+            <p>NO MONITORING SITES AVAILABLE</p>
             <IonButton fill="outline" onClick={onClose} style={{ marginTop: '16px' }}>
               CLOSE
             </IonButton>
@@ -193,12 +187,12 @@ export default function AssignLivestockModal({
                 <IonItem key={l.id} disabled={isAlreadyAssigned}>
                   <IonLabel>
                     <h2>{l.livestock_name}</h2>
-                    <p>SERIAL: {l.livestock_serial}</p>
+                    <p>CODE: {l.livestock_serial}</p>
                     {l.location && <p>LOCATION: {l.location}</p>}
-                    {l.client_id && l.client_id !== clientId && (
+                    {isAlreadyAssigned && (
                       <IonChip color="warning">
                         <IonIcon icon={closeCircleOutline} />
-                        <IonLabel>ASSIGNED TO ANOTHER CLIENT</IonLabel>
+                        <IonLabel>ASSIGNED TO OTHER OWNER</IonLabel>
                       </IonChip>
                     )}
                     {isAssigned && (
@@ -224,16 +218,9 @@ export default function AssignLivestockModal({
           expand="block"
           onClick={saveAssignment}
           disabled={saving || livestock.length === 0 || loading}
-          style={{ marginTop: '16px' }}
+          style={{ marginTop: '16px', '--background': '#1a365d' }}
         >
-          {saving ? (
-            <>
-              <IonSpinner name="crescent" />
-              &nbsp;SAVING...
-            </>
-          ) : (
-            `SAVE ASSIGNMENTS (${assignedCount})`
-          )}
+          {saving ? 'SAVING...' : `SAVE SITE ASSIGNMENTS (${assignedCount})`}
         </IonButton>
 
         <IonToast
