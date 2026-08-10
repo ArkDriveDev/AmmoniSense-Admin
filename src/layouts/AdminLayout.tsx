@@ -10,7 +10,6 @@ import {
   IonPage,
   IonIcon,
   IonLabel,
-  IonBadge,
   IonMenuButton,
   IonButtons,
   IonAvatar,
@@ -25,7 +24,6 @@ import {
   businessOutline,
   hardwareChipOutline,
   barChartOutline,
-  alertCircleOutline,
   logOutOutline,
   personCircleOutline,
   closeOutline,
@@ -36,13 +34,11 @@ import { useEffect, useState } from 'react';
 export default function AdminLayout({ children }: any) {
   const history = useHistory();
   const location = useLocation();
-  const [userName, setUserName] = useState('Admin');
+  const [userName, setUserName] = useState('MENRO Admin');
   const [userEmail, setUserEmail] = useState('');
-  const [alertCount, setAlertCount] = useState(0);
 
   useEffect(() => {
     fetchUserProfile();
-    fetchAlertCount();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -70,19 +66,6 @@ export default function AdminLayout({ children }: any) {
     }
   };
 
-  const fetchAlertCount = async () => {
-    try {
-      const { count } = await supabase
-        .from('alerts')
-        .select('id', { count: 'exact', head: true })
-        .eq('is_read', false);
-
-      setAlertCount(count || 0);
-    } catch (err) {
-      console.error('Error fetching alert count:', err);
-    }
-  };
-
   const logout = async () => {
     await supabase.auth.signOut();
     history.push('/login');
@@ -96,9 +79,9 @@ export default function AdminLayout({ children }: any) {
     <IonSplitPane contentId="main">
       <IonMenu contentId="main" type="push" side="start">
         <IonHeader>
-          <IonToolbar>
-            <IonTitle style={{ fontSize: '18px', fontWeight: 'bold' }}>
-              ADMIN PANEL
+          <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
+            <IonTitle style={{ fontSize: '16px', fontWeight: 'bold' }}>
+              MENRO ADMIN
             </IonTitle>
             <IonButtons slot="end">
               <IonMenuButton autoHide={false}>
@@ -112,26 +95,26 @@ export default function AdminLayout({ children }: any) {
           <div style={{ 
             padding: '16px', 
             textAlign: 'center',
-            borderBottom: '1px solid var(--ion-color-light)',
+            borderBottom: '1px solid #e2e8f0',
             marginBottom: '8px'
           }}>
             <IonAvatar style={{ 
-              width: '64px', 
-              height: '64px', 
+              width: '60px', 
+              height: '60px', 
               margin: '0 auto 8px auto',
-              backgroundColor: 'var(--ion-color-primary)',
+              backgroundColor: '#1a365d',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
               <IonIcon icon={personCircleOutline} style={{ 
-                fontSize: '48px', 
+                fontSize: '44px', 
                 color: 'white' 
               }} />
             </IonAvatar>
             <IonText>
-              <h3 style={{ margin: '4px 0', fontWeight: 'bold' }}>{userName}</h3>
-              <p style={{ fontSize: '12px', color: 'gray', margin: '0' }}>{userEmail}</p>
+              <h3 style={{ margin: '4px 0', fontWeight: 'bold', color: '#1a365d' }}>{userName}</h3>
+              <p style={{ fontSize: '12px', color: '#64748b', margin: '0' }}>{userEmail}</p>
             </IonText>
           </div>
 
@@ -141,7 +124,7 @@ export default function AdminLayout({ children }: any) {
               onClick={() => history.push('/dashboard')}
               color={isActive('/dashboard') ? 'primary' : undefined}
               style={isActive('/dashboard') ? { 
-                borderLeft: '4px solid var(--ion-color-primary)',
+                borderLeft: '4px solid #1a365d',
                 fontWeight: 'bold'
               } : {}}
             >
@@ -154,12 +137,12 @@ export default function AdminLayout({ children }: any) {
               onClick={() => history.push('/clients')}
               color={isActive('/clients') ? 'primary' : undefined}
               style={isActive('/clients') ? { 
-                borderLeft: '4px solid var(--ion-color-primary)',
+                borderLeft: '4px solid #1a365d',
                 fontWeight: 'bold'
               } : {}}
             >
               <IonIcon icon={peopleOutline} slot="start" />
-              <IonLabel>CLIENTS</IonLabel>
+              <IonLabel>SITE OWNERS</IonLabel>
             </IonItem>
 
             <IonItem 
@@ -167,12 +150,12 @@ export default function AdminLayout({ children }: any) {
               onClick={() => history.push('/livestock')}
               color={isActive('/livestock') ? 'primary' : undefined}
               style={isActive('/livestock') ? { 
-                borderLeft: '4px solid var(--ion-color-primary)',
+                borderLeft: '4px solid #1a365d',
                 fontWeight: 'bold'
               } : {}}
             >
               <IonIcon icon={businessOutline} slot="start" />
-              <IonLabel>LIVESTOCK</IonLabel>
+              <IonLabel>MONITORING SITES</IonLabel>
             </IonItem>
 
             <IonItem 
@@ -180,12 +163,12 @@ export default function AdminLayout({ children }: any) {
               onClick={() => history.push('/devices')}
               color={isActive('/devices') ? 'primary' : undefined}
               style={isActive('/devices') ? { 
-                borderLeft: '4px solid var(--ion-color-primary)',
+                borderLeft: '4px solid #1a365d',
                 fontWeight: 'bold'
               } : {}}
             >
               <IonIcon icon={hardwareChipOutline} slot="start" />
-              <IonLabel>DEVICES</IonLabel>
+              <IonLabel>IOT DEVICES</IonLabel>
             </IonItem>
 
             <IonItem 
@@ -193,36 +176,18 @@ export default function AdminLayout({ children }: any) {
               onClick={() => history.push('/sensor-data')}
               color={isActive('/sensor-data') ? 'primary' : undefined}
               style={isActive('/sensor-data') ? { 
-                borderLeft: '4px solid var(--ion-color-primary)',
+                borderLeft: '4px solid #1a365d',
                 fontWeight: 'bold'
               } : {}}
             >
               <IonIcon icon={barChartOutline} slot="start" />
-              <IonLabel>SENSOR DATA</IonLabel>
-            </IonItem>
-
-            <IonItem 
-              button 
-              onClick={() => history.push('/notifications')}
-              color={isActive('/notifications') ? 'primary' : undefined}
-              style={isActive('/notifications') ? { 
-                borderLeft: '4px solid var(--ion-color-primary)',
-                fontWeight: 'bold'
-              } : {}}
-            >
-              <IonIcon icon={alertCircleOutline} slot="start" />
-              <IonLabel>ALERTS</IonLabel>
-              {alertCount > 0 && (
-                <IonBadge color="danger" slot="end">
-                  {alertCount}
-                </IonBadge>
-              )}
+              <IonLabel>SENSOR DATA & MAPS</IonLabel>
             </IonItem>
 
             <IonItem 
               button 
               onClick={logout}
-              style={{ marginTop: '8px' }}
+              style={{ marginTop: '16px' }}
             >
               <IonIcon icon={logOutOutline} slot="start" />
               <IonLabel color="danger">LOGOUT</IonLabel>
@@ -233,13 +198,13 @@ export default function AdminLayout({ children }: any) {
 
       <IonPage id="main">
         <IonHeader>
-          <IonToolbar>
+          <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
             <IonButtons slot="start">
               <IonMenuButton>
                 <IonIcon icon={menuOutline} />
               </IonMenuButton>
             </IonButtons>
-            <IonTitle>ADMIN PANEL</IonTitle>
+            <IonTitle style={{ fontWeight: 'bold' }}>MENRO ENVIRONMENTAL ADMIN</IonTitle>
           </IonToolbar>
         </IonHeader>
         <IonContent>
