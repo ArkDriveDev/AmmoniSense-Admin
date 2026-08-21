@@ -156,12 +156,35 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
           <IonGrid style={{ padding: 0 }}>
             <IonRow>
               <IonCol size="12" size-lg="7">
-                <div style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                <div style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', height: '100%' }}>
                   <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '700', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <IonIcon icon={pulseOutline} style={{ color: '#2563eb' }} /> 7-Day Ammonia Level Trend (ppm)
                   </h4>
                   <div style={{ height: '220px', width: '100%' }}>
                     <Line data={trendChartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+                  </div>
+                </div>
+              </IonCol>
+
+              {/* Site Details & Info */}
+              <IonCol size="12" size-lg="5">
+                <div style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                  <div>
+                    <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '700', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <IonIcon icon={locationOutline} style={{ color: '#059669' }} /> Monitoring Site Metadata
+                    </h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: '#334155' }}>
+                      <div><strong style={{ color: '#64748b' }}>Site Code:</strong> {site.site_code || `SITE-${site.id}`}</div>
+                      <div><strong style={{ color: '#64748b' }}>Address:</strong> {site.address}</div>
+                      <div><strong style={{ color: '#64748b' }}>Coordinates:</strong> {site.latitude.toFixed(4)}° N, {site.longitude.toFixed(4)}° E</div>
+                      <div><strong style={{ color: '#64748b' }}>Area Size:</strong> {site.area_size_hectares} Hectare(s)</div>
+                      <div><strong style={{ color: '#64748b' }}>Owner Contact:</strong> {site.owner_name} {site.owner_contact ? `(${site.owner_contact})` : ''}</div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
+                    <IonButton size="small" color="primary" fill="solid" onClick={() => history.push('/livestock')}>
+                      View Site Details <IonIcon icon={openOutline} slot="end" />
+                    </IonButton>
                   </div>
                 </div>
               </IonCol>
