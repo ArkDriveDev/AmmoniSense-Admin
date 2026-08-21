@@ -94,6 +94,79 @@ export function useSiteAnalytics() {
 
       if (sensorErr) throw sensorErr;
 
+      const sevenDaysAgoTime = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const allReadings = sensorData || [];
+      const allDevices = devicesData || [];
+
+      // Map site analytics
+      const processedSites: SiteAnalyticsData[] = (sitesData || []).map((site: any) => {
+        const siteDevices = allDevices.filter((d: any) => d.site_id === site.id);
+        const deviceUids = siteDevices.map((d: any) => d.device_uid);
+        const siteReadings = allReadings.filter((r: any) => deviceUids.includes(r.device_uid));
+
+        const latestReading = siteReadings[0] || null;
+        const readings7Days = siteReadings.filter((r: any) => new Date(r.created_at || r.submitted_at).getTime() >= sevenDaysAgoTime);
+
+        let status: 'normal' | 'warning' | 'critical' = 'normal';
+        const ammoniaVal = latestReading?.ammonia;
+        if (latestReading?.status === 'critical' || (ammoniaVal !== null && ammoniaVal > 50)) {
+          status = 'critical';
+        } else if (latestReading?.status === 'warning' || (ammoniaVal !== null && ammoniaVal > 25)) {
+          status = 'warning';
+        }
+
+        const hasActiveDevice = siteDevices.some((d: any) => d.status === 'ACTIVE');
+        const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+        const hasRecentReading = latestReading && new Date(latestReading.created_at).getTime() >= twentyFourHoursAgo;
+        const deviceStatus: 'Online' | 'Offline' = (hasActiveDevice || hasRecentReading) ? 'Online' : 'Offline';
+
+        const siteType = site.site_type || (site.site_name.toLowerCase().includes('piggery') ? 'Piggery' : site.site_name.toLowerCase().includes('ambient') ? 'Ambient' : 'Industrial');
+
+        // 7-day daily trend
+        const dailyGroups: Record<string, number[]> = {};
+        readings7Days.forEach((r: any) => {
+          if (r.ammonia !== null && r.ammonia !== undefined) {
+            const dateStr = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            if (!dailyGroups[dateStr]) dailyGroups[dateStr] = [];
+            dailyGroups[dateStr].push(r.ammonia);
+          }
+        });
+
+        const trend_7days: { date: string; ammonia: number }[] = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
+          const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          const vals = dailyGroups[dateStr];
+          const avg = vals && vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : (latestReading?.ammonia || 0);
+          trend_7days.push({ date: dateStr, ammonia: Math.round(avg * 10) / 10 });
+        }
+
+        return {
+          id: site.id,
+          site_name: site.site_name,
+          site_code: site.site_code,
+          site_type: siteType,
+          address: site.address || 'Address not specified',
+          latitude: site.latitude || 14.5995,
+          longitude: site.longitude || 120.9842,
+          area_size_hectares: site.area_size_hectares || 1.0,
+          owner_name: site.site_owners?.owner_name || 'Unassigned',
+          owner_contact: site.site_owners?.contact_number,
+          owner_email: site.site_owners?.email,
+          latest_ammonia: latestReading?.ammonia ?? null,
+          latest_temperature: latestReading?.temperature ?? null,
+          latest_humidity: latestReading?.humidity ?? null,
+          last_reading_at: latestReading ? (latestReading.created_at || latestReading.submitted_at) : null,
+          alert_status: status,
+          device_status: deviceStatus,
+          active_device_count: siteDevices.filter((d: any) => d.status === 'ACTIVE').length,
+          devices: siteDevices.map((d: any) => ({ id: d.id, device_uid: d.device_uid, status: d.status, firmware_version: d.firmware_version, installed_at: d.installed_at })),
+          reading_count_7days: readings7Days.length,
+          trend_7days,
+          recent_readings: siteReadings.slice(0, 10).map((r: any) => ({ id: r.id, device_uid: r.device_uid, ammonia: r.ammonia || 0, temperature: r.temperature || 0, humidity: r.humidity || 0, status: r.status || (r.ammonia > 50 ? 'critical' : r.ammonia > 25 ? 'warning' : 'normal'), grid_cell_id: r.grid_cell_id, created_at: r.created_at || r.submitted_at, photo_url: r.photo_url })),
+        };
+      });
+
     } catch (err: any) {
       console.error('Error fetching site analytics:', err);
       setError(err.message || 'Failed to load site analytics.');
