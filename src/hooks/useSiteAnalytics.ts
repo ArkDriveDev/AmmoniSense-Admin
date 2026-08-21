@@ -167,6 +167,15 @@ export function useSiteAnalytics() {
         };
       });
 
+      // Calculate global summary metrics
+      setSites(processedSites);
+      setGlobalStats({
+        totalSites: processedSites.length,
+        activeDevices: allDevices.filter((d: any) => d.status === 'ACTIVE').length,
+        sitesWithAlerts: processedSites.filter((s) => s.alert_status === 'warning' || s.alert_status === 'critical').length,
+        criticalAlerts: processedSites.filter((s) => s.alert_status === 'critical').length,
+      });
+
     } catch (err: any) {
       console.error('Error fetching site analytics:', err);
       setError(err.message || 'Failed to load site analytics.');
@@ -174,6 +183,10 @@ export function useSiteAnalytics() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchSiteAnalytics();
+  }, [fetchSiteAnalytics]);
 
   return { sites, globalStats, loading, error, refresh: fetchSiteAnalytics };
 }
