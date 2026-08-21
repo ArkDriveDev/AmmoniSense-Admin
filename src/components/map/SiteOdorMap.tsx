@@ -93,6 +93,27 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
       fillOpacity: plumeOpacity,
     }).addTo(map).bindTooltip(`Primary Odor Concentration Core (~${Math.round(innerOdorRadius)}m)`, { permanent: false });
 
+    // 5. Site Center Pin Marker & Popup
+    const siteIcon = L.divIcon({
+      className: 'custom-site-pin',
+      html: `<div style="background-color: ${plumeColor}; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.3); border: 3px solid white; font-weight: bold; font-size: 14px;">🏭</div>`,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+
+    const marker = L.marker([latitude, longitude], { icon: siteIcon }).addTo(map);
+    marker.bindPopup(`
+      <div style="font-family: system-ui, sans-serif; min-width: 180px; padding: 4px;">
+        <h4 style="margin: 0 0 6px 0; color: #1a365d; font-size: 14px; font-weight: 700;">${siteName}</h4>
+        <div style="font-size: 12px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
+          <span>Latest NH₃:</span>
+          <strong style="color: ${plumeColor}; font-size: 13px;">${nh3Val > 0 ? nh3Val.toFixed(1) + ' ppm' : 'No Data'}</strong>
+        </div>
+        <div style="font-size: 11px; color: #475569;"><b>Primary Odor Radius:</b> ~${Math.round(innerOdorRadius)}m</div>
+        <div style="font-size: 11px; color: #475569;"><b>Community Buffer:</b> 500m Boundary</div>
+      </div>
+    `);
+
     mapRef.current = map;
 
     return () => {
@@ -106,6 +127,38 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
   return (
     <div style={{ position: 'relative', width: '100%', height, borderRadius: '10px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
       <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
+
+      {/* Map Legend Overlay */}
+      <div style={{
+        position: 'absolute',
+        bottom: '10px',
+        right: '10px',
+        zIndex: 1000,
+        backgroundColor: 'rgba(255, 255, 255, 0.92)',
+        backdropFilter: 'blur(6px)',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+        fontSize: '11px',
+        color: '#1e293b',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '4px'
+      }}>
+        <div style={{ fontWeight: 700, marginBottom: '2px', color: '#1a365d' }}>Spatial Impact Legend</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: ammonia && ammonia > 50 ? '#dc2626' : ammonia && ammonia > 25 ? '#f59e0b' : '#2d7d46' }}></span>
+          <span>Odor Dispersion Plume</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px dashed #3b82f6', backgroundColor: 'rgba(96,165,250,0.2)' }}></span>
+          <span>Community Buffer (500m)</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px dashed #64748b' }}></span>
+          <span>Perimeter Boundary (1000m)</span>
+        </div>
+      </div>
     </div>
   );
 };
