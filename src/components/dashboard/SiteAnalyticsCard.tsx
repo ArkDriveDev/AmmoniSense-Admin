@@ -71,6 +71,20 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const trendChartData = {
+    labels: site.trend_7days.map((t) => t.date),
+    datasets: [{
+      label: 'Ammonia (ppm)',
+      data: site.trend_7days.map((t) => t.ammonia),
+      borderColor: statusDetails.text,
+      backgroundColor: `${statusDetails.text}1f`,
+      fill: true,
+      tension: 0.35,
+      borderWidth: 2.5,
+      pointRadius: 4,
+    }],
+  };
+
   return (
     <IonCard style={{ margin: '0 0 16px 0', borderRadius: '14px', border: `1.5px solid ${site.alert_status === 'critical' ? '#fca5a5' : '#e2e8f0'}`, backgroundColor: '#ffffff' }}>
       <IonCardHeader onClick={() => setExpanded(!expanded)} style={{ padding: '16px 20px', cursor: 'pointer', backgroundColor: site.alert_status === 'critical' ? '#fff5f5' : '#ffffff' }}>
@@ -135,6 +149,26 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
           </IonRow>
         </IonGrid>
       </IonCardHeader>
+
+      {/* Expanded Content Section */}
+      {expanded && (
+        <IonCardContent style={{ padding: '20px', backgroundColor: '#fafafa', borderTop: '1px solid #f1f5f9' }}>
+          <IonGrid style={{ padding: 0 }}>
+            <IonRow>
+              <IonCol size="12" size-lg="7">
+                <div style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '700', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <IonIcon icon={pulseOutline} style={{ color: '#2563eb' }} /> 7-Day Ammonia Level Trend (ppm)
+                  </h4>
+                  <div style={{ height: '220px', width: '100%' }}>
+                    <Line data={trendChartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }} />
+                  </div>
+                </div>
+              </IonCol>
+            </IonRow>
+          </IonGrid>
+        </IonCardContent>
+      )}
     </IonCard>
   );
 };
