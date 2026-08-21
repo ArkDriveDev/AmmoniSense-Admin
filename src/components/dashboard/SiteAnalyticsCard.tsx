@@ -189,6 +189,43 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
                 </div>
               </IonCol>
             </IonRow>
+
+            {/* ROW 2: SPATIAL ODOR MAP & DEVICES LIST */}
+            <IonRow style={{ marginTop: '16px' }}>
+              <IonCol size="12" size-lg="7">
+                <div style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '700', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <IonIcon icon={mapOutline} style={{ color: '#d97706' }} /> Odor Zones & Community Buffer Polygons
+                  </h4>
+                  <SiteOdorMap latitude={site.latitude} longitude={site.longitude} siteName={site.site_name} ammonia={site.latest_ammonia} areaHectares={site.area_size_hectares} height="280px" />
+                </div>
+              </IonCol>
+
+              <IonCol size="12" size-lg="5">
+                <div style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', height: '100%' }}>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '700', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <IonIcon icon={hardwareChipOutline} style={{ color: '#4f46e5' }} /> Assigned IoT Devices ({site.devices.length})
+                  </h4>
+                  {site.devices.length === 0 ? (
+                    <p style={{ fontSize: '12px', color: '#94a3b8' }}>No hardware devices assigned to this site yet.</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '270px', overflowY: 'auto' }}>
+                      {site.devices.map((dev) => (
+                        <div key={dev.id} style={{ padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div>
+                            <strong style={{ fontSize: '13px', color: '#1e293b' }}>{dev.device_uid}</strong>
+                            <span style={{ fontSize: '11px', color: '#64748b', display: 'block' }}>Firmware: {dev.firmware_version || 'v1.0.0'}</span>
+                          </div>
+                          <span style={{ fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '10px', backgroundColor: dev.status === 'ACTIVE' ? '#dcfce7' : '#fee2e2', color: dev.status === 'ACTIVE' ? '#15803d' : '#b91c1c' }}>
+                            {dev.status || 'ACTIVE'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </IonCol>
+            </IonRow>
           </IonGrid>
         </IonCardContent>
       )}
