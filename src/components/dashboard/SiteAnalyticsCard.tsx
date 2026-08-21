@@ -226,6 +226,50 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
                 </div>
               </IonCol>
             </IonRow>
+
+            {/* ROW 3: RECENT READINGS LOG TABLE */}
+            <IonRow style={{ marginTop: '16px' }}>
+              <IonCol size="12">
+                <div style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '700', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <IonIcon icon={calendarOutline} style={{ color: '#0891b2' }} /> Recent Logged Telemetry Readings
+                  </h4>
+                  {site.recent_readings.length === 0 ? (
+                    <p style={{ fontSize: '12px', color: '#94a3b8' }}>No sensor readings logged for this site yet.</p>
+                  ) : (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0', color: '#475569', textAlign: 'left' }}>
+                            <th style={{ padding: '8px 12px' }}>Timestamp</th>
+                            <th style={{ padding: '8px 12px' }}>Device UID</th>
+                            <th style={{ padding: '8px 12px' }}>Ammonia (NH₃)</th>
+                            <th style={{ padding: '8px 12px' }}>Temp / Humidity</th>
+                            <th style={{ padding: '8px 12px' }}>Grid Cell</th>
+                            <th style={{ padding: '8px 12px' }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {site.recent_readings.map((reading) => {
+                            const rStatus = getStatusDetails(reading.status as any, reading.ammonia);
+                            return (
+                              <tr key={reading.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '8px 12px', color: '#334155', fontWeight: '600' }}>{new Date(reading.created_at).toLocaleString()}</td>
+                                <td style={{ padding: '8px 12px', color: '#475569' }}>{reading.device_uid}</td>
+                                <td style={{ padding: '8px 12px', color: rStatus.text, fontWeight: '700' }}>{reading.ammonia.toFixed(1)} ppm</td>
+                                <td style={{ padding: '8px 12px', color: '#334155' }}>{reading.temperature.toFixed(1)}°C / {reading.humidity.toFixed(0)}%</td>
+                                <td style={{ padding: '8px 12px', color: '#64748b' }}>{reading.grid_cell_id || 'N/A'}</td>
+                                <td style={{ padding: '8px 12px' }}><span style={{ fontSize: '11px', fontWeight: '700', color: rStatus.text }}>{rStatus.label}</span></td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </IonCol>
+            </IonRow>
           </IonGrid>
         </IonCardContent>
       )}
