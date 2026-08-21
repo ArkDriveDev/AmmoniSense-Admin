@@ -72,15 +72,16 @@ export default function Livestock() {
     try {
       const { data } = await supabase
         .from('site_owners')
-        .select('id, owner_name, email')
-        .order('owner_name');
+        .select('*');
       
       if (data) {
-        setClients(data.map(o => ({
+        const mapped = data.map(o => ({
           id: o.id,
-          full_name: o.owner_name,
-          organization_name: o.email
-        })));
+          full_name: o.owner_name || o.full_name || o.name || 'Owner',
+          organization_name: o.email || o.address || ''
+        }));
+        mapped.sort((a, b) => (a.full_name || '').localeCompare(b.full_name || ''));
+        setClients(mapped);
       }
     } catch (err) {
       console.error('Error fetching site owners:', err);
