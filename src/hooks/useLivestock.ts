@@ -9,37 +9,47 @@ export function useLivestock() {
   const fetchLivestock = async () => {
     setLoading(true);
     try {
+      // 1. Query monitoring_sites without embedded PostgREST joins
       const { data: sitesData, error: sitesErr } = await supabase
         .from('monitoring_sites')
-        .select(`
-          *,
-          site_owners (
-            id,
-            owner_name,
-            contact_number,
-            email,
-            address
-          )
-        `)
-        .order('created_at', { ascending: false });
+        .select('*');
 
       if (sitesErr) throw sitesErr;
 
-      setLivestock((sitesData || []).map(s => ({
-        ...s,
-        livestock_name: s.site_name,
-        livestock_serial: s.site_code,
-        location: s.address,
-        clients: s.site_owners ? { full_name: s.site_owners.owner_name } : null
-      })));
+      // 2. Query site_owners separately with try/catch fallback
+      let ownersData: any[] = [];
+      try {
+        const { data: oData } = await supabase.from('site_owners').select('*');
+        if (oData) ownersData = oData;
+      } catch (e) {
+        console.warn('Could not fetch site_owners in useLivestock:', e);
+      }
+
+      const allOwners = ownersData;
+      setLivestock((sitesData || []).map(s => {
+        const owner = allOwners.find((o: any) => o.id === s.owner_id || o.id === s.client_id);
+        const ownerName = owner?.owner_name || owner?.full_name || s.owner_name || 'Unassigned';
+        return {
+          ...s,
+          livestock_name: s.site_name || s.name || `Site #${s.id}`,
+          livestock_serial: s.site_code || s.code,
+          location: s.address || 'Address not specified',
+          clients: { full_name: ownerName }
+        };
+      }));
+
+      // 3. Query device counts per site
+      let devicesData: any[] = [];
+      try {
+        const { data: dData } = await supabase.from('devices').select('id, site_id');
+        if (dData) devicesData = dData;
+      } catch (e) {
+        console.warn('Could not fetch devices count:', e);
+      }
 
       const counts: Record<number, number> = {};
       for (const item of sitesData || []) {
-        const { count } = await supabase
-          .from('devices')
-          .select('id', { count: 'exact', head: true })
-          .eq('site_id', item.id);
-        counts[item.id] = count || 0;
+        counts[item.id] = devicesData.filter((d: any) => d.site_id === item.id).length;
       }
       setDeviceCounts(counts);
     } catch (err) {
