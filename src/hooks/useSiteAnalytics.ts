@@ -46,3 +46,29 @@ export interface SiteAnalyticsData {
     photo_url?: string;
   }[];
 }
+
+export interface SiteGlobalStats {
+  totalSites: number;
+  activeDevices: number;
+  sitesWithAlerts: number;
+  criticalAlerts: number;
+}
+
+export function useSiteAnalytics() {
+  const [sites, setSites] = useState<SiteAnalyticsData[]>([]);
+  const [globalStats, setGlobalStats] = useState<SiteGlobalStats>({
+    totalSites: 0,
+    activeDevices: 0,
+    sitesWithAlerts: 0,
+    criticalAlerts: 0,
+  });
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSiteAnalytics = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+  }, []);
+
+  return { sites, globalStats, loading, error, refresh: fetchSiteAnalytics };
+}
