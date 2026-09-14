@@ -141,8 +141,8 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
             </IonCol>
             <IonCol size="12" size-sm="4" size-md="2.4">
               <div style={{ padding: '6px 10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', display: 'block' }}>Owner / Last Seen</span>
-                <span style={{ fontSize: '12px', fontWeight: '700', color: '#334155', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>👤 {site.owner_name}</span>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', display: 'block' }}>Location / Last Seen</span>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#334155', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📍 {site.address}</span>
                 <span style={{ fontSize: '10px', color: '#94a3b8' }}>🕒 {formatTime(site.last_reading_at)}</span>
               </div>
             </IonCol>
@@ -175,10 +175,10 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: '#334155' }}>
                       <div><strong style={{ color: '#64748b' }}>Site Code:</strong> {site.site_code || `SITE-${site.id}`}</div>
-                      <div><strong style={{ color: '#64748b' }}>Address:</strong> {site.address}</div>
-                      <div><strong style={{ color: '#64748b' }}>Coordinates:</strong> {site.latitude.toFixed(4)}° N, {site.longitude.toFixed(4)}° E</div>
+                      <div><strong style={{ color: '#64748b' }}>Location:</strong> {site.address}</div>
+                      <div><strong style={{ color: '#64748b' }}>GPS Coordinates:</strong> {site.latitude.toFixed(4)}° N, {site.longitude.toFixed(4)}° E</div>
                       <div><strong style={{ color: '#64748b' }}>Area Size:</strong> {site.area_size_hectares} Hectare(s)</div>
-                      <div><strong style={{ color: '#64748b' }}>Owner Contact:</strong> {site.owner_name} {site.owner_contact ? `(${site.owner_contact})` : ''}</div>
+                      <div><strong style={{ color: '#64748b' }}>Site Type:</strong> {site.site_type}</div>
                     </div>
                   </div>
                   <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
