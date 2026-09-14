@@ -246,38 +246,3 @@ export default function Clients() {
                         setShowEditModal(true);
                       }}>
                         <IonIcon icon={createOutline} />
-                      </IonButton>
-                      <IonButton size="small" fill="clear" color="danger" onClick={() => {
-                        setSelectedClient(c);
-                        setShowDeleteAlert(true);
-                      }}>
-                        <IonIcon icon={trashOutline} />
-                      </IonButton>
-                    </div>
-                  </div>
-                </IonItem>
-              );
-            })}
-          </IonList>
-        )}
-
-        {/* Add Owner Modal */}
-        <IonModal isOpen={showAddModal}>
-          <IonHeader>
-            <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-              <IonTitle>REGISTER SITE OWNER</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={() => setShowAddModal(false)}>CLOSE</IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="ion-padding">
-            <IonInput label="OWNER FULL NAME *" labelPlacement="floating" placeholder="JOHN DOE"
-              value={form.full_name}
-              onIonChange={(e) => setForm({ ...form, full_name: e.detail.value?.toUpperCase() || '' })} style={{ marginBottom: '12px' }} />
-            <IonInput label="EMAIL ADDRESS" labelPlacement="floating" type="email" placeholder="owner@example.com"
-              value={form.email}
-              onIonChange={(e) => setForm({ ...form, email: e.detail.value || '' })} style={{ marginBottom: '12px' }} />
-            <IonInput label="CONTACT NUMBER" labelPlacement="floating" type="tel" placeholder="09123456789"
-              value={form.phone}
-              onIonChange={(e) => setForm({ ...form, phone: e.detail.value || '' })} style={{ marginBottom: '12px' }} />
