@@ -130,37 +130,3 @@ export default function AssignLivestockModal({
       setTimeout(() => {
         onClose();
       }, 1200);
-
-    } catch (err) {
-      console.error('Error saving assignments:', err);
-      setToastMessage('Failed to save assignments');
-      setToastColor('danger');
-      setShowToast(true);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const assignedCount = assignedLivestock.length;
-
-  return (
-    <IonModal isOpen={isOpen} onDidDismiss={onClose}>
-      <IonHeader>
-        <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-          <IonTitle style={{ fontWeight: 'bold' }}>ASSIGN MONITORING SITES</IonTitle>
-          <IonButtons slot="end">
-            <IonButton onClick={onClose}>CLOSE</IonButton>
-          </IonButtons>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent className="ion-padding">
-        <div style={{ marginBottom: '16px' }}>
-          <h3 style={{ color: '#1a365d', fontWeight: 'bold' }}>ASSIGN SITES TO: {clientName.toUpperCase()}</h3>
-          <p style={{ fontSize: '13px', color: '#64748b' }}>
-            SELECT ALL MONITORING SITES OPERATED BY THIS SITE OWNER.
-          </p>
-          <p style={{ fontSize: '13px', color: '#2d7d46', fontWeight: 600 }}>
-            {assignedCount} SITES SELECTED
-          </p>
-        </div>
