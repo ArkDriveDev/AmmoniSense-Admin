@@ -164,39 +164,3 @@ export default function AssignLivestockModal({
             {assignedCount} SITES SELECTED
           </p>
         </div>
-
-        {loading ? (
-          <div style={{ textAlign: 'center', marginTop: '40px' }}>
-            <IonSpinner />
-            <p>LOADING MONITORING SITES...</p>
-          </div>
-        ) : livestock.length === 0 ? (
-          <div style={{ textAlign: 'center', marginTop: '40px' }}>
-            <p>NO MONITORING SITES AVAILABLE</p>
-            <IonButton fill="outline" onClick={onClose} style={{ marginTop: '16px' }}>
-              CLOSE
-            </IonButton>
-          </div>
-        ) : (
-          <IonList>
-            {livestock.map((l) => {
-              const isAssigned = assignedLivestock.includes(l.id);
-              const isAlreadyAssigned = l.client_id && l.client_id !== clientId;
-              
-              return (
-                <IonItem key={l.id} disabled={isAlreadyAssigned}>
-                  <IonLabel>
-                    <h2>{l.livestock_name}</h2>
-                    <p>CODE: {l.livestock_serial}</p>
-                    {l.location && <p>LOCATION: {l.location}</p>}
-                    {isAlreadyAssigned && (
-                      <IonChip color="warning">
-                        <IonIcon icon={closeCircleOutline} />
-                        <IonLabel>ASSIGNED TO OTHER OWNER</IonLabel>
-                      </IonChip>
-                    )}
-                    {isAssigned && (
-                      <IonChip color="success">
-                        <IonIcon icon={checkmarkCircleOutline} />
-                        <IonLabel>SELECTED</IonLabel>
-                      </IonChip>
