@@ -211,38 +211,3 @@ export default function Clients() {
           <IonList style={{ background: 'transparent' }}>
             {filteredClients.map((c) => {
               const name = c.owner_name || c.full_name;
-              const email = c.email || 'No Email';
-              const phone = c.contact_number || c.phone || 'No Contact';
-              const address = c.address || c.organization_name || 'No Address';
-
-              return (
-                <IonItem key={c.id} style={{ '--background': '#ffffff', borderRadius: '10px', marginBottom: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
-                  <IonLabel>
-                    <h2 style={{ color: '#1a365d', fontWeight: 'bold' }}>
-                      <IonIcon icon={personOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                      {name}
-                    </h2>
-                    <p style={{ color: '#475569' }}>EMAIL: {email}</p>
-                    <p style={{ color: '#64748b' }}>PHONE: {phone}</p>
-                    {address && <p style={{ color: '#64748b' }}>ADDRESS: {address}</p>}
-                  </IonLabel>
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                    <IonBadge color="primary">SITE OWNER</IonBadge>
-                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px', justifyContent: 'flex-end' }}>
-                      <IonButton size="small" fill="outline" color="secondary" onClick={() => {
-                        setSelectedClient(c);
-                        setShowAssignModal(true);
-                      }}>
-                        <IonIcon icon={businessOutline} slot="start" /> Assign Sites
-                      </IonButton>
-                      <IonButton size="small" fill="clear" color="primary" onClick={() => {
-                        setSelectedClient(c);
-                        setForm({
-                          full_name: name || '',
-                          email: c.email || '',
-                          phone: phone || '',
-                          organization_name: address || ''
-                        });
-                        setShowEditModal(true);
-                      }}>
-                        <IonIcon icon={createOutline} />
