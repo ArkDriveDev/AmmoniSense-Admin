@@ -5,7 +5,6 @@ import { supabase } from '../services/supabase';
 import Setup from '../pages/Setup';
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
-import Clients from '../pages/Clients';
 import Livestock from '../pages/Livestock';
 import Devices from '../pages/Devices';
 import SensorData from '../pages/SensorData';
@@ -73,17 +72,6 @@ export default function AppRouter() {
           <ProtectedRoute>
             <AdminLayout>
               <Dashboard />
-            </AdminLayout>
-          </ProtectedRoute>
-        )}
-      />
-
-      <Route
-        path="/clients"
-        render={() => (
-          <ProtectedRoute>
-            <AdminLayout>
-              <Clients />
             </AdminLayout>
           </ProtectedRoute>
         )}
