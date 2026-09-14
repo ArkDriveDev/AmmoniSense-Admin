@@ -20,7 +20,6 @@ import { useHistory, useLocation } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import {
   homeOutline,
-  peopleOutline,
   businessOutline,
   hardwareChipOutline,
   barChartOutline,
@@ -130,19 +129,6 @@ export default function AdminLayout({ children }: any) {
             >
               <IonIcon icon={homeOutline} slot="start" />
               <IonLabel>DASHBOARD</IonLabel>
-            </IonItem>
-
-            <IonItem 
-              button 
-              onClick={() => history.push('/clients')}
-              color={isActive('/clients') ? 'primary' : undefined}
-              style={isActive('/clients') ? { 
-                borderLeft: '4px solid #1a365d',
-                fontWeight: 'bold'
-              } : {}}
-            >
-              <IonIcon icon={peopleOutline} slot="start" />
-              <IonLabel>SITE OWNERS</IonLabel>
             </IonItem>
 
             <IonItem 
