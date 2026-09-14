@@ -71,37 +71,3 @@ export default function Clients() {
       c.contact_number?.toLowerCase().includes(term) ||
       c.organization_name?.toLowerCase().includes(term) ||
       c.address?.toLowerCase().includes(term)
-    );
-  }).sort((a, b) => {
-    let aVal = a[sortBy] || '';
-    let bVal = b[sortBy] || '';
-    if (typeof aVal === 'string') {
-      aVal = aVal.toLowerCase();
-      bVal = bVal.toLowerCase();
-    }
-    if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
-    if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
-  });
-
-  const handleCreate = async () => {
-    if (!form.full_name) {
-      setToastMessage('Please enter Owner Name');
-      setToastColor('danger');
-      setShowToast(true);
-      return;
-    }
-
-    const { error } = await supabase.from('site_owners').insert([{
-      owner_name: form.full_name,
-      contact_number: form.phone || null,
-      email: form.email || null,
-      address: form.organization_name || null
-    }]);
-
-    if (error) {
-      setToastMessage('Error creating site owner: ' + error.message);
-      setToastColor('danger');
-      setShowToast(true);
-      return;
-    }
