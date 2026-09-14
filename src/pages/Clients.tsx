@@ -281,38 +281,3 @@ export default function Clients() {
             <IonInput label="CONTACT NUMBER" labelPlacement="floating" type="tel" placeholder="09123456789"
               value={form.phone}
               onIonChange={(e) => setForm({ ...form, phone: e.detail.value || '' })} style={{ marginBottom: '12px' }} />
-            <IonInput label="ADDRESS / LOCATION" labelPlacement="floating" placeholder="LAGUNA, PHILIPPINES"
-              value={form.organization_name}
-              onIonChange={(e) => setForm({ ...form, organization_name: e.detail.value?.toUpperCase() || '' })} style={{ marginBottom: '16px' }} />
-            <IonButton expand="block" onClick={handleCreate} style={{ '--background': '#1a365d' }}>CREATE OWNER RECORD</IonButton>
-          </IonContent>
-        </IonModal>
-
-        {/* Edit Modal */}
-        <IonModal isOpen={showEditModal}>
-          <IonHeader>
-            <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-              <IonTitle>EDIT SITE OWNER</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={() => setShowEditModal(false)}>CLOSE</IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="ion-padding">
-            <IonInput label="OWNER FULL NAME *" labelPlacement="floating" value={form.full_name}
-              onIonChange={(e) => setForm({ ...form, full_name: e.detail.value?.toUpperCase() || '' })} style={{ marginBottom: '12px' }} />
-            <IonInput label="CONTACT NUMBER" labelPlacement="floating" type="tel" value={form.phone}
-              onIonChange={(e) => setForm({ ...form, phone: e.detail.value || '' })} style={{ marginBottom: '12px' }} />
-            <IonInput label="ADDRESS" labelPlacement="floating" value={form.organization_name}
-              onIonChange={(e) => setForm({ ...form, organization_name: e.detail.value?.toUpperCase() || '' })} style={{ marginBottom: '16px' }} />
-            <IonButton expand="block" onClick={() => setShowUpdateConfirm(true)} style={{ '--background': '#1a365d' }}>UPDATE OWNER</IonButton>
-          </IonContent>
-        </IonModal>
-
-        <ConfirmAlert
-          isOpen={showUpdateConfirm}
-          onClose={() => setShowUpdateConfirm(false)}
-          onConfirm={handleEdit}
-          title="UPDATE SITE OWNER?"
-          message={`Update "${selectedClient?.owner_name || selectedClient?.full_name}"?`}
-        />
