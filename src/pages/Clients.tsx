@@ -140,39 +140,3 @@ export default function Clients() {
     setSelectedClient(null);
     fetchClients();
   };
-
-  const handleDelete = async () => {
-    const { error } = await supabase.from('site_owners').delete().eq('id', selectedClient.id);
-
-    if (error) {
-      setToastMessage('Error deleting owner: ' + error.message);
-      setToastColor('danger');
-      setShowToast(true);
-      return;
-    }
-
-    setToastMessage('Owner record deleted');
-    setToastColor('success');
-    setShowToast(true);
-    setShowDeleteAlert(false);
-    setSelectedClient(null);
-    fetchClients();
-  };
-
-  const handleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortOrder('asc');
-    }
-  };
-
-  return (
-    <IonPage>
-      <IonHeader>
-        <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-          <IonTitle style={{ fontWeight: 'bold' }}>SITE OWNERS</IonTitle>
-          <IonButtons slot="end">
-            <IonButton onClick={() => setShowAddModal(true)}>
-              <IonIcon icon={addOutline} /> ADD OWNER
