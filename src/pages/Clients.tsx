@@ -176,38 +176,3 @@ export default function Clients() {
           <IonButtons slot="end">
             <IonButton onClick={() => setShowAddModal(true)}>
               <IonIcon icon={addOutline} /> ADD OWNER
-            </IonButton>
-          </IonButtons>
-        </IonToolbar>
-        <IonToolbar style={{ '--background': '#f8fafc' }}>
-          <IonSearchbar
-            placeholder="SEARCH SITE OWNERS..."
-            value={searchTerm}
-            onIonChange={(e) => setSearchTerm(e.detail.value || '')}
-            animated
-          />
-        </IonToolbar>
-        <IonToolbar style={{ '--background': '#ffffff' }}>
-          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap' }}>
-            <IonButton size="small" fill={sortBy === 'full_name' ? 'solid' : 'outline'} onClick={() => handleSort('full_name')}>
-              NAME {sortBy === 'full_name' && (sortOrder === 'asc' ? '▲' : '▼')}
-            </IonButton>
-            <IonButton size="small" fill={sortBy === 'created_at' ? 'solid' : 'outline'} onClick={() => handleSort('created_at')}>
-              DATE {sortBy === 'created_at' && (sortOrder === 'asc' ? '▲' : '▼')}
-            </IonButton>
-          </div>
-        </IonToolbar>
-      </IonHeader>
-
-      <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>
-        {loading ? (
-          <LoadingSpinner />
-        ) : filteredClients.length === 0 ? (
-          <EmptyState
-            title="NO SITE OWNERS FOUND"
-            message={searchTerm ? 'TRY A DIFFERENT SEARCH' : 'CLICK ADD OWNER TO REGISTER A NEW SITE OWNER'}
-          />
-        ) : (
-          <IonList style={{ background: 'transparent' }}>
-            {filteredClients.map((c) => {
-              const name = c.owner_name || c.full_name;
