@@ -316,38 +316,3 @@ export default function Clients() {
           title="UPDATE SITE OWNER?"
           message={`Update "${selectedClient?.owner_name || selectedClient?.full_name}"?`}
         />
-
-        <DeleteAlert
-          isOpen={showDeleteAlert}
-          onClose={() => setShowDeleteAlert(false)}
-          onConfirm={handleDelete}
-          title="DELETE SITE OWNER?"
-          message={`Delete "${selectedClient?.owner_name || selectedClient?.full_name}"?`}
-          requireTypeConfirm={true}
-          typeConfirmText="DELETE"
-        />
-
-        {selectedClient && (
-          <AssignLivestockModal
-            isOpen={showAssignModal}
-            onClose={() => {
-              setShowAssignModal(false);
-              setSelectedClient(null);
-            }}
-            clientId={selectedClient.id}
-            clientName={selectedClient.owner_name || selectedClient.full_name}
-          />
-        )}
-
-        <IonToast
-          isOpen={showToast}
-          onDidDismiss={() => setShowToast(false)}
-          message={toastMessage}
-          duration={5000}
-          color={toastColor}
-          position="bottom"
-        />
-      </IonContent>
-    </IonPage>
-  );
-}
