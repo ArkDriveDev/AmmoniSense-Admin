@@ -60,38 +60,3 @@ export default function AssignLivestockModal({
         setToastMessage('Failed to fetch monitoring sites');
         setToastColor('danger');
         setShowToast(true);
-        setLoading(false);
-        return;
-      }
-
-      setLivestock(allSites?.map(s => ({
-        id: s.id,
-        livestock_name: s.site_name,
-        livestock_serial: s.site_code,
-        location: s.address,
-        client_id: s.owner_id
-      })) || []);
-
-      const { data: assigned } = await supabase
-        .from('monitoring_sites')
-        .select('id')
-        .eq('owner_id', clientId);
-
-      setAssignedLivestock(assigned?.map(p => p.id) || []);
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setToastMessage('An unexpected error occurred');
-      setToastColor('danger');
-      setShowToast(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleLivestock = (id: number) => {
-    setAssignedLivestock(prev => 
-      prev.includes(id)
-        ? prev.filter(item => item !== id)
-        : [...prev, id]
-    );
-  };
