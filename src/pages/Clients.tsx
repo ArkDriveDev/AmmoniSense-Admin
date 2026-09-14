@@ -105,38 +105,3 @@ export default function Clients() {
       setShowToast(true);
       return;
     }
-
-    setToastMessage('Site Owner created successfully');
-    setToastColor('success');
-    setShowToast(true);
-    setShowAddModal(false);
-    setForm({ full_name: '', email: '', phone: '', organization_name: '' });
-    fetchClients();
-  };
-
-  const handleEdit = async () => {
-    const { error } = await supabase
-      .from('site_owners')
-      .update({
-        owner_name: form.full_name,
-        contact_number: form.phone || null,
-        email: form.email || null,
-        address: form.organization_name || null
-      })
-      .eq('id', selectedClient.id);
-
-    if (error) {
-      setToastMessage('Error updating owner: ' + error.message);
-      setToastColor('danger');
-      setShowToast(true);
-      return;
-    }
-
-    setToastMessage('Owner details updated');
-    setToastColor('success');
-    setShowToast(true);
-    setShowUpdateConfirm(false);
-    setShowEditModal(false);
-    setSelectedClient(null);
-    fetchClients();
-  };
