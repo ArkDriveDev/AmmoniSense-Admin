@@ -95,38 +95,3 @@ export default function AssignLivestockModal({
         : [...prev, id]
     );
   };
-
-  const saveAssignment = async () => {
-    setSaving(true);
-    try {
-      const { data: current } = await supabase
-        .from('monitoring_sites')
-        .select('id')
-        .eq('owner_id', clientId);
-
-      const currentIds = current?.map(p => p.id) || [];
-
-      const toRemove = currentIds.filter(id => !assignedLivestock.includes(id));
-      const toAdd = assignedLivestock.filter(id => !currentIds.includes(id));
-
-      for (const id of toRemove) {
-        await supabase
-          .from('monitoring_sites')
-          .update({ owner_id: null })
-          .eq('id', id);
-      }
-
-      for (const id of toAdd) {
-        await supabase
-          .from('monitoring_sites')
-          .update({ owner_id: clientId })
-          .eq('id', id);
-      }
-
-      setToastMessage('Sites assigned successfully');
-      setToastColor('success');
-      setShowToast(true);
-      
-      setTimeout(() => {
-        onClose();
-      }, 1200);
