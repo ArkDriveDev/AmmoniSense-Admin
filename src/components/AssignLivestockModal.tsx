@@ -200,38 +200,3 @@ export default function AssignLivestockModal({
                         <IonIcon icon={checkmarkCircleOutline} />
                         <IonLabel>SELECTED</IonLabel>
                       </IonChip>
-                    )}
-                  </IonLabel>
-                  {!isAlreadyAssigned && (
-                    <IonCheckbox
-                      checked={isAssigned}
-                      onIonChange={() => toggleLivestock(l.id)}
-                    />
-                  )}
-                </IonItem>
-              );
-            })}
-          </IonList>
-        )}
-
-        <IonButton
-          expand="block"
-          onClick={saveAssignment}
-          disabled={saving || livestock.length === 0 || loading}
-          style={{ marginTop: '16px', '--background': '#1a365d' }}
-        >
-          {saving ? 'SAVING...' : `SAVE SITE ASSIGNMENTS (${assignedCount})`}
-        </IonButton>
-
-        <IonToast
-          isOpen={showToast}
-          onDidDismiss={() => setShowToast(false)}
-          message={toastMessage}
-          duration={3000}
-          color={toastColor}
-          position="bottom"
-        />
-      </IonContent>
-    </IonModal>
-  );
-}
