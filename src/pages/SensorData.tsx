@@ -171,7 +171,7 @@ export default function SensorData() {
     event.detail.complete();
   };
 
-  // Convert sensor records into Leaflet map markers
+  // Convert sensor records into MapLibre map markers
   const mapMarkers: SensorReadingMarker[] = filteredLogs
     .filter(l => l.latitude && l.longitude)
     .map(l => ({
@@ -277,7 +277,7 @@ export default function SensorData() {
           <IonRefresherContent />
         </IonRefresher>
 
-        {/* Spatial Leaflet Grid Map Overlay */}
+        {/* Spatial MapLibre Grid Map Overlay */}
         {showMap && (
           <IonCard style={{ margin: '0 0 20px 0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
             <IonCardHeader style={{ padding: '14px 16px 8px 16px', background: '#ffffff', borderBottom: '1px solid #f1f5f9' }}>
