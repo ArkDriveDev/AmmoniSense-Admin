@@ -6,6 +6,8 @@ export const MANOLO_FORTICH_DEFAULTS = {
   lat: 8.3697,
   lng: 124.8640,
   zoom: 13,
+  minZoom: 11,
+  maxZoom: 18,
   municipalityName: 'Municipality of Manolo Fortich, Bukidnon',
 };
 
@@ -29,17 +31,20 @@ export const TILE_LAYERS = {
   street: {
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | MENRO Manolo Fortich',
-    maxZoom: 20,
+    maxNativeZoom: 18,
+    maxZoom: 18,
   },
   satellite: {
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics',
-    maxZoom: 19,
+    maxNativeZoom: 17, // Prevents Esri "Map data not available" tile when zooming in close
+    maxZoom: 18,
   },
   satelliteLabels: {
     url: 'https://basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
     attribution: '&copy; CartoDB',
-    maxZoom: 19,
+    maxNativeZoom: 18,
+    maxZoom: 18,
   },
 };
 
