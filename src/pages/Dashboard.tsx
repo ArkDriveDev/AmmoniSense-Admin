@@ -33,7 +33,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSiteAnalytics, SiteAnalyticsData } from '../hooks/useSiteAnalytics';
 import { StatsCard } from '../components/charts';
 import SiteAnalyticsCard from '../components/dashboard/SiteAnalyticsCard';
-import SiteGridMap, { SensorReadingMarker } from '../components/map/SiteGridMap';
+import SpatialPolygonMap, { SensorReadingMarker } from '../components/map/SpatialPolygonMap';
 import { supabase } from '../services/supabase';
 
 export default function Dashboard() {
@@ -52,10 +52,16 @@ export default function Dashboard() {
 
   const fetchMapReadings = async () => {
     try {
-      const { data } = await supabase.from('sensor_data').select('*').order('created_at', { ascending: false }).limit(50);
+      const { data } = await supabase.from('sensor_data').select('*').order('created_at', { ascending: false }).limit(60);
       if (data) {
         setMapReadings(data.filter((d) => d.latitude && d.longitude).map((d) => ({
-          id: d.id, latitude: d.latitude, longitude: d.longitude, ammonia: d.ammonia || 0, grid_cell_id: d.grid_cell_id || undefined, device_uid: d.device_uid, created_at: d.created_at || d.submitted_at, status: d.status
+          id: d.id,
+          latitude: d.latitude,
+          longitude: d.longitude,
+          ammonia: d.ammonia || 0,
+          device_uid: d.device_uid,
+          created_at: d.created_at || d.submitted_at,
+          status: d.status
         })));
       }
     } catch (err) {
@@ -140,22 +146,41 @@ export default function Dashboard() {
             </IonCol>
           </IonRow>
 
-          {/* Spatial Grid Map Toggle */}
+          {/* Spatial Polygon Map Toggle */}
           <IonRow style={{ margin: '8px 0 16px 0' }}>
             <IonCol size="12">
               <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <IonIcon icon={mapOutline} style={{ fontSize: '22px', color: '#1a365d' }} />
                   <div>
-                    <strong style={{ color: '#1a365d', fontSize: '14px' }}>Live Environmental Coverage Map</strong>
-                    <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>Interactive spatial overview grid map across municipality</span>
+                    <strong style={{ color: '#1a365d', fontSize: '14px' }}>Live Environmental Polygon Coverage Map</strong>
+                    <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>Interactive spatial overview with odor zone polygons across Manolo Fortich</span>
                   </div>
                 </div>
                 <IonButton size="small" fill="outline" color="primary" onClick={() => setShowGlobalMap(!showGlobalMap)}>
                   {showGlobalMap ? 'Hide Map' : 'Show Map'}
                 </IonButton>
               </div>
-              {showGlobalMap && <div style={{ marginTop: '12px' }}><SiteGridMap siteName="MENRO Spatial Environmental Grid Overview" readings={mapReadings} height="360px" /></div>}
+              {showGlobalMap && (
+                <div style={{ marginTop: '12px' }}>
+                  <SpatialPolygonMap
+                    siteName="MENRO Manolo Fortich Environmental Spatial Overview"
+                    sites={sites.map(s => ({
+                      id: s.id,
+                      site_name: s.site_name,
+                      latitude: s.latitude,
+                      longitude: s.longitude,
+                      site_type: s.site_type,
+                      owner_name: s.owner_name,
+                      latest_ammonia: s.latest_ammonia,
+                      alert_status: s.alert_status,
+                      area_size_hectares: s.area_size_hectares
+                    }))}
+                    readings={mapReadings}
+                    height="380px"
+                  />
+                </div>
+              )}
             </IonCol>
           </IonRow>
 
@@ -185,9 +210,9 @@ export default function Dashboard() {
                           <IonIcon icon={alertCircleOutline} style={{ color: '#64748b' }} />
                           <IonSelect value={selectedStatus} onIonChange={(e) => setSelectedStatus(e.detail.value)} interface="popover" style={{ width: '100%', fontSize: '13px' }}>
                             <IonSelectOption value="all">Status: All Levels</IonSelectOption>
-                            <IonSelectOption value="normal">🟢 Normal</IonSelectOption>
-                            <IonSelectOption value="warning">🟡 Warning</IonSelectOption>
-                            <IonSelectOption value="critical">🔴 Critical</IonSelectOption>
+                            <IonSelectOption value="normal">Status: Normal</IonSelectOption>
+                            <IonSelectOption value="warning">Status: Warning</IonSelectOption>
+                            <IonSelectOption value="critical">Status: Critical</IonSelectOption>
                           </IonSelect>
                         </div>
                       </IonCol>

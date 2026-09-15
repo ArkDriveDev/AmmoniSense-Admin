@@ -1,4 +1,5 @@
-import { IonSearchbar, IonButton, IonToolbar } from '@ionic/react';
+import { IonSearchbar, IonButton, IonToolbar, IonIcon } from '@ionic/react';
+import { arrowUpOutline, arrowDownOutline } from 'ionicons/icons';
 
 interface SearchSortBarProps {
   searchTerm: string;
@@ -51,7 +52,13 @@ export default function SearchSortBar({
               fill={sortBy === field.key ? 'solid' : 'outline'}
               onClick={() => handleSort(field.key)}
             >
-              {field.label} {sortBy === field.key && (sortOrder === 'asc' ? '▲' : '▼')}
+              {field.label}
+              {sortBy === field.key && (
+                <IonIcon 
+                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
+                  style={{ marginLeft: '4px' }} 
+                />
+              )}
             </IonButton>
           ))}
           <IonButton size="small" color="medium" fill="outline" onClick={onReset}>

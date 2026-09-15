@@ -17,6 +17,9 @@ import '@ionic/react/css/text-transformation.css';
 import '@ionic/react/css/flex-utils.css';
 import '@ionic/react/css/display.css';
 
+/* LEAFLET CSS FOR PROPER MAP TILE POSITIONING */
+import 'leaflet/dist/leaflet.css';
+
 setupIonicReact();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

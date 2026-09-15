@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { IonPage, IonContent, IonInput, IonButton, IonTitle, IonText, IonSpinner } from '@ionic/react';
+import { IonPage, IonContent, IonInput, IonButton, IonTitle, IonText, IonSpinner, IonIcon } from '@ionic/react';
+import { personAddOutline, personOutline, mailOutline, lockClosedOutline, arrowForwardOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 
@@ -135,7 +136,7 @@ export default function Setup() {
               onClick={() => history.push('/login')}
               style={{ marginTop: '16px' }}
             >
-              Go to Login
+              Go to Login <IonIcon icon={arrowForwardOutline} slot="end" />
             </IonButton>
           </div>
         </IonContent>
@@ -147,9 +148,14 @@ export default function Setup() {
     <IonPage>
       <IonContent className="ion-padding" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
         <div style={{ maxWidth: '400px', width: '100%' }}>
-          <IonTitle style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>
-            Create First Admin
-          </IonTitle>
+          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '16px', backgroundColor: '#1a365d', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 12px auto' }}>
+              <IonIcon icon={personAddOutline} />
+            </div>
+            <IonTitle style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>
+              Create First Admin
+            </IonTitle>
+          </div>
 
           <IonText color="medium" style={{ textAlign: 'center', display: 'block', marginBottom: '24px' }}>
             <p>This is a one-time setup. Create the first admin account.</p>
@@ -183,6 +189,7 @@ export default function Setup() {
             onClick={createAdmin}
             disabled={loading}
           >
+            <IonIcon icon={personAddOutline} slot="start" />
             {loading ? 'Creating...' : 'Create Admin'}
           </IonButton>
         </div>

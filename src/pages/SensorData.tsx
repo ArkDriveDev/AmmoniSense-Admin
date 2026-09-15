@@ -33,7 +33,7 @@ import { supabase } from '../services/supabase';
 import { refreshOutline, mapOutline, eyeOutline, locationOutline, hardwareChipOutline, imageOutline, calendarOutline } from 'ionicons/icons';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
-import SiteGridMap, { SensorReadingMarker } from '../components/map/SiteGridMap';
+import SpatialPolygonMap, { SensorReadingMarker } from '../components/map/SpatialPolygonMap';
 
 export default function SensorData() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -45,7 +45,6 @@ export default function SensorData() {
   const [searchTerm, setSearchTerm] = useState('');
   const [deviceFilter, setDeviceFilter] = useState('all');
   const [siteFilter, setSiteFilter] = useState<string | number>('all');
-  const [cellFilter, setCellFilter] = useState('all');
   const [showMap, setShowMap] = useState(true);
 
   const [selectedPhoto, setSelectedPhoto] = useState<any | null>(null);
@@ -80,7 +79,7 @@ export default function SensorData() {
 
   useEffect(() => {
     filterLogs();
-  }, [logs, searchTerm, deviceFilter, siteFilter, cellFilter]);
+  }, [logs, searchTerm, deviceFilter, siteFilter]);
 
   const fetchSites = async () => {
     try {
@@ -144,10 +143,6 @@ export default function SensorData() {
       result = result.filter(l => l.device_uid === deviceFilter);
     }
 
-    if (cellFilter !== 'all') {
-      result = result.filter(l => l.grid_cell_id === cellFilter);
-    }
-
     if (siteFilter !== 'all') {
       const selectedSiteId = Number(siteFilter);
       result = result.filter(l => l.devices?.site_id === selectedSiteId);
@@ -158,7 +153,6 @@ export default function SensorData() {
       result = result.filter(l =>
         l.device_uid?.toLowerCase().includes(term) ||
         l.status?.toLowerCase().includes(term) ||
-        l.grid_cell_id?.toLowerCase().includes(term) ||
         l.ammonia?.toString().includes(term)
       );
     }
@@ -171,7 +165,7 @@ export default function SensorData() {
     event.detail.complete();
   };
 
-  // Convert sensor records into MapLibre map markers
+  // Convert sensor records into SpatialPolygonMap markers
   const mapMarkers: SensorReadingMarker[] = filteredLogs
     .filter(l => l.latitude && l.longitude)
     .map(l => ({
@@ -179,7 +173,6 @@ export default function SensorData() {
       latitude: l.latitude,
       longitude: l.longitude,
       ammonia: l.ammonia || 0,
-      grid_cell_id: l.grid_cell_id || undefined,
       device_uid: l.device_uid,
       created_at: l.created_at || l.submitted_at,
       photo_url: l.photo_url || undefined,
@@ -211,7 +204,7 @@ export default function SensorData() {
 
         <IonToolbar style={{ '--background': '#f8fafc' }}>
           <IonSearchbar
-            placeholder="SEARCH SENSOR DATA OR GRID CELL..."
+            placeholder="SEARCH SENSOR DATA OR DEVICE..."
             value={searchTerm}
             onIonChange={(e) => setSearchTerm(e.detail.value || '')}
             animated
@@ -222,7 +215,7 @@ export default function SensorData() {
         <IonToolbar style={{ '--background': '#ffffff' }}>
           <IonGrid style={{ padding: '0 8px' }}>
             <IonRow>
-              <IonCol size="12" size-md="4">
+              <IonCol size="12" size-md="6">
                 <IonSelect
                   value={siteFilter}
                   placeholder="FILTER BY SITE"
@@ -237,7 +230,7 @@ export default function SensorData() {
                   ))}
                 </IonSelect>
               </IonCol>
-              <IonCol size="12" size-md="4">
+              <IonCol size="12" size-md="6">
                 <IonSelect
                   value={deviceFilter}
                   placeholder="FILTER BY DEVICE"
@@ -252,21 +245,6 @@ export default function SensorData() {
                   ))}
                 </IonSelect>
               </IonCol>
-              <IonCol size="12" size-md="4">
-                <IonSelect
-                  value={cellFilter}
-                  placeholder="FILTER BY GRID CELL"
-                  onIonChange={(e) => setCellFilter(e.detail.value)}
-                  interface="popover"
-                >
-                  <IonSelectOption value="all">ALL GRID CELLS</IonSelectOption>
-                  {['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3', 'D1', 'D2', 'D3', 'E1', 'E2', 'F1', 'F2'].map((cell) => (
-                    <IonSelectOption key={cell} value={cell}>
-                      Grid Cell {cell}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonCol>
             </IonRow>
           </IonGrid>
         </IonToolbar>
@@ -277,23 +255,30 @@ export default function SensorData() {
           <IonRefresherContent />
         </IonRefresher>
 
-        {/* Spatial MapLibre Grid Map Overlay */}
+        {/* Spatial Polygon Map Overlay */}
         {showMap && (
           <IonCard style={{ margin: '0 0 20px 0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
             <IonCardHeader style={{ padding: '14px 16px 8px 16px', background: '#ffffff', borderBottom: '1px solid #f1f5f9' }}>
               <IonCardTitle style={{ fontSize: '16px', fontWeight: 'bold', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <IonIcon icon={mapOutline} style={{ color: '#2d7d46' }} />
-                Spatial Grid Map & Reading Overlays ({mapMarkers.length} Mapped Pins)
+                Spatial Polygon Map & Reading Overlays ({mapMarkers.length} Mapped Pins)
               </IonCardTitle>
             </IonCardHeader>
             <IonCardContent style={{ padding: '12px 16px 16px 16px', background: '#ffffff' }}>
-              <SiteGridMap
-                centerLat={activeSiteObj?.current_latitude ?? 14.5995}
-                centerLng={activeSiteObj?.current_longitude ?? 120.9842}
+              <SpatialPolygonMap
+                centerLat={activeSiteObj?.current_latitude ?? (activeSiteObj?.latitude ?? 8.3697)}
+                centerLng={activeSiteObj?.current_longitude ?? (activeSiteObj?.longitude ?? 124.8640)}
                 siteName={activeSiteObj?.site_name || 'All MENRO Monitoring Sites'}
+                sites={sites.map(s => ({
+                  id: s.id,
+                  site_name: s.site_name,
+                  latitude: s.current_latitude || s.latitude || 8.3697,
+                  longitude: s.current_longitude || s.longitude || 124.8640,
+                  site_type: s.site_type,
+                  latest_ammonia: s.latest_ammonia,
+                  area_size_hectares: s.area_size_hectares,
+                }))}
                 readings={mapMarkers}
-                selectedCellId={cellFilter !== 'all' ? cellFilter : ''}
-                onSelectCell={(cellId) => setCellFilter(cellId)}
                 height="420px"
               />
             </IonCardContent>
@@ -305,8 +290,8 @@ export default function SensorData() {
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#1a365d' }}>
             Inspection Sensor Logs ({filteredLogs.length})
           </h3>
-          {(cellFilter !== 'all' || siteFilter !== 'all' || deviceFilter !== 'all') && (
-            <IonButton size="small" fill="clear" color="danger" onClick={() => { setCellFilter('all'); setSiteFilter('all'); setDeviceFilter('all'); setSearchTerm(''); }}>
+          {(siteFilter !== 'all' || deviceFilter !== 'all') && (
+            <IonButton size="small" fill="clear" color="danger" onClick={() => { setSiteFilter('all'); setDeviceFilter('all'); setSearchTerm(''); }}>
               Clear Filters
             </IonButton>
           )}
@@ -317,7 +302,7 @@ export default function SensorData() {
         ) : filteredLogs.length === 0 ? (
           <EmptyState
             title="NO SENSOR DATA FOUND"
-            message={searchTerm || deviceFilter !== 'all' || cellFilter !== 'all' ? 'TRY ADJUSTING YOUR FILTERS' : 'WAITING FOR SENSOR DATA FROM DEVICES'}
+            message={searchTerm || deviceFilter !== 'all' || siteFilter !== 'all' ? 'TRY ADJUSTING YOUR FILTERS' : 'WAITING FOR SENSOR DATA FROM DEVICES'}
           />
         ) : (
           <IonGrid style={{ padding: 0 }}>
@@ -334,12 +319,6 @@ export default function SensorData() {
                           <IonBadge color={isDanger ? 'danger' : isWarning ? 'warning' : 'success'} style={{ fontSize: '13px', padding: '6px 10px' }}>
                             NH₃: {l.ammonia?.toFixed(1) || '0'} PPM
                           </IonBadge>
-
-                          {l.grid_cell_id && (
-                            <IonChip style={{ height: '24px', fontSize: '12px', margin: 0, backgroundColor: '#1a365d', color: '#ffffff' }}>
-                              Cell: {l.grid_cell_id}
-                            </IonChip>
-                          )}
                         </div>
 
                         {/* Photo thumbnail */}
@@ -464,8 +443,8 @@ export default function SensorData() {
                       Embedded EXIF Metadata & Reading Summary
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px', color: '#334155' }}>
-                      <div><b>Grid Cell ID:</b> {selectedPhoto.grid_cell_id || 'N/A'}</div>
                       <div><b>Ammonia Level:</b> {selectedPhoto.ammonia} PPM</div>
+                      <div><b>Status:</b> {selectedPhoto.status || 'Normal'}</div>
                       <div><b>Latitude:</b> {selectedPhoto.latitude?.toFixed(6) || 'N/A'}</div>
                       <div><b>Longitude:</b> {selectedPhoto.longitude?.toFixed(6) || 'N/A'}</div>
                       <div><b>Captured At:</b> {new Date(selectedPhoto.created_at || selectedPhoto.submitted_at).toLocaleString()}</div>
