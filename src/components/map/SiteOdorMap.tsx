@@ -49,11 +49,14 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
     const map = L.map(mapContainerRef.current, {
       center: [latitude, longitude],
       zoom: 15,
+      minZoom: 11,
+      maxZoom: 18,
       zoomControl: true,
     });
 
     const streetLayer = L.tileLayer(TILE_LAYERS.street.url, {
       attribution: TILE_LAYERS.street.attribution,
+      maxNativeZoom: TILE_LAYERS.street.maxNativeZoom,
       maxZoom: TILE_LAYERS.street.maxZoom,
     }).addTo(map);
 
@@ -69,12 +72,16 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
       map.invalidateSize();
     }, 350);
 
+    let resizeTimer: any = null;
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
       resizeObserver = new ResizeObserver(() => {
-        if (mapRef.current) {
-          mapRef.current.invalidateSize();
-        }
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          if (mapRef.current) {
+            mapRef.current.invalidateSize();
+          }
+        }, 200);
       });
       resizeObserver.observe(mapContainerRef.current);
     }
@@ -82,6 +89,7 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
+      if (resizeTimer) clearTimeout(resizeTimer);
       if (resizeObserver) {
         resizeObserver.disconnect();
       }
@@ -116,10 +124,13 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
     if (mapLayer === 'satellite') {
       const satLayer = L.tileLayer(TILE_LAYERS.satellite.url, {
         attribution: TILE_LAYERS.satellite.attribution,
+        maxNativeZoom: TILE_LAYERS.satellite.maxNativeZoom,
         maxZoom: TILE_LAYERS.satellite.maxZoom,
       }).addTo(map);
 
       const labelsLayer = L.tileLayer(TILE_LAYERS.satelliteLabels.url, {
+        attribution: TILE_LAYERS.satelliteLabels.attribution,
+        maxNativeZoom: TILE_LAYERS.satelliteLabels.maxNativeZoom,
         maxZoom: TILE_LAYERS.satelliteLabels.maxZoom,
       }).addTo(map);
 
@@ -128,6 +139,7 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
     } else {
       const streetLayer = L.tileLayer(TILE_LAYERS.street.url, {
         attribution: TILE_LAYERS.street.attribution,
+        maxNativeZoom: TILE_LAYERS.street.maxNativeZoom,
         maxZoom: TILE_LAYERS.street.maxZoom,
       }).addTo(map);
       baseTileLayerRef.current = streetLayer;
@@ -162,6 +174,7 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
       dashArray: '8, 6',
       fillColor: '#3b82f6',
       fillOpacity: 0.02,
+      interactive: false,
     });
     zonesGroup.addLayer(boundaryPolygon);
 
@@ -173,7 +186,8 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
       dashArray: '6, 6',
       fillColor: '#94a3b8',
       fillOpacity: 0.05,
-    }).bindTooltip('Community Risk Perimeter (1000m)', { permanent: false });
+      interactive: false,
+    });
     zonesGroup.addLayer(commBuffer);
 
     // 2. Residential Buffer Boundary (500m)
@@ -183,8 +197,9 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
       weight: 2,
       dashArray: '4, 4',
       fillColor: '#60a5fa',
-      fillOpacity: 0.1,
-    }).bindTooltip('Residential Buffer Boundary (500m)', { permanent: false });
+      fillOpacity: 0.08,
+      interactive: false,
+    });
     zonesGroup.addLayer(resBuffer);
 
     // 3. Outer Odor Plume
@@ -194,7 +209,8 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
       weight: 1.5,
       fillColor: plumeColor,
       fillOpacity: plumeOpacity * 0.5,
-    }).bindTooltip(`Outer Odor Dispersion Zone (~${Math.round(outerOdorRadius)}m)`, { permanent: false });
+      interactive: false,
+    });
     zonesGroup.addLayer(outerPlume);
 
     // 4. Inner High Ammonia Core
@@ -204,7 +220,8 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
       weight: 2.5,
       fillColor: plumeColor,
       fillOpacity: plumeOpacity,
-    }).bindTooltip(`Primary Odor Concentration Core (~${Math.round(innerOdorRadius)}m)`, { permanent: false });
+      interactive: false,
+    });
     zonesGroup.addLayer(innerPlume);
 
     // 5. Site Center Pin Marker & Popup
@@ -240,7 +257,11 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height, borderRadius: '10px', overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+    <div
+      onMouseDown={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      style={{ position: 'relative', width: '100%', height, borderRadius: '10px', overflow: 'hidden', border: '1px solid #cbd5e1' }}
+    >
       <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
 
       {/* Street / Satellite Controls */}
