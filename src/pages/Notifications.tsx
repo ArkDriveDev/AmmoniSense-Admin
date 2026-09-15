@@ -55,7 +55,6 @@ export default function Notifications() {
             ammonia: s.ammonia,
             severity: isCritical ? 'SEVERE' : 'MODERATE',
             created_at: s.created_at || s.submitted_at,
-            grid_cell_id: s.grid_cell_id,
             is_read: false
           };
         });
@@ -94,7 +93,6 @@ export default function Notifications() {
       result = result.filter(a =>
         a.device_uid?.toLowerCase().includes(term) ||
         a.severity?.toLowerCase().includes(term) ||
-        a.grid_cell_id?.toLowerCase().includes(term) ||
         a.ammonia?.toString().includes(term)
       );
     }
@@ -177,7 +175,7 @@ export default function Notifications() {
                     {a.severity} AMMONIA ALERT
                   </h2>
                   <p style={{ color: '#1a365d', fontWeight: 'bold' }}>AMMONIA: {a.ammonia} PPM</p>
-                  <p style={{ color: '#475569' }}>DEVICE: {a.device_uid || 'N/A'} {a.grid_cell_id ? `• Grid: ${a.grid_cell_id}` : ''}</p>
+                  <p style={{ color: '#475569' }}>DEVICE: {a.device_uid || 'N/A'}</p>
                   <p style={{ fontSize: '12px', color: '#94a3b8' }}>
                     {new Date(a.created_at).toLocaleString()}
                   </p>

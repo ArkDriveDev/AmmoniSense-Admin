@@ -25,7 +25,9 @@ import {
   hardwareChipOutline, 
   businessOutline, 
   addOutline,
-  locationOutline
+  locationOutline,
+  arrowUpOutline,
+  arrowDownOutline
 } from 'ionicons/icons';
 
 import DeleteAlert from '../components/DeleteAlert';
@@ -119,7 +121,6 @@ export default function Devices() {
               site_code,
               current_latitude,
               current_longitude,
-              current_grid_cell_id,
               site_owners (
                 id,
                 owner_name
@@ -312,28 +313,52 @@ export default function Devices() {
               fill={sortBy === 'device_uid' ? 'solid' : 'outline'}
               onClick={() => handleSort('device_uid')}
             >
-              UID {sortBy === 'device_uid' && (sortOrder === 'asc' ? '▲' : '▼')}
+              UID
+              {sortBy === 'device_uid' && (
+                <IonIcon 
+                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
+                  style={{ marginLeft: '4px' }} 
+                />
+              )}
             </IonButton>
             <IonButton 
               size="small" 
               fill={sortBy === 'site_name' ? 'solid' : 'outline'}
               onClick={() => handleSort('site_name')}
             >
-              SITE {sortBy === 'site_name' && (sortOrder === 'asc' ? '▲' : '▼')}
+              SITE
+              {sortBy === 'site_name' && (
+                <IonIcon 
+                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
+                  style={{ marginLeft: '4px' }} 
+                />
+              )}
             </IonButton>
             <IonButton 
               size="small" 
               fill={sortBy === 'status' ? 'solid' : 'outline'}
               onClick={() => handleSort('status')}
             >
-              STATUS {sortBy === 'status' && (sortOrder === 'asc' ? '▲' : '▼')}
+              STATUS
+              {sortBy === 'status' && (
+                <IonIcon 
+                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
+                  style={{ marginLeft: '4px' }} 
+                />
+              )}
             </IonButton>
             <IonButton 
               size="small" 
               fill={sortBy === 'installed_at' ? 'solid' : 'outline'}
               onClick={() => handleSort('installed_at')}
             >
-              INSTALLED {sortBy === 'installed_at' && (sortOrder === 'asc' ? '▲' : '▼')}
+              INSTALLED
+              {sortBy === 'installed_at' && (
+                <IonIcon 
+                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
+                  style={{ marginLeft: '4px' }} 
+                />
+              )}
             </IonButton>
           </div>
         </IonToolbar>
@@ -461,9 +486,8 @@ export default function Devices() {
             onDismiss={() => setShowMapModal(false)}
             title={`Device ${mapTargetDevice.device_uid} Spatial Map`}
             siteName={mapTargetDevice.monitoring_sites?.site_name || 'Assigned Site'}
-            gridCellId={mapTargetDevice.monitoring_sites?.current_grid_cell_id}
-            latitude={mapTargetDevice.monitoring_sites?.current_latitude || 14.5995}
-            longitude={mapTargetDevice.monitoring_sites?.current_longitude || 120.9842}
+            latitude={mapTargetDevice.monitoring_sites?.current_latitude || 8.3697}
+            longitude={mapTargetDevice.monitoring_sites?.current_longitude || 124.8640}
           />
         )}
 

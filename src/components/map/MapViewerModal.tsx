@@ -10,7 +10,8 @@ import {
   IonIcon
 } from '@ionic/react';
 import { closeOutline, locationOutline } from 'ionicons/icons';
-import SiteGridMap, { SensorReadingMarker } from './SiteGridMap';
+import SpatialPolygonMap, { SensorReadingMarker } from './SpatialPolygonMap';
+import { MANOLO_FORTICH_DEFAULTS } from './mapConstants';
 
 interface MapViewerModalProps {
   isOpen: boolean;
@@ -19,20 +20,21 @@ interface MapViewerModalProps {
   latitude: number;
   longitude: number;
   siteName?: string;
-  gridCellId?: string;
   readings?: SensorReadingMarker[];
 }
 
 export const MapViewerModal: React.FC<MapViewerModalProps> = ({
   isOpen,
   onDismiss,
-  title = 'Spatial Location Map',
+  title = 'Spatial Polygon Map',
   latitude,
   longitude,
   siteName = 'Monitoring Site',
-  gridCellId,
   readings = [],
 }) => {
+  const currentLat = latitude || MANOLO_FORTICH_DEFAULTS.lat;
+  const currentLng = longitude || MANOLO_FORTICH_DEFAULTS.lng;
+
   return (
     <IonModal isOpen={isOpen} onDidDismiss={onDismiss}>
       <IonHeader>
@@ -52,25 +54,31 @@ export const MapViewerModal: React.FC<MapViewerModalProps> = ({
       <IonContent className="ion-padding">
         <div style={{ marginBottom: '16px' }}>
           <div style={{ fontSize: '14px', fontWeight: 600, color: '#1a365d', marginBottom: '4px' }}>
-            {siteName} {gridCellId ? `(Grid Cell ${gridCellId})` : ''}
+            {siteName}
           </div>
           <div style={{ fontSize: '12px', color: '#64748b' }}>
-            GPS Coordinates: {latitude?.toFixed(6)}°, {longitude?.toFixed(6)}°
+            GPS Coordinates: {currentLat?.toFixed(6)}°, {currentLng?.toFixed(6)}° • Manolo Fortich, Bukidnon
           </div>
         </div>
 
-        <SiteGridMap
-          centerLat={latitude || 14.5995}
-          centerLng={longitude || 120.9842}
+        <SpatialPolygonMap
+          centerLat={currentLat}
+          centerLng={currentLng}
           siteName={siteName}
-          selectedCellId={gridCellId}
+          sites={[
+            {
+              id: 'focus-site',
+              site_name: siteName,
+              latitude: currentLat,
+              longitude: currentLng,
+            }
+          ]}
           readings={readings.length > 0 ? readings : [
             {
               id: 'focus',
-              latitude: latitude || 14.5995,
-              longitude: longitude || 120.9842,
+              latitude: currentLat,
+              longitude: currentLng,
               ammonia: 0,
-              grid_cell_id: gridCellId,
               created_at: new Date().toISOString(),
               status: 'normal'
             }

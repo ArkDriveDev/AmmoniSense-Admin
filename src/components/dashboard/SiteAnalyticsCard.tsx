@@ -19,7 +19,8 @@ import {
   openOutline,
   mapOutline,
   hardwareChipOutline,
-  calendarOutline
+  calendarOutline,
+  timeOutline
 } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
@@ -49,12 +50,12 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
 
   const getStatusDetails = (status: 'normal' | 'warning' | 'critical', ammonia: number | null) => {
     if (status === 'critical' || (ammonia !== null && ammonia > 50)) {
-      return { label: '🔴 Critical', bg: '#fef2f2', border: '#fecaca', text: '#dc2626' };
+      return { label: 'Critical', bg: '#fef2f2', border: '#fecaca', text: '#dc2626' };
     }
     if (status === 'warning' || (ammonia !== null && ammonia > 25)) {
-      return { label: '🟡 Warning', bg: '#fffbeb', border: '#fde68a', text: '#d97706' };
+      return { label: 'Warning', bg: '#fffbeb', border: '#fde68a', text: '#d97706' };
     }
-    return { label: '🟢 Normal', bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d' };
+    return { label: 'Normal', bg: '#f0fdf4', border: '#bbf7d0', text: '#15803d' };
   };
 
   const typeStyles = getSiteTypeColor(site.site_type);
@@ -142,8 +143,14 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
             <IonCol size="12" size-sm="4" size-md="2.4">
               <div style={{ padding: '6px 10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', display: 'block' }}>Location / Last Seen</span>
-                <span style={{ fontSize: '12px', fontWeight: '700', color: '#334155', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>📍 {site.address}</span>
-                <span style={{ fontSize: '10px', color: '#94a3b8' }}>🕒 {formatTime(site.last_reading_at)}</span>
+                <span style={{ fontSize: '12px', fontWeight: '700', color: '#334155', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <IonIcon icon={locationOutline} style={{ color: '#059669', marginRight: '4px', verticalAlign: 'middle' }} />
+                  {site.address}
+                </span>
+                <span style={{ fontSize: '10px', color: '#94a3b8', display: 'flex', alignItems: 'center', marginTop: '2px' }}>
+                  <IonIcon icon={timeOutline} style={{ marginRight: '4px', fontSize: '12px' }} />
+                  {formatTime(site.last_reading_at)}
+                </span>
               </div>
             </IonCol>
           </IonRow>
@@ -245,7 +252,6 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
                             <th style={{ padding: '8px 12px' }}>Device UID</th>
                             <th style={{ padding: '8px 12px' }}>Ammonia (NH₃)</th>
                             <th style={{ padding: '8px 12px' }}>Temp / Humidity</th>
-                            <th style={{ padding: '8px 12px' }}>Grid Cell</th>
                             <th style={{ padding: '8px 12px' }}>Status</th>
                           </tr>
                         </thead>
@@ -258,7 +264,6 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
                                 <td style={{ padding: '8px 12px', color: '#475569' }}>{reading.device_uid}</td>
                                 <td style={{ padding: '8px 12px', color: rStatus.text, fontWeight: '700' }}>{reading.ammonia.toFixed(1)} ppm</td>
                                 <td style={{ padding: '8px 12px', color: '#334155' }}>{reading.temperature.toFixed(1)}°C / {reading.humidity.toFixed(0)}%</td>
-                                <td style={{ padding: '8px 12px', color: '#64748b' }}>{reading.grid_cell_id || 'N/A'}</td>
                                 <td style={{ padding: '8px 12px' }}><span style={{ fontSize: '11px', fontWeight: '700', color: rStatus.text }}>{rStatus.label}</span></td>
                               </tr>
                             );

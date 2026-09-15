@@ -22,13 +22,16 @@ import {
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
-import { 
-  businessOutline, 
-  personOutline, 
+import {
+  businessOutline,
   addOutline,
-  trashOutline,
   createOutline,
-  locationOutline
+  trashOutline,
+  personOutline,
+  locationOutline,
+  searchOutline,
+  arrowUpOutline,
+  arrowDownOutline
 } from 'ionicons/icons';
 
 import DeleteAlert from '../components/DeleteAlert';
@@ -239,21 +242,39 @@ export default function Livestock() {
               fill={sortBy === 'livestock_name' ? 'solid' : 'outline'}
               onClick={() => handleSort('livestock_name')}
             >
-              NAME {sortBy === 'livestock_name' && (sortOrder === 'asc' ? '▲' : '▼')}
+              NAME
+              {sortBy === 'livestock_name' && (
+                <IonIcon 
+                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
+                  style={{ marginLeft: '4px' }} 
+                />
+              )}
             </IonButton>
             <IonButton 
               size="small" 
               fill={sortBy === 'livestock_serial' ? 'solid' : 'outline'}
               onClick={() => handleSort('livestock_serial')}
             >
-              CODE {sortBy === 'livestock_serial' && (sortOrder === 'asc' ? '▲' : '▼')}
+              CODE
+              {sortBy === 'livestock_serial' && (
+                <IonIcon 
+                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
+                  style={{ marginLeft: '4px' }} 
+                />
+              )}
             </IonButton>
             <IonButton 
               size="small" 
               fill={sortBy === 'client_name' ? 'solid' : 'outline'}
               onClick={() => handleSort('client_name')}
             >
-              OWNER {sortBy === 'client_name' && (sortOrder === 'asc' ? '▲' : '▼')}
+              OWNER
+              {sortBy === 'client_name' && (
+                <IonIcon 
+                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
+                  style={{ marginLeft: '4px' }} 
+                />
+              )}
             </IonButton>
           </div>
         </IonToolbar>
@@ -270,8 +291,8 @@ export default function Livestock() {
         ) : (
           <IonList style={{ background: 'transparent' }}>
             {filteredLivestock.map((l) => {
-              const lat = l.current_latitude || l.latitude || 14.5995;
-              const lng = l.current_longitude || l.longitude || 120.9842;
+              const lat = l.current_latitude || l.latitude || 8.3697;
+              const lng = l.current_longitude || l.longitude || 124.8640;
               const siteName = l.site_name || l.livestock_name || 'Monitoring Site';
 
               return (
@@ -368,16 +389,15 @@ export default function Livestock() {
           </IonContent>
         </IonModal>
 
-        {/* Map Modal for Monitoring Site Spatial Grid inspection */}
+        {/* Map Modal for Monitoring Site Spatial Polygon inspection */}
         {mapTarget && (
           <MapViewerModal
             isOpen={showMapModal}
             onDismiss={() => setShowMapModal(false)}
             title={`Site ${mapTarget.site_name || mapTarget.livestock_name} Map`}
             siteName={mapTarget.site_name || mapTarget.livestock_name}
-            gridCellId={mapTarget.current_grid_cell_id}
-            latitude={mapTarget.current_latitude || mapTarget.latitude || 14.5995}
-            longitude={mapTarget.current_longitude || mapTarget.longitude || 120.9842}
+            latitude={mapTarget.current_latitude || mapTarget.latitude || 8.3697}
+            longitude={mapTarget.current_longitude || mapTarget.longitude || 124.8640}
           />
         )}
 

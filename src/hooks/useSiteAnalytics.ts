@@ -41,7 +41,6 @@ export interface SiteAnalyticsData {
     temperature: number;
     humidity: number;
     status: string;
-    grid_cell_id?: string;
     created_at: string;
     photo_url?: string;
   }[];
@@ -171,8 +170,8 @@ export function useSiteAnalytics() {
           site_code: site.site_code || site.code,
           site_type: siteType,
           address: site.address || 'Address not specified',
-          latitude: Number(site.latitude) || 14.5995,
-          longitude: Number(site.longitude) || 120.9842,
+          latitude: Number(site.latitude) || 8.3697,
+          longitude: Number(site.longitude) || 124.8640,
           area_size_hectares: Number(site.area_size_hectares) || 1.0,
           owner_name: ownerName,
           owner_contact: owner?.contact_number || owner?.phone,
@@ -200,7 +199,6 @@ export function useSiteAnalytics() {
             temperature: r.temperature || 0,
             humidity: r.humidity || 0,
             status: r.status || (r.ammonia > 50 ? 'critical' : r.ammonia > 25 ? 'warning' : 'normal'),
-            grid_cell_id: r.grid_cell_id,
             created_at: r.created_at || r.submitted_at,
             photo_url: r.photo_url,
           })),

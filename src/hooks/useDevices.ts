@@ -19,7 +19,6 @@ export function useDevices() {
             site_code,
             current_latitude,
             current_longitude,
-            current_grid_cell_id,
             site_owners (
               id,
               owner_name
