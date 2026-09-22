@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { IonPage, IonContent, IonInput, IonButton, IonTitle, IonText, IonSpinner } from '@ionic/react';
+import { IonPage, IonContent, IonInput, IonButton, IonTitle, IonText, IonSpinner, IonIcon } from '@ionic/react';
+import { personAddOutline, personOutline, mailOutline, lockClosedOutline, arrowForwardOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 
@@ -18,21 +19,22 @@ export default function Setup() {
 
   const checkAdminExists = async () => {
     try {
-      console.log('Checking if admin exists via RPC...');
+      console.log('Checking if admin exists...');
       
-      // Use the database function that bypasses RLS
-      const { data, error } = await supabase
-        .rpc('check_admin_exists');
+      const { data, error } = await supabase.rpc('check_admin_exists');
 
-      console.log('RPC Result:', data, error);
-
-      if (error) {
-        console.error('RPC Error:', error);
-        // Fallback: Try a direct query with service role key?
-        setAdminExists(false);
-      } else {
-        setAdminExists(data === true);
+      if (!error && data === true) {
+        setAdminExists(true);
+        return;
       }
+
+      // Fallback query directly on profiles table
+      const { count } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('role', 'menro_admin');
+
+      setAdminExists((count || 0) > 0);
     } catch (err) {
       console.error('Unexpected error:', err);
       setAdminExists(false);
@@ -63,7 +65,7 @@ export default function Setup() {
         options: {
           data: {
             full_name: fullName,
-            role: 'admin'
+            role: 'menro_admin'
           }
         }
       });
@@ -89,7 +91,8 @@ export default function Setup() {
         .insert({
           id: data.user.id,
           full_name: fullName,
-          role: 'admin',
+          email: email,
+          role: 'menro_admin',
         });
 
       if (profileError) {
@@ -133,7 +136,7 @@ export default function Setup() {
               onClick={() => history.push('/login')}
               style={{ marginTop: '16px' }}
             >
-              Go to Login
+              Go to Login <IonIcon icon={arrowForwardOutline} slot="end" />
             </IonButton>
           </div>
         </IonContent>
@@ -145,9 +148,14 @@ export default function Setup() {
     <IonPage>
       <IonContent className="ion-padding" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
         <div style={{ maxWidth: '400px', width: '100%' }}>
-          <IonTitle style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>
-            Create First Admin
-          </IonTitle>
+          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '16px', backgroundColor: '#1a365d', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 12px auto' }}>
+              <IonIcon icon={personAddOutline} />
+            </div>
+            <IonTitle style={{ textAlign: 'center', fontSize: '24px', fontWeight: 'bold' }}>
+              Create First Admin
+            </IonTitle>
+          </div>
 
           <IonText color="medium" style={{ textAlign: 'center', display: 'block', marginBottom: '24px' }}>
             <p>This is a one-time setup. Create the first admin account.</p>
@@ -181,6 +189,7 @@ export default function Setup() {
             onClick={createAdmin}
             disabled={loading}
           >
+            <IonIcon icon={personAddOutline} slot="start" />
             {loading ? 'Creating...' : 'Create Admin'}
           </IonButton>
         </div>

@@ -1,62 +1,113 @@
-import { IonPage, IonContent, IonHeader, IonToolbar, IonTitle, IonGrid, IonRow, IonCol, IonCard, IonCardContent, IonIcon, IonSpinner } from '@ionic/react';
-import { useEffect, useState } from 'react';
-import { supabase } from '../services/supabase';
-import { 
-  businessOutline, 
-  hardwareChipOutline, 
-  alertCircleOutline, 
-  barChartOutline,
-  peopleOutline
+import {
+  IonPage,
+  IonContent,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonSpinner,
+  IonRefresher,
+  IonRefresherContent,
+  IonIcon,
+  IonButton,
+  IonCard,
+  IonCardContent,
+  IonSearchbar,
+  IonSelect,
+  IonSelectOption
+} from '@ionic/react';
+import {
+  businessOutline,
+  hardwareChipOutline,
+  alertCircleOutline,
+  warningOutline,
+  refreshOutline,
+  funnelOutline,
+  swapVerticalOutline,
+  mapOutline,
+  searchOutline
 } from 'ionicons/icons';
+import { useState, useMemo, useEffect } from 'react';
+import { useSiteAnalytics, SiteAnalyticsData } from '../hooks/useSiteAnalytics';
+import { StatsCard } from '../components/charts';
+import SiteAnalyticsCard from '../components/dashboard/SiteAnalyticsCard';
+import SpatialPolygonMap, { SensorReadingMarker } from '../components/map/SpatialPolygonMap';
+import { supabase } from '../services/supabase';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({
-    piggeries: 0,
-    devices: 0,
-    alerts: 0,
-    clients: 0,
-    sensorReadings: 0
-  });
-  const [loading, setLoading] = useState(true);
+  const { sites, globalStats, loading, refresh } = useSiteAnalytics();
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'last_reading' | 'site_name' | 'alert_level'>('last_reading');
+
+  const [mapReadings, setMapReadings] = useState<SensorReadingMarker[]>([]);
+  const [showGlobalMap, setShowGlobalMap] = useState<boolean>(false);
 
   useEffect(() => {
-    fetchStats();
+    fetchMapReadings();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchMapReadings = async () => {
     try {
-      const [piggeriesRes, devicesRes, alertsRes, clientsRes, sensorRes] = await Promise.all([
-        supabase.from('piggeries').select('id', { count: 'exact', head: true }),
-        supabase.from('devices').select('id', { count: 'exact', head: true }),
-        supabase.from('alerts').select('id', { count: 'exact', head: true }).eq('is_read', false),
-        supabase.from('clients').select('id', { count: 'exact', head: true }),
-        supabase.from('sensor_data').select('id', { count: 'exact', head: true })
-      ]);
-
-      setStats({
-        piggeries: piggeriesRes.count || 0,
-        devices: devicesRes.count || 0,
-        alerts: alertsRes.count || 0,
-        clients: clientsRes.count || 0,
-        sensorReadings: sensorRes.count || 0
-      });
+      const { data } = await supabase.from('sensor_data').select('*').order('created_at', { ascending: false }).limit(60);
+      if (data) {
+        setMapReadings(data.filter((d) => d.latitude && d.longitude).map((d) => ({
+          id: d.id,
+          latitude: d.latitude,
+          longitude: d.longitude,
+          ammonia: d.ammonia || 0,
+          device_uid: d.device_uid,
+          created_at: d.created_at || d.submitted_at,
+          status: d.status
+        })));
+      }
     } catch (err) {
-      console.error('Error fetching stats:', err);
-    } finally {
-      setLoading(false);
+      console.error('Error fetching map readings:', err);
     }
   };
 
-  if (loading) {
+  const handleRefresh = async (event: CustomEvent) => {
+    await refresh();
+    await fetchMapReadings();
+    event.detail.complete();
+  };
+
+  const filteredAndSortedSites = useMemo(() => {
+    let result = [...sites];
+    if (searchTerm.trim() !== '') {
+      const term = searchTerm.toLowerCase();
+      result = result.filter((s) => s.site_name.toLowerCase().includes(term) || s.owner_name.toLowerCase().includes(term) || s.site_type.toLowerCase().includes(term) || s.address.toLowerCase().includes(term));
+    }
+    if (selectedType !== 'all') result = result.filter((s) => s.site_type.toLowerCase() === selectedType.toLowerCase());
+    if (selectedStatus !== 'all') result = result.filter((s) => s.alert_status.toLowerCase() === selectedStatus.toLowerCase());
+
+    result.sort((a, b) => {
+      if (sortBy === 'site_name') return a.site_name.localeCompare(b.site_name);
+      if (sortBy === 'alert_level') {
+        const score = { critical: 3, warning: 2, normal: 1 };
+        return (score[b.alert_status] || 0) - (score[a.alert_status] || 0);
+      }
+      return (b.last_reading_at ? new Date(b.last_reading_at).getTime() : 0) - (a.last_reading_at ? new Date(a.last_reading_at).getTime() : 0);
+    });
+    return result;
+  }, [sites, searchTerm, selectedType, selectedStatus, sortBy]);
+
+  if (loading && sites.length === 0) {
     return (
       <IonPage>
         <IonHeader>
-          <IonToolbar>
-            <IonTitle>DASHBOARD</IonTitle>
+          <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
+            <IonTitle style={{ fontWeight: 'bold' }}>MENRO ADMIN DASHBOARD</IonTitle>
           </IonToolbar>
         </IonHeader>
-        <IonContent className="ion-padding" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <IonSpinner />
+        <IonContent className="ion-padding">
+          <div style={{ textAlign: 'center', marginTop: '100px' }}>
+            <IonSpinner name="crescent" color="primary" />
+            <p style={{ color: '#64748b' }}>Loading Site Analytics...</p>
+          </div>
         </IonContent>
       </IonPage>
     );
@@ -65,64 +116,142 @@ export default function Dashboard() {
   return (
     <IonPage>
       <IonHeader>
-        <IonToolbar>
-          <IonTitle>DASHBOARD</IonTitle>
+        <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
+          <IonTitle style={{ fontWeight: 'bold' }}>MENRO ADMIN DASHBOARD • PER SITE ANALYTICS</IonTitle>
+          <IonButton slot="end" fill="clear" onClick={() => refresh()} style={{ '--color': '#ffffff' }}>
+            <IonIcon icon={refreshOutline} slot="icon-only" />
+          </IonButton>
         </IonToolbar>
       </IonHeader>
 
-      <IonContent className="ion-padding">
-        <IonGrid>
+      <IonContent className="ion-padding" style={{ '--background': '#f8fafc' }}>
+        <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
+          <IonRefresherContent />
+        </IonRefresher>
+
+        <IonGrid style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          {/* Top Stats Overview */}
           <IonRow>
-            <IonCol size="6">
-              <IonCard>
-                <IonCardContent style={{ textAlign: 'center' }}>
-                  <IonIcon icon={businessOutline} size="large" style={{ fontSize: '32px', color: 'var(--ion-color-primary)' }} />
-                  <h2>{stats.piggeries}</h2>
-                  <p>PIGGERIES</p>
-                </IonCardContent>
-              </IonCard>
+            <IonCol size="6" size-md="3">
+              <StatsCard title="Total Sites" value={globalStats.totalSites} icon={businessOutline} color="primary" subtitle="Active locations" />
             </IonCol>
-            <IonCol size="6">
-              <IonCard>
-                <IonCardContent style={{ textAlign: 'center' }}>
-                  <IonIcon icon={hardwareChipOutline} size="large" style={{ fontSize: '32px', color: 'var(--ion-color-secondary)' }} />
-                  <h2>{stats.devices}</h2>
-                  <p>DEVICES</p>
+            <IonCol size="6" size-md="3">
+              <StatsCard title="Active Devices" value={globalStats.activeDevices} icon={hardwareChipOutline} color="secondary" subtitle="Online nodes" />
+            </IonCol>
+            <IonCol size="6" size-md="3">
+              <StatsCard title="Sites with Alerts" value={globalStats.sitesWithAlerts} icon={warningOutline} color={globalStats.sitesWithAlerts > 0 ? 'warning' : 'success'} subtitle={globalStats.sitesWithAlerts > 0 ? 'Action needed' : 'All clear'} />
+            </IonCol>
+            <IonCol size="6" size-md="3">
+              <StatsCard title="Critical Alerts" value={globalStats.criticalAlerts} icon={alertCircleOutline} color={globalStats.criticalAlerts > 0 ? 'danger' : 'success'} subtitle={globalStats.criticalAlerts > 0 ? 'Immediate action!' : 'Normal levels'} />
+            </IonCol>
+          </IonRow>
+
+          {/* Spatial Polygon Map Toggle */}
+          <IonRow style={{ margin: '8px 0 16px 0' }}>
+            <IonCol size="12">
+              <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <IonIcon icon={mapOutline} style={{ fontSize: '22px', color: '#1a365d' }} />
+                  <div>
+                    <strong style={{ color: '#1a365d', fontSize: '14px' }}>Live Environmental Polygon Coverage Map</strong>
+                    <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>Interactive spatial overview with odor zone polygons across Manolo Fortich</span>
+                  </div>
+                </div>
+                <IonButton size="small" fill="outline" color="primary" onClick={() => setShowGlobalMap(!showGlobalMap)}>
+                  {showGlobalMap ? 'Hide Map' : 'Show Map'}
+                </IonButton>
+              </div>
+              {showGlobalMap && (
+                <div style={{ marginTop: '12px' }}>
+                  <SpatialPolygonMap
+                    siteName="MENRO Manolo Fortich Environmental Spatial Overview"
+                    sites={sites.map(s => ({
+                      id: s.id,
+                      site_name: s.site_name,
+                      latitude: s.latitude,
+                      longitude: s.longitude,
+                      site_type: s.site_type,
+                      owner_name: s.owner_name,
+                      latest_ammonia: s.latest_ammonia,
+                      alert_status: s.alert_status,
+                      area_size_hectares: s.area_size_hectares
+                    }))}
+                    readings={mapReadings}
+                    height="380px"
+                  />
+                </div>
+              )}
+            </IonCol>
+          </IonRow>
+
+          {/* Search and Filters Bar */}
+          <IonRow style={{ margin: '16px 0' }}>
+            <IonCol size="12">
+              <IonCard style={{ margin: 0, borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff' }}>
+                <IonCardContent style={{ padding: '16px' }}>
+                  <IonGrid style={{ padding: 0 }}>
+                    <IonRow className="ion-align-items-center">
+                      <IonCol size="12" size-md="4">
+                        <IonSearchbar value={searchTerm} onIonInput={(e) => setSearchTerm(e.detail.value || '')} placeholder="Search site name, owner, address..." style={{ padding: 0, '--background': '#f8fafc' }} />
+                      </IonCol>
+                      <IonCol size="6" size-sm="4" size-md="2.5">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f8fafc', padding: '4px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                          <IonIcon icon={funnelOutline} style={{ color: '#64748b' }} />
+                          <IonSelect value={selectedType} onIonChange={(e) => setSelectedType(e.detail.value)} interface="popover" style={{ width: '100%', fontSize: '13px' }}>
+                            <IonSelectOption value="all">Type: All Sites</IonSelectOption>
+                            <IonSelectOption value="piggery">Piggery</IonSelectOption>
+                            <IonSelectOption value="ambient">Ambient</IonSelectOption>
+                            <IonSelectOption value="industrial">Industrial</IonSelectOption>
+                          </IonSelect>
+                        </div>
+                      </IonCol>
+                      <IonCol size="6" size-sm="4" size-md="2.5">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f8fafc', padding: '4px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                          <IonIcon icon={alertCircleOutline} style={{ color: '#64748b' }} />
+                          <IonSelect value={selectedStatus} onIonChange={(e) => setSelectedStatus(e.detail.value)} interface="popover" style={{ width: '100%', fontSize: '13px' }}>
+                            <IonSelectOption value="all">Status: All Levels</IonSelectOption>
+                            <IonSelectOption value="normal">Status: Normal</IonSelectOption>
+                            <IonSelectOption value="warning">Status: Warning</IonSelectOption>
+                            <IonSelectOption value="critical">Status: Critical</IonSelectOption>
+                          </IonSelect>
+                        </div>
+                      </IonCol>
+                      <IonCol size="12" size-sm="4" size-md="3">
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f8fafc', padding: '4px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                          <IonIcon icon={swapVerticalOutline} style={{ color: '#64748b' }} />
+                          <IonSelect value={sortBy} onIonChange={(e) => setSortBy(e.detail.value)} interface="popover" style={{ width: '100%', fontSize: '13px' }}>
+                            <IonSelectOption value="last_reading">Sort: Latest Reading</IonSelectOption>
+                            <IonSelectOption value="site_name">Sort: Site Name (A-Z)</IonSelectOption>
+                            <IonSelectOption value="alert_level">Sort: Alert Level</IonSelectOption>
+                          </IonSelect>
+                        </div>
+                      </IonCol>
+                    </IonRow>
+                  </IonGrid>
                 </IonCardContent>
               </IonCard>
             </IonCol>
           </IonRow>
 
-          <IonRow>
-            <IonCol size="6">
-              <IonCard>
-                <IonCardContent style={{ textAlign: 'center' }}>
-                  <IonIcon icon={alertCircleOutline} size="large" style={{ fontSize: '32px', color: stats.alerts > 0 ? 'var(--ion-color-danger)' : 'var(--ion-color-success)' }} />
-                  <h2 style={{ color: stats.alerts > 0 ? 'var(--ion-color-danger)' : 'var(--ion-color-success)' }}>{stats.alerts}</h2>
-                  <p>UNREAD ALERTS</p>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-            <IonCol size="6">
-              <IonCard>
-                <IonCardContent style={{ textAlign: 'center' }}>
-                  <IonIcon icon={peopleOutline} size="large" style={{ fontSize: '32px', color: 'var(--ion-color-tertiary)' }} />
-                  <h2>{stats.clients}</h2>
-                  <p>CLIENTS</p>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-          </IonRow>
-
+          {/* Monitoring Site Analytics List */}
           <IonRow>
             <IonCol size="12">
-              <IonCard>
-                <IonCardContent style={{ textAlign: 'center' }}>
-                  <IonIcon icon={barChartOutline} size="large" style={{ fontSize: '32px', color: 'var(--ion-color-warning)' }} />
-                  <h2>{stats.sensorReadings}</h2>
-                  <p>TOTAL SENSOR READINGS</p>
-                </IonCardContent>
-              </IonCard>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1a365d', margin: 0 }}>
+                  Monitoring Sites Analytics ({filteredAndSortedSites.length})
+                </h3>
+              </div>
+
+              {filteredAndSortedSites.length === 0 ? (
+                <IonCard style={{ borderRadius: '12px', margin: 0, padding: '32px', textAlign: 'center' }}>
+                  <IonIcon icon={searchOutline} style={{ fontSize: '42px', color: '#94a3b8' }} />
+                  <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#334155' }}>No Monitoring Sites Found</h3>
+                </IonCard>
+              ) : (
+                filteredAndSortedSites.map((site: SiteAnalyticsData) => (
+                  <SiteAnalyticsCard key={site.id} site={site} />
+                ))
+              )}
             </IonCol>
           </IonRow>
         </IonGrid>
