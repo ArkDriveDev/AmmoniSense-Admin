@@ -218,6 +218,9 @@ export default function Setup() {
           onDidDismiss={() => setShowToast(false)}
           message={toastMessage}
           duration={3500}
+          color={toastColor}
+          position="bottom"
+        />
       </IonContent>
     </IonPage>
   );
