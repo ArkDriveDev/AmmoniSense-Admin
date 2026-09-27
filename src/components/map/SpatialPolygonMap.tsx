@@ -341,14 +341,36 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
             border: 2.5px solid #ffffff;
             box-shadow: 0 4px 14px rgba(0,0,0,0.35);
             display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            ${isSelected ? 'outline: 3px solid #1a365d; outline-offset: 2px;' : ''}
+          ">
+            <span style="
+              transform: rotate(45deg);
+              font-size: 16px;
+              line-height: 1;
+              display: block;
+            ">${pinMeta.emoji}</span>
+          </div>
+        `,
+        iconSize: [34, 34],
+        iconAnchor: [17, 34],
       });
 
       const marker = L.marker([site.latitude, site.longitude], { icon: siteIcon });
 
       marker.bindPopup(`
         <div style="font-family: system-ui, sans-serif; min-width: 190px; padding: 4px;">
-          <h4 style="margin: 0 0 4px 0; color: #1a365d; font-size: 14px; font-weight: 700;">${site.site_name}</h4>
-          <div style="font-size: 12px; color: #475569; margin-bottom: 4px;"><b>Type:</b> ${site.site_type || 'Livestock Farm'}</div>
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <span style="font-size: 18px;">${pinMeta.emoji}</span>
+            <h4 style="margin: 0; color: #1a365d; font-size: 14px; font-weight: 700;">${site.site_name}</h4>
+          </div>
+          <div style="font-size: 12px; margin-bottom: 6px;">
+            <span style="display:inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; background: ${pinMeta.fillColor}; color: ${pinMeta.pinColor}; border: 1px solid ${pinMeta.pinColor}40;">
+              ${pinMeta.label}
+            </span>
+          </div>
           ${site.owner_name ? `<div style="font-size: 11px; color: #64748b; margin-bottom: 4px;"><b>Owner:</b> ${site.owner_name}</div>` : ''}
           <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:4px 8px; border-radius:6px; margin-top:6px; border:1px solid #e2e8f0;">
             <span style="font-size: 11px; color:#64748b;">Latest NH₃:</span>
@@ -377,16 +399,18 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     readings.forEach((reading) => {
       if (!reading.latitude || !reading.longitude) return;
 
-      const color = getReadingColor(reading.ammonia, reading.status);
+      const color = getAmmoniaColor(reading.ammonia, reading.status);
+      let tagIcon: L.DivIcon;
 
-      const circleMarker = L.circleMarker([reading.latitude, reading.longitude], {
-        radius: 8,
-        fillColor: color,
-        color: '#ffffff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.92,
-      });
+      if (reading.photo_url) {
+        tagIcon = L.divIcon({
+          className: 'custom-photo-thumb-marker',
+          html: `
+            <div style="
+              position: relative;
+              width: 38px;
+              height: 38px;
+              border-radius: 50%;
 
       const popupContent = `
         <div style="font-family: system-ui, sans-serif; min-width: 170px; padding: 4px;">
