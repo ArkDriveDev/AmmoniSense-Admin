@@ -674,31 +674,53 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
           backdropFilter: 'blur(6px)',
           padding: '6px 14px',
           borderRadius: '20px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+          fontSize: '11px',
+          fontWeight: 600,
+          color: '#64748b',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          pointerEvents: 'none',
+        }}>
+          <IonIcon icon={locateOutline} style={{ fontSize: '14px', color: '#94a3b8' }} />
+          0 Mapped Locations
+        </div>
+      )}
+
       {/* Bottom Map Legend */}
       <div style={{
         position: 'absolute',
         bottom: '10px',
         right: '10px',
         zIndex: 1000,
-        backgroundColor: 'rgba(255, 255, 255, 0.94)',
-        backdropFilter: 'blur(6px)',
-        padding: '8px 12px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(8px)',
+        padding: '10px 14px',
+        borderRadius: '10px',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.16)',
         fontSize: '11px',
         color: '#1e293b',
         display: 'flex',
         flexDirection: 'column',
-        gap: '4px'
+        gap: '6px',
+        maxWidth: '260px'
       }}>
-        <div style={{ fontWeight: 700, marginBottom: '2px', color: '#1a365d' }}>Spatial Map Legend</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '3px', border: '1.5px dashed #ea580c', backgroundColor: 'rgba(249,115,22,0.3)' }}></span>
-          <span>Odor Zone Polygon</span>
+        <div style={{ fontWeight: 800, color: '#1a365d', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span>🗺️</span> Spatial Map Legend
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#16a34a' }}></span>
-          <span>Normal Reading (&lt; 25 ppm)</span>
+
+        {/* Site Types Grid */}
+        <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginTop: '2px' }}>Site Types</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 8px', fontSize: '10.5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>🐔</span>
+            <span>Poultry</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>🐷</span>
+            <span>Piggery</span>
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></span>
