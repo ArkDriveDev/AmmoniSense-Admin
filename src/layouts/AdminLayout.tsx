@@ -295,24 +295,42 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <IonLabel color="danger" style={{ fontSize: '13px', fontWeight: 'bold' }}>LOGOUT</IonLabel>
             </IonItem>
           </IonList>
-        </IonContent>
-      </IonMenu>
+        </div>
+      </aside>
 
-      <IonPage id="main">
+      {/* Main Content Area */}
+      <div style={{
+        flex: 1,
+        minWidth: 0,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        {/* Top Header with Hamburger Toggle */}
         <IonHeader>
           <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
             <IonButtons slot="start">
-              <IonMenuButton>
-                <IonIcon icon={menuOutline} />
-              </IonMenuButton>
+              <IonButton
+                fill="clear"
+                onClick={() => setSidebarOpen(prev => !prev)}
+                style={{ color: '#ffffff', '--color': '#ffffff' }}
+                title={sidebarOpen ? "Close Menu" : "Open Menu"}
+              >
+                <IonIcon icon={menuOutline} slot="icon-only" style={{ fontSize: '24px' }} />
+              </IonButton>
             </IonButtons>
-            <IonTitle style={{ fontWeight: 'bold' }}>MENRO ENVIRONMENTAL ADMIN</IonTitle>
+            <IonTitle style={{ fontWeight: 'bold', fontSize: '16px' }}>
+              MENRO ENVIRONMENTAL ADMIN
+            </IonTitle>
           </IonToolbar>
         </IonHeader>
-        <IonContent>
+
+        {/* Page View Body */}
+        <div style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'hidden' }}>
           {children}
-        </IonContent>
-      </IonPage>
-    </IonSplitPane>
+        </div>
+      </div>
+    </div>
   );
 }
