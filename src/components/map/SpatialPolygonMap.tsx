@@ -7,8 +7,7 @@ import {
   earthOutline,
   locateOutline,
   shieldCheckmarkOutline,
-  warningOutline,
-  locationSharp
+  warningOutline
 } from 'ionicons/icons';
 import {
   MANOLO_FORTICH_DEFAULTS,

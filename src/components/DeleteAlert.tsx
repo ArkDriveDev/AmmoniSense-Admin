@@ -21,7 +21,7 @@ export default function DeleteAlert({
   requireTypeConfirm = false,
   typeConfirmText = 'DELETE'
 }: DeleteAlertProps) {
-  const handleConfirm = (data?: any) => {
+  const handleConfirm = (data?: { confirm?: string }) => {
     if (requireTypeConfirm) {
       const inputValue = data?.confirm || '';
       if (inputValue !== typeConfirmText) {

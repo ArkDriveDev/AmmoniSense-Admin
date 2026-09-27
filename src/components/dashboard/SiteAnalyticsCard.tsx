@@ -48,7 +48,7 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
     }
   };
 
-  const getStatusDetails = (status: 'normal' | 'warning' | 'high' | 'critical', ammonia: number | null) => {
+  const getStatusDetails = (status: 'normal' | 'warning' | 'high' | 'critical' | string, ammonia: number | null) => {
     if (status === 'critical' || (ammonia !== null && ammonia > 50)) {
       return { label: 'Critical', bg: '#fef2f2', border: '#fecaca', text: '#dc2626' };
     }
@@ -254,7 +254,7 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
                         </thead>
                         <tbody>
                           {site.recent_readings.map((reading) => {
-                            const rStatus = getStatusDetails(reading.status as any, reading.ammonia);
+                            const rStatus = getStatusDetails(reading.status, reading.ammonia);
                             return (
                               <tr key={reading.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                 <td style={{ padding: '8px 12px', color: '#334155', fontWeight: '600' }}>{new Date(reading.created_at).toLocaleString()}</td>

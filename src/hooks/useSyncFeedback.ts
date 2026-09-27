@@ -17,7 +17,7 @@ export function useSyncFeedback() {
     setSyncToast(prev => ({ ...prev, isOpen: false }));
   }, []);
 
-  const triggerSync = useCallback(async (action: () => Promise<any> | void, initiatingMsg = 'Refreshing data from server...') => {
+  const triggerSync = useCallback(async (action: () => Promise<unknown> | void, initiatingMsg = 'Refreshing data from server...') => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       setSyncToast({
         isOpen: true,
@@ -44,10 +44,11 @@ export function useSyncFeedback() {
         duration: 3000
       });
       return true;
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Server error';
       setSyncToast({
         isOpen: true,
-        message: 'Sync failed: ' + (err?.message || 'Server error'),
+        message: 'Sync failed: ' + errorMsg,
         color: 'warning',
         duration: 4000
       });
