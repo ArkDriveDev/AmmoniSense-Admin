@@ -172,3 +172,39 @@ export default function InspectionSchedules() {
       default: return 'medium';
     }
   };
+
+  return (
+    <IonPage>
+      <IonHeader>
+        <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
+          <IonTitle style={{ fontWeight: 'bold' }}>MENRO INSPECTION SCHEDULES</IonTitle>
+          <IonButtons slot="end">
+            <IonButton onClick={() => { resetForm(); setShowModal(true); }}>
+              <IonIcon icon={addOutline} slot="start" /> NEW SCHEDULE
+            </IonButton>
+            <IonButton onClick={() => triggerSync(refresh)}>
+              <IonIcon icon={refreshOutline} />
+            </IonButton>
+          </IonButtons>
+        </IonToolbar>
+
+        <IonToolbar style={{ '--background': '#f8fafc' }}>
+          <IonSearchbar
+            placeholder="SEARCH SCHEDULES, INSPECTORS, SITES..."
+            value={searchTerm}
+            onIonInput={(e) => setSearchTerm(e.detail.value || '')}
+            animated
+          />
+        </IonToolbar>
+
+        <IonToolbar style={{ '--background': '#ffffff' }}>
+          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <IonSelect
+              value={statusFilter}
+              onIonChange={(e) => setStatusFilter(e.detail.value)}
+              interface="popover"
+              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
+            >
+              <IonSelectOption value="all">All Statuses</IonSelectOption>
+              <IonSelectOption value="SCHEDULED">Scheduled</IonSelectOption>
+              <IonSelectOption value="IN_PROGRESS">In Progress</IonSelectOption>
