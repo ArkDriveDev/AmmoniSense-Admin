@@ -243,3 +243,38 @@ export default function AdminInspectionSites() {
       is_active: true,
       notes: ''
     });
+  };
+
+  const openDeleteAlert = (site: InspectionSiteWithSummary) => {
+    setSelectedSite(site);
+    setShowDeleteAlert(true);
+  };
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
+  return (
+    <IonPage>
+      <IonHeader>
+        <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
+          <IonTitle style={{ fontWeight: 'bold' }}>INSPECTION SITES DIRECTORY</IonTitle>
+          <IonButtons slot="end">
+            <IonButton onClick={() => { resetForm(); setShowModal(true); }}>
+              <IonIcon icon={addOutline} slot="start" /> ADD INSPECTION SITE
+            </IonButton>
+            <IonButton onClick={() => triggerSync(fetchInspectionSites)}>
+              <IonIcon icon={refreshOutline} />
+            </IonButton>
+          </IonButtons>
+        </IonToolbar>
+
+        <IonToolbar style={{ '--background': '#f8fafc' }}>
+          <IonSearchbar
+            placeholder="SEARCH SITES BY NAME, CODE, OR LOCATION..."
+            value={searchTerm}
