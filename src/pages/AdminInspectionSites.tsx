@@ -68,3 +68,38 @@ export default function AdminInspectionSites() {
   const [toastColor, setToastColor] = useState('success');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('site_name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Map modal state
+  const [showMapModal, setShowMapModal] = useState(false);
+  const [mapTarget, setMapTarget] = useState<InspectionSiteWithSummary | null>(null);
+
+  const [form, setForm] = useState({
+    site_code: '',
+    site_name: '',
+    site_type: 'Piggery',
+    address: '',
+    current_latitude: '8.3697',
+    current_longitude: '124.8640',
+    area_size_hectares: '1.0',
+    is_active: true,
+    notes: ''
+  });
+
+  const filteredSites = sites.filter(s => {
+    if (typeFilter !== 'all' && s.site_type?.toLowerCase() !== typeFilter.toLowerCase()) {
+      return false;
+    }
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      s.site_name?.toLowerCase().includes(term) ||
+      s.site_code?.toLowerCase().includes(term) ||
+      s.address?.toLowerCase().includes(term) ||
+      s.site_type?.toLowerCase().includes(term)
+    );
+  }).sort((a, b) => {
+    const aVal = String(a[sortBy as keyof InspectionSiteWithSummary] ?? '').toLowerCase();
+    const bVal = String(b[sortBy as keyof InspectionSiteWithSummary] ?? '').toLowerCase();
+    if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
