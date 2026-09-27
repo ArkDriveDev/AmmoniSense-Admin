@@ -278,3 +278,38 @@ export default function AdminInspectionSites() {
           <IonSearchbar
             placeholder="SEARCH SITES BY NAME, CODE, OR LOCATION..."
             value={searchTerm}
+            onIonInput={(e) => setSearchTerm(e.detail.value || '')}
+            animated
+          />
+        </IonToolbar>
+
+        <IonToolbar style={{ '--background': '#ffffff' }}>
+          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <IonSelect
+              value={typeFilter}
+              onIonChange={(e) => setTypeFilter(e.detail.value)}
+              interface="popover"
+              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
+            >
+              <IonSelectOption value="all">All Site Types</IonSelectOption>
+              {SITE_TYPES.map(t => (
+                <IonSelectOption key={t} value={t}>{t}</IonSelectOption>
+              ))}
+            </IonSelect>
+
+            <IonButton 
+              size="small" 
+              fill={sortBy === 'site_name' ? 'solid' : 'outline'}
+              onClick={() => handleSort('site_name')}
+            >
+              NAME
+              {sortBy === 'site_name' && (
+                <IonIcon 
+                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
+                  style={{ marginLeft: '4px' }} 
+                />
+              )}
+            </IonButton>
+
+            <IonButton 
+              size="small" 
