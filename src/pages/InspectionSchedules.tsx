@@ -348,3 +348,38 @@ export default function InspectionSchedules() {
                           >
                             <IonIcon icon={trashOutline} />
                           </IonButton>
+                        </div>
+                      </IonCardContent>
+                    </IonCard>
+                  </IonCol>
+                );
+              })}
+            </IonRow>
+          </IonGrid>
+        )}
+
+        {/* Schedule Creation Modal */}
+        <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
+          <IonHeader>
+            <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
+              <IonTitle>NEW INSPECTION SCHEDULE</IonTitle>
+              <IonButtons slot="end">
+                <IonButton onClick={() => setShowModal(false)}>CLOSE</IonButton>
+              </IonButtons>
+            </IonToolbar>
+          </IonHeader>
+
+          <IonContent className="ion-padding">
+            <IonSelect
+              label="SELECT INSPECTION SITE"
+              labelPlacement="floating"
+              placeholder="CHOOSE A SITE"
+              value={form.inspection_site_id}
+              onIonChange={e => setForm({ ...form, inspection_site_id: e.detail.value })}
+              style={{ marginBottom: '14px' }}
+            >
+              {sites.map(s => (
+                <IonSelectOption key={s.id} value={s.id.toString()}>
+                  {s.site_name} ({s.site_code})
+                </IonSelectOption>
+              ))}
