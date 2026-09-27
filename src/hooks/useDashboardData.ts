@@ -208,5 +208,40 @@ export function useDashboardData() {
       ]);
 
       setStats({
+        sites: sitesRes.count || 0,
+        schedules: schedulesRes.count || 0,
+        devices: devicesRes.count || 0,
+        alerts: alertsRes.count || 0,
+        tags: tagsRes.count || 0,
+      });
+
+      // 2. Fetch ammonia trend data from inspection_tags
+      const { data: ammoniaData } = await supabase
+        .from('inspection_tags')
+        .select('ammonia, created_at')
+        .order('created_at', { ascending: true })
+        .limit(1000);
+
+      // 3. Fetch alert severity / status distribution from inspection_tags
+      const { data: severityData } = await supabase
+        .from('inspection_tags')
+        .select('status, ammonia');
+
+      // 4. Fetch reading timestamp trend for alerts
+      const { data: alertTrendData } = await supabase
+        .from('inspection_tags')
+        .select('created_at, status, ammonia')
+        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25');
+
+      // 5. Fetch device status distribution
+      const { data: deviceStatusData } = await supabase
+        .from('devices')
+        .select('status');
+
+      // 6. Fetch top alerting devices from inspection_tags
+      const { data: topDevices } = await supabase
+        .from('inspection_tags')
+        .select('device_uid')
+        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25')
   return { stats, chartData, loading, refresh: fetchDashboardData };
 }
