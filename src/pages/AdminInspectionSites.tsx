@@ -453,3 +453,38 @@ export default function AdminInspectionSites() {
                     </div>
                   </div>
                 </IonItem>
+              );
+            })}
+          </IonList>
+        )}
+
+        {/* Create Modal */}
+        <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
+          <IonHeader>
+            <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
+              <IonTitle>REGISTER INSPECTION SITE</IonTitle>
+              <IonButtons slot="end">
+                <IonButton onClick={() => setShowModal(false)}>CLOSE</IonButton>
+              </IonButtons>
+            </IonToolbar>
+          </IonHeader>
+          <IonContent className="ion-padding">
+            <IonInput
+              label="SITE CODE / UNIQUE IDENTIFIER"
+              labelPlacement="floating"
+              placeholder="E.G. SITE-SANJOSE-001"
+              value={form.site_code}
+              autocapitalize="characters"
+              onIonInput={e => setForm({ ...form, site_code: (e.detail.value || '').toUpperCase() })}
+              style={{ textTransform: 'uppercase', marginBottom: '14px' }}
+            />
+            <IonInput
+              label="INSPECTION SITE NAME"
+              labelPlacement="floating"
+              placeholder="E.G. SAN JOSE AGRI-PIGGERY COMPLEX"
+              value={form.site_name}
+              autocapitalize="characters"
+              onIonInput={e => setForm({ ...form, site_name: (e.detail.value || '').toUpperCase() })}
+              style={{ textTransform: 'uppercase', marginBottom: '14px' }}
+            />
+            <IonSelect
