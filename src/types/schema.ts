@@ -173,3 +173,37 @@ export interface InspectionTagDetails {
   photo_url: string | null;
   photo_thumbnail_url: string | null;
   photo_storage_path?: string | null;
+  photo_thumbnail_storage_path?: string | null;
+  created_at: string;
+  notes: string | null;
+  offline_temp_id?: string | null;
+  created_by: string | null;
+  ammonia: number | null;
+  temperature: number | null;
+  humidity: number | null;
+  battery: number | null;
+  status: TagStatus | string | null;
+  reading_latitude: number | null;
+  reading_longitude: number | null;
+  reading_at: string | null;
+  device_uid: string | null;
+  device_name: string | null;
+  schedule_name: string | null;
+  scheduled_date: string | null;
+  site_name: string | null;
+  site_code: string | null;
+  created_by_name: string | null;
+  // Compatibility fields
+  latitude?: number | null;
+  longitude?: number | null;
+  schedule_id?: number | null;
+}
+
+// Profile model
+export interface Profile {
+  id: string;
+  full_name: string;
+  role?: string;
+  email?: string;
+  phone_number?: string;
+}
