@@ -278,3 +278,38 @@ export default function InspectionSchedules() {
                         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '8px 0', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', marginBottom: '12px' }}>
                           <span style={{ fontSize: '11px', color: '#1e293b', backgroundColor: '#f1f5f9', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                             <IonIcon icon={pricetagOutline} style={{ color: '#0891b2' }} />
+                            <b>{s.tag_count || 0}</b> Tags
+                          </span>
+
+                          <span style={{ fontSize: '11px', color: '#1e293b', backgroundColor: '#f1f5f9', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <IonIcon icon={imageOutline} style={{ color: '#7c3aed' }} />
+                            <b>{s.photo_count || 0}</b> Photos
+                          </span>
+
+                          {s.avg_ammonia !== null && s.avg_ammonia !== undefined && (
+                            <span style={{ fontSize: '11px', color: s.avg_ammonia > 25 ? '#dc2626' : '#15803d', backgroundColor: s.avg_ammonia > 25 ? '#fee2e2' : '#dcfce7', padding: '3px 8px', borderRadius: '6px', fontWeight: 'bold' }}>
+                              Avg NH₃: {s.avg_ammonia.toFixed(1)} PPM
+                            </span>
+                          )}
+
+                          {(s.critical_readings || 0) > 0 && (
+                            <span style={{ fontSize: '11px', color: '#dc2626', backgroundColor: '#fee2e2', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
+                              <IonIcon icon={warningOutline} />
+                              {s.critical_readings} Critical
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Status Action Buttons */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            {statusUpper === 'SCHEDULED' && (
+                              <IonButton
+                                size="small"
+                                fill="outline"
+                                color="warning"
+                                onClick={() => handleStatusChange(s.schedule_id, 'IN_PROGRESS')}
+                              >
+                                <IonIcon icon={playOutline} slot="start" /> Start
+                              </IonButton>
+                            )}
