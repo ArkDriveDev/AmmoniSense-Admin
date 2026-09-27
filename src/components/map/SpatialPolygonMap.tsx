@@ -446,15 +446,34 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
               font-weight: 800;
               font-size: 11px;
               padding: 3px 8px;
+              border-radius: 14px;
+              border: 2px solid #ffffff;
+              box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+              white-space: nowrap;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              gap: 3px;
+            ">
+              <span>📍 ${Number(reading.ammonia || 0).toFixed(1)}</span>
+              <span style="font-size: 8px; opacity: 0.9;">PPM</span>
+            </div>
+          `,
+          iconSize: [64, 26],
+          iconAnchor: [32, 13],
+        });
+      }
+
+      const marker = L.marker([reading.latitude, reading.longitude], { icon: tagIcon });
 
       const popupContent = `
         <div style="font-family: system-ui, sans-serif; min-width: 170px; padding: 4px;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
             <h4 style="margin: 0; font-size: 14px; color: ${color}; font-weight: 700;">
-              NH₃: ${reading.ammonia.toFixed(1)} ppm
+              NH₃: ${Number(reading.ammonia || 0).toFixed(1)} ppm
             </h4>
             <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; color: white; background: ${color}; text-transform: uppercase;">
-              ${reading.status || (reading.ammonia > 50 ? 'Critical' : reading.ammonia > 25 ? 'Warning' : 'Normal')}
+              ${reading.status || getAmmoniaSeverityLabel(reading.ammonia)}
             </span>
           </div>
           ${reading.site_name ? `<div style="font-size: 12px; color: #334155; margin-bottom: 2px;"><b>Site:</b> ${reading.site_name}</div>` : ''}
@@ -472,8 +491,8 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         </div>
       `;
 
-      circleMarker.bindPopup(popupContent);
-      readingsGroup.addLayer(circleMarker);
+      marker.bindPopup(popupContent);
+      readingsGroup.addLayer(marker);
     });
   }, [readings]);
 
@@ -643,6 +662,18 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         </button>
       </div>
 
+      {/* Empty readings indicator if 0 readings */}
+      {readings.length === 0 && (
+        <div style={{
+          position: 'absolute',
+          top: '12px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1000,
+          backgroundColor: 'rgba(255, 255, 255, 0.94)',
+          backdropFilter: 'blur(6px)',
+          padding: '6px 14px',
+          borderRadius: '20px',
       {/* Bottom Map Legend */}
       <div style={{
         position: 'absolute',
