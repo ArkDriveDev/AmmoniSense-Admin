@@ -7,45 +7,54 @@ import {
   IonList,
   IonItem,
   IonLabel,
-  IonButton,
-  IonModal,
-  IonInput,
-  IonSelect,
-  IonSelectOption,
-  IonButtons,
   IonBadge,
   IonIcon,
-  IonToast,
-  IonSearchbar
+  IonSearchbar,
+  IonButton,
+  IonButtons,
+  IonSelect,
+  IonSelectOption,
+  IonToast
 } from '@ionic/react';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '../services/supabase';
-import { 
-  hardwareChipOutline, 
-  businessOutline, 
-  addOutline,
-  locationOutline,
+import { useState } from 'react';
+import {
+  hardwareChipOutline,
   arrowUpOutline,
-  arrowDownOutline
+  arrowDownOutline,
+  barChartOutline,
+  businessOutline,
+  refreshOutline,
+  batteryChargingOutline,
+  timeOutline,
+  wifiOutline,
+  addOutline,
+  createOutline
 } from 'ionicons/icons';
+import { useHistory } from 'react-router-dom';
+import { supabase } from '../services/supabase';
 
-import DeleteAlert from '../components/DeleteAlert';
-import ConfirmAlert from '../components/ConfirmAlert';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
-import MapViewerModal from '../components/map/MapViewerModal';
+import DeviceModal, { DeviceFormData } from '../components/DeviceModal';
+import { useDevices } from '../hooks/useDevices';
+import { useInspectionSites } from '../hooks/useInspectionSites';
+import { Device } from '../types/schema';
+import useSyncFeedback from '../hooks/useSyncFeedback';
 
 export default function Devices() {
-  const [devices, setDevices] = useState<any[]>([]);
-  const [filteredDevices, setFilteredDevices] = useState<any[]>([]);
-  const [sites, setSites] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const history = useHistory();
+  const { devices, loading, refresh } = useDevices();
+  const { sites } = useInspectionSites();
+  const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('installed_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   const [showModal, setShowModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-  const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
-  const [selectedDevice, setSelectedDevice] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState('success');
