@@ -103,3 +103,38 @@ export default function AdminInspectionSites() {
     const aVal = String(a[sortBy as keyof InspectionSiteWithSummary] ?? '').toLowerCase();
     const bVal = String(b[sortBy as keyof InspectionSiteWithSummary] ?? '').toLowerCase();
     if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const handleCreate = async () => {
+    if (!form.site_code || !form.site_name) {
+      setToastMessage('Please fill in Site Code and Site Name');
+      setToastColor('danger');
+      setShowToast(true);
+      return;
+    }
+
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const createdBy = userData.user?.id || null;
+
+      const payload = {
+        site_code: form.site_code.trim().toUpperCase(),
+        site_name: form.site_name.trim().toUpperCase(),
+        site_type: form.site_type,
+        address: form.address ? form.address.trim().toUpperCase() : null,
+        current_latitude: form.current_latitude ? parseFloat(form.current_latitude) : null,
+        current_longitude: form.current_longitude ? parseFloat(form.current_longitude) : null,
+        area_size_hectares: form.area_size_hectares ? parseFloat(form.area_size_hectares) : null,
+        is_active: form.is_active,
+        notes: form.notes ? form.notes.trim().toUpperCase() : null,
+        created_by: createdBy,
+      };
+
+      const { error } = await supabase.from('inspection_sites').insert([payload]);
+      if (error) throw error;
+
+      setToastMessage('Inspection site registered successfully!');
+      setToastColor('success');
+      setShowToast(true);
