@@ -151,40 +151,51 @@ export function useSiteAnalytics() {
       const allDevices = devicesData;
 
       const processedSites: SiteAnalyticsData[] = (sitesData || []).map((site: InspectionSite) => {
+        const sum = summaryMap.get(site.id);
 
         // Match devices
-        const siteDevices = allDevices.filter((d: any) => d.site_id === site.id);
-        const deviceUids = siteDevices.map((d: any) => d.device_uid);
-        const siteReadings = allReadings.filter((r: any) => deviceUids.includes(r.device_uid));
+        const siteDevices = allDevices.filter((d: Device) => d.inspection_site_id === site.id);
+        const deviceUids = siteDevices.map((d: Device) => d.device_uid);
 
-        const latestReading = siteReadings[0] || null;
-        const readings7Days = siteReadings.filter((r: any) => new Date(r.created_at || r.submitted_at || Date.now()).getTime() >= sevenDaysAgoTime);
+        // Match tags (by site_id or device_uid)
+        const siteTags = allTags.filter((t: InspectionTag) =>
+          t.inspection_site_id === site.id || (t.device_uid && deviceUids.includes(t.device_uid))
+        );
 
-        // Alert status classification
-        let status: 'normal' | 'warning' | 'critical' = 'normal';
-        const ammoniaVal = latestReading?.ammonia;
-        if (latestReading?.status === 'critical' || (ammoniaVal !== null && ammoniaVal > 50)) {
-          status = 'critical';
-        } else if (latestReading?.status === 'warning' || (ammoniaVal !== null && ammoniaVal > 25)) {
-          status = 'warning';
+        const latestTag = siteTags[0] || null;
+        const tags7Days = siteTags.filter(
+          (t: InspectionTag) => new Date(t.created_at || Date.now()).getTime() >= sevenDaysAgoTime
+        );
+
+        // Alert status classification (NORMAL / WARNING / HIGH / CRITICAL)
+        let alertStatus: 'normal' | 'warning' | 'high' | 'critical' = 'normal';
+        const nh3 = latestTag?.ammonia;
+        const tagStatusUpper = (latestTag?.status || '').toUpperCase();
+
+        if (tagStatusUpper === 'CRITICAL' || (nh3 !== null && nh3 !== undefined && nh3 > 50)) {
+          alertStatus = 'critical';
+        } else if (tagStatusUpper === 'HIGH' || (nh3 !== null && nh3 !== undefined && nh3 > 35)) {
+          alertStatus = 'high';
+        } else if (tagStatusUpper === 'WARNING' || (nh3 !== null && nh3 !== undefined && nh3 > 25)) {
+          alertStatus = 'warning';
         }
 
         // Device health
-        const hasActiveDevice = siteDevices.some((d: any) => d.status === 'ACTIVE');
+        const hasActiveDevice = siteDevices.some((d: Device) => d.status === 'ACTIVE');
         const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
-        const hasRecentReading = latestReading && new Date(latestReading.created_at || latestReading.submitted_at).getTime() >= twentyFourHoursAgo;
-        const deviceStatus: 'Online' | 'Offline' = (hasActiveDevice || hasRecentReading) ? 'Online' : 'Offline';
+        const hasRecentTag = latestTag && new Date(latestTag.created_at || '').getTime() >= twentyFourHoursAgo;
+        const deviceStatus: 'Online' | 'Offline' = (hasActiveDevice || hasRecentTag) ? 'Online' : 'Offline';
 
-        const siteNameStr = site.site_name || site.name || `Site #${site.id}`;
-        const siteType = site.site_type || (siteNameStr.toLowerCase().includes('piggery') ? 'Piggery' : siteNameStr.toLowerCase().includes('ambient') ? 'Ambient' : 'Industrial');
+        const siteNameStr = site.site_name || `Site #${site.id}`;
+        const siteType = site.site_type || 'Piggery';
 
         // 7-day daily trend calculation
         const dailyGroups: Record<string, number[]> = {};
-        readings7Days.forEach((r: any) => {
-          if (r.ammonia !== null && r.ammonia !== undefined) {
-            const dateStr = new Date(r.created_at || r.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        tags7Days.forEach((t: InspectionTag) => {
+          if (t.ammonia !== null && t.ammonia !== undefined) {
+            const dateStr = new Date(t.created_at || '').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             if (!dailyGroups[dateStr]) dailyGroups[dateStr] = [];
-            dailyGroups[dateStr].push(r.ammonia);
+            dailyGroups[dateStr].push(t.ammonia);
           }
         });
 
@@ -193,18 +204,17 @@ export function useSiteAnalytics() {
           const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000);
           const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
           const vals = dailyGroups[dateStr];
-          const avg = vals && vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : (latestReading?.ammonia || 0);
+          const avg = vals && vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : (latestTag?.ammonia || 0);
           trend_7days.push({ date: dateStr, ammonia: Math.round(avg * 10) / 10 });
         }
 
         return {
           id: site.id,
           site_name: siteNameStr,
-          site_code: site.site_code || site.code,
+          site_code: site.site_code,
           site_type: siteType,
           address: site.address || 'Address not specified',
-          latitude: Number(site.latitude) || 8.3697,
-          longitude: Number(site.longitude) || 124.8640,
+          latitude: Number(site.current_latitude) || 8.3697,
           area_size_hectares: Number(site.area_size_hectares) || 1.0,
           owner_name: ownerName,
           owner_contact: owner?.contact_number || owner?.phone,
