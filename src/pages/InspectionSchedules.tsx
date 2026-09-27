@@ -208,3 +208,38 @@ export default function InspectionSchedules() {
               <IonSelectOption value="all">All Statuses</IonSelectOption>
               <IonSelectOption value="SCHEDULED">Scheduled</IonSelectOption>
               <IonSelectOption value="IN_PROGRESS">In Progress</IonSelectOption>
+              <IonSelectOption value="COMPLETED">Completed</IonSelectOption>
+              <IonSelectOption value="CANCELLED">Cancelled</IonSelectOption>
+            </IonSelect>
+
+            <IonSelect
+              value={siteFilter}
+              onIonChange={(e) => setSiteFilter(e.detail.value)}
+              interface="popover"
+              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
+            >
+              <IonSelectOption value="all">All Sites</IonSelectOption>
+              {sites.map(s => (
+                <IonSelectOption key={s.id} value={s.id.toString()}>{s.site_name}</IonSelectOption>
+              ))}
+            </IonSelect>
+          </div>
+        </IonToolbar>
+      </IonHeader>
+
+      <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>
+        {loading ? (
+          <LoadingSpinner />
+        ) : filteredSchedules.length === 0 ? (
+          <EmptyState
+            title="NO INSPECTION SCHEDULES FOUND"
+            message={searchTerm || statusFilter !== 'all' ? 'TRY ADJUSTING YOUR FILTERS' : 'CLICK NEW SCHEDULE TO PLAN AN INSPECTION'}
+          />
+        ) : (
+          <IonGrid style={{ padding: 0 }}>
+            <IonRow>
+              {filteredSchedules.map((s) => {
+                const currentStatus = s.schedule_status || s.status || 'SCHEDULED';
+                const statusUpper = currentStatus.toUpperCase();
+
+                return (
