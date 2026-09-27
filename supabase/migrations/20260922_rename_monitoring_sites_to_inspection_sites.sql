@@ -68,3 +68,38 @@ BEGIN
   UPDATE public.inspection_sites 
   SET 
     current_latitude = NEW.latitude,
+    current_longitude = NEW.longitude
+  WHERE id = NEW.inspection_site_id;
+  
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_inspection_site_current_location_trigger
+AFTER INSERT ON public.site_locations
+FOR EACH ROW
+EXECUTE FUNCTION update_inspection_site_current_location();
+
+-- 6. UPDATE RLS POLICIES
+DROP POLICY IF EXISTS "MENRO Admin full access monitoring_sites" ON public.inspection_sites;
+DROP POLICY IF EXISTS "Inspector can view monitoring_sites" ON public.inspection_sites;
+DROP POLICY IF EXISTS "MENRO Admin full access inspection_sites" ON public.inspection_sites;
+DROP POLICY IF EXISTS "Inspector can view inspection_sites" ON public.inspection_sites;
+DROP POLICY IF EXISTS "Inspector can insert inspection_sites" ON public.inspection_sites;
+DROP POLICY IF EXISTS "Inspector can update inspection_sites" ON public.inspection_sites;
+
+CREATE POLICY "MENRO Admin full access inspection_sites"
+  ON public.inspection_sites FOR ALL
+  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'menro_admin'));
+
+CREATE POLICY "Inspector can view inspection_sites"
+  ON public.inspection_sites FOR SELECT
+  USING (true);
+
+CREATE POLICY "Inspector can insert inspection_sites"
+  ON public.inspection_sites FOR INSERT
+  WITH CHECK (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Inspector can update inspection_sites"
+  ON public.inspection_sites FOR UPDATE
+  USING (auth.uid() IS NOT NULL);
