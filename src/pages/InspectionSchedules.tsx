@@ -313,3 +313,38 @@ export default function InspectionSchedules() {
                                 <IonIcon icon={playOutline} slot="start" /> Start
                               </IonButton>
                             )}
+
+                            {statusUpper === 'IN_PROGRESS' && (
+                              <IonButton
+                                size="small"
+                                fill="solid"
+                                color="success"
+                                onClick={() => handleStatusChange(s.schedule_id, 'COMPLETED')}
+                              >
+                                <IonIcon icon={checkmarkCircleOutline} slot="start" /> Complete
+                              </IonButton>
+                            )}
+
+                            {statusUpper !== 'COMPLETED' && statusUpper !== 'CANCELLED' && (
+                              <IonButton
+                                size="small"
+                                fill="clear"
+                                color="medium"
+                                onClick={() => handleStatusChange(s.schedule_id, 'CANCELLED')}
+                              >
+                                <IonIcon icon={closeCircleOutline} slot="start" /> Cancel
+                              </IonButton>
+                            )}
+                          </div>
+
+                          <IonButton
+                            size="small"
+                            fill="clear"
+                            color="danger"
+                            onClick={() => {
+                              setSelectedSchedule(s);
+                              setShowDeleteAlert(true);
+                            }}
+                          >
+                            <IonIcon icon={trashOutline} />
+                          </IonButton>
