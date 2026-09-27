@@ -68,3 +68,24 @@ export function useInspectionSites() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchInspectionSites();
+  }, [fetchInspectionSites]);
+
+  return {
+    sites,
+    setSites,
+    loading,
+    error,
+    fetchInspectionSites,
+    // Aliases for backwards compatibility
+    livestock: sites,
+    setLivestock: setSites,
+    fetchLivestock: fetchInspectionSites,
+  };
+}
+
+export type { InspectionSite };
+export default useInspectionSites;
