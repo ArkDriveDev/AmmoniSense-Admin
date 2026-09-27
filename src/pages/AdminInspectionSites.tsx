@@ -173,3 +173,38 @@ export default function AdminInspectionSites() {
 
       const { error } = await supabase
         .from('inspection_sites')
+        .update(payload)
+        .eq('id', selectedSite.id);
+
+      if (error) throw error;
+
+      setToastMessage('Inspection site updated successfully!');
+      setToastColor('success');
+      setShowToast(true);
+      setShowUpdateConfirm(false);
+      setShowEditModal(false);
+      setSelectedSite(null);
+      resetForm();
+      fetchInspectionSites();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setToastMessage('Error updating Inspection Site: ' + message);
+      setToastColor('danger');
+      setShowToast(true);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedSite) return;
+
+    try {
+      const { error } = await supabase.from('inspection_sites').delete().eq('id', selectedSite.id);
+      if (error) throw error;
+
+      setToastMessage('Inspection site deleted successfully!');
+      setToastColor('success');
+      setShowToast(true);
+      setShowDeleteAlert(false);
+      setSelectedSite(null);
+      fetchInspectionSites();
+    } catch (err) {
