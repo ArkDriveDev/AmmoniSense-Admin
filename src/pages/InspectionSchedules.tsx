@@ -243,3 +243,38 @@ export default function InspectionSchedules() {
                 const statusUpper = currentStatus.toUpperCase();
 
                 return (
+                  <IonCol key={s.schedule_id} size="12" size-md="6">
+                    <IonCard style={{ margin: '0 0 16px 0', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                      <IonCardContent style={{ padding: '18px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                          <div>
+                            <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#1a365d', margin: '0 0 4px 0' }}>
+                              {s.schedule_name}
+                            </h3>
+                            <div style={{ fontSize: '13px', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <IonIcon icon={businessOutline} style={{ color: '#059669' }} />
+                              <b>{s.site_name}</b> ({s.site_code})
+                            </div>
+                          </div>
+
+                          <IonBadge color={getStatusColor(currentStatus)} style={{ fontSize: '12px', padding: '4px 8px' }}>
+                            {currentStatus}
+                          </IonBadge>
+                        </div>
+
+                        <div style={{ fontSize: '12px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '4px', margin: '12px 0' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <IonIcon icon={calendarOutline} style={{ color: '#2563eb' }} />
+                            <span>Scheduled Date: <b>{new Date(s.scheduled_date).toLocaleDateString()}</b></span>
+                          </div>
+
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <IonIcon icon={personOutline} style={{ color: '#7c3aed' }} />
+                            <span>Created By: <b>{s.created_by_name || 'MENRO Staff'}</b></span>
+                          </div>
+                        </div>
+
+                        {/* Schedule Metric Badges */}
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '8px 0', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', marginBottom: '12px' }}>
+                          <span style={{ fontSize: '11px', color: '#1e293b', backgroundColor: '#f1f5f9', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <IonIcon icon={pricetagOutline} style={{ color: '#0891b2' }} />
