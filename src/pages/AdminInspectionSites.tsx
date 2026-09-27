@@ -208,3 +208,38 @@ export default function AdminInspectionSites() {
       setSelectedSite(null);
       fetchInspectionSites();
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setToastMessage('Error deleting Inspection Site: ' + message);
+      setToastColor('danger');
+      setShowToast(true);
+    }
+  };
+
+  const openEditModal = (site: InspectionSiteWithSummary) => {
+    setSelectedSite(site);
+    setForm({
+      site_code: (site.site_code || '').toUpperCase(),
+      site_name: (site.site_name || '').toUpperCase(),
+      site_type: site.site_type || 'Piggery',
+      address: (site.address || '').toUpperCase(),
+      current_latitude: site.current_latitude?.toString() || '8.3697',
+      current_longitude: site.current_longitude?.toString() || '124.8640',
+      area_size_hectares: site.area_size_hectares?.toString() || '1.0',
+      is_active: site.is_active ?? true,
+      notes: (site.notes || '').toUpperCase()
+    });
+    setShowEditModal(true);
+  };
+
+  const resetForm = () => {
+    setForm({
+      site_code: '',
+      site_name: '',
+      site_type: 'Piggery',
+      address: '',
+      current_latitude: '8.3697',
+      current_longitude: '124.8640',
+      area_size_hectares: '1.0',
+      is_active: true,
+      notes: ''
+    });
