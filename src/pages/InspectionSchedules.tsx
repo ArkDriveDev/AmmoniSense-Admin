@@ -103,3 +103,38 @@ export default function InspectionSchedules() {
         scheduled_date: form.scheduled_date,
         scheduled_time: form.scheduled_time || undefined,
         notes: form.notes ? form.notes.trim() : undefined,
+      });
+
+      setToastMessage('Inspection schedule created successfully!');
+      setToastColor('success');
+      setShowToast(true);
+      setShowModal(false);
+      resetForm();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setToastMessage('Failed to create schedule: ' + message);
+      setToastColor('danger');
+      setShowToast(true);
+    }
+  };
+
+  const handleStatusChange = async (scheduleId: number, status: ScheduleStatus) => {
+    try {
+      await updateScheduleStatus(scheduleId, status);
+      if (status === 'CANCELLED') {
+        setToastMessage('Inspection schedule deleted successfully!');
+      } else {
+        setToastMessage('Inspection schedule updated successfully!');
+      }
+      setToastColor('success');
+      setShowToast(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setToastMessage('Failed to update status: ' + message);
+      setToastColor('danger');
+      setShowToast(true);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selectedSchedule) return;
