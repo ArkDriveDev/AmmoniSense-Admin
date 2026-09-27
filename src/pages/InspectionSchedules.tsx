@@ -5,8 +5,6 @@ import {
   IonToolbar,
   IonTitle,
   IonButton,
-  IonInput,
-  IonModal,
   IonButtons,
   IonSelect,
   IonSelectOption,
@@ -14,23 +12,19 @@ import {
   IonToast,
   IonSearchbar,
   IonBadge,
-  IonTextarea,
   IonGrid,
   IonRow,
   IonCol,
   IonCard,
-  IonCardContent
+  IonCardContent,
+  SearchbarCustomEvent,
+  SelectCustomEvent
 } from '@ionic/react';
 
 import { useState } from 'react';
 import {
   calendarOutline,
-  addOutline,
   refreshOutline,
-  checkmarkCircleOutline,
-  playOutline,
-  closeCircleOutline,
-  trashOutline,
   personOutline,
   businessOutline,
   pricetagOutline,
@@ -38,38 +32,20 @@ import {
   warningOutline
 } from 'ionicons/icons';
 
-import DeleteAlert from '../components/DeleteAlert';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useInspectionSchedules } from '../hooks/useInspectionSchedules';
 import { useInspectionSites } from '../hooks/useInspectionSites';
-import { InspectionScheduleSummary, ScheduleStatus } from '../types/schema';
 import useSyncFeedback from '../hooks/useSyncFeedback';
 
 export default function InspectionSchedules() {
-  const { schedules, loading, refresh, createSchedule, updateScheduleStatus, deleteSchedule } = useInspectionSchedules();
+  const { schedules, loading, refresh } = useInspectionSchedules();
   const { sites } = useInspectionSites();
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
-
-  const [showModal, setShowModal] = useState(false);
-  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] = useState<InspectionScheduleSummary | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [siteFilter, setSiteFilter] = useState<string>('all');
-
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastColor, setToastColor] = useState('success');
-
-  const [form, setForm] = useState({
-    inspection_site_id: '',
-    schedule_name: '',
-    scheduled_date: new Date().toISOString().split('T')[0],
-    scheduled_time: '09:00:00',
-    notes: ''
-  });
 
   const filteredSchedules = schedules.filter(s => {
     if (statusFilter !== 'all' && s.status?.toUpperCase() !== statusFilter.toUpperCase()) {
@@ -88,81 +64,6 @@ export default function InspectionSchedules() {
     );
   });
 
-  const handleCreate = async () => {
-    if (!form.inspection_site_id || !form.schedule_name || !form.scheduled_date) {
-      setToastMessage('Please fill in Site, Schedule Name, and Date');
-      setToastColor('danger');
-      setShowToast(true);
-      return;
-    }
-
-    try {
-      await createSchedule({
-        inspection_site_id: Number(form.inspection_site_id),
-        schedule_name: form.schedule_name.trim(),
-        scheduled_date: form.scheduled_date,
-        scheduled_time: form.scheduled_time || undefined,
-        notes: form.notes ? form.notes.trim() : undefined,
-      });
-
-      setToastMessage('Inspection schedule created successfully!');
-      setToastColor('success');
-      setShowToast(true);
-      setShowModal(false);
-      resetForm();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      setToastMessage('Failed to create schedule: ' + message);
-      setToastColor('danger');
-      setShowToast(true);
-    }
-  };
-
-  const handleStatusChange = async (scheduleId: number, status: ScheduleStatus) => {
-    try {
-      await updateScheduleStatus(scheduleId, status);
-      if (status === 'CANCELLED') {
-        setToastMessage('Inspection schedule deleted successfully!');
-      } else {
-        setToastMessage('Inspection schedule updated successfully!');
-      }
-      setToastColor('success');
-      setShowToast(true);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      setToastMessage('Failed to update status: ' + message);
-      setToastColor('danger');
-      setShowToast(true);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!selectedSchedule) return;
-    try {
-      await deleteSchedule(selectedSchedule.schedule_id);
-      setToastMessage('Inspection schedule deleted successfully!');
-      setToastColor('success');
-      setShowToast(true);
-      setShowDeleteAlert(false);
-      setSelectedSchedule(null);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      setToastMessage('Failed to delete schedule: ' + message);
-      setToastColor('danger');
-      setShowToast(true);
-    }
-  };
-
-  const resetForm = () => {
-    setForm({
-      inspection_site_id: '',
-      schedule_name: '',
-      scheduled_date: new Date().toISOString().split('T')[0],
-      scheduled_time: '09:00:00',
-      notes: ''
-    });
-  };
-
   const getStatusColor = (status?: string) => {
     switch (status?.toUpperCase()) {
       case 'COMPLETED': return 'success';
@@ -179,9 +80,6 @@ export default function InspectionSchedules() {
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
           <IonTitle style={{ fontWeight: 'bold' }}>MENRO INSPECTION SCHEDULES</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={() => { resetForm(); setShowModal(true); }}>
-              <IonIcon icon={addOutline} slot="start" /> NEW SCHEDULE
-            </IonButton>
             <IonButton onClick={() => triggerSync(refresh)}>
               <IonIcon icon={refreshOutline} />
             </IonButton>
@@ -192,7 +90,7 @@ export default function InspectionSchedules() {
           <IonSearchbar
             placeholder="SEARCH SCHEDULES, INSPECTORS, SITES..."
             value={searchTerm}
-            onIonInput={(e) => setSearchTerm(e.detail.value || '')}
+            onIonInput={(e: SearchbarCustomEvent) => setSearchTerm(e.detail.value || '')}
             animated
           />
         </IonToolbar>
@@ -201,7 +99,7 @@ export default function InspectionSchedules() {
           <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
             <IonSelect
               value={statusFilter}
-              onIonChange={(e) => setStatusFilter(e.detail.value)}
+              onIonChange={(e: SelectCustomEvent) => setStatusFilter(e.detail.value || 'all')}
               interface="popover"
               style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
             >
@@ -214,7 +112,7 @@ export default function InspectionSchedules() {
 
             <IonSelect
               value={siteFilter}
-              onIonChange={(e) => setSiteFilter(e.detail.value)}
+              onIonChange={(e: SelectCustomEvent) => setSiteFilter(e.detail.value || 'all')}
               interface="popover"
               style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
             >
@@ -233,14 +131,13 @@ export default function InspectionSchedules() {
         ) : filteredSchedules.length === 0 ? (
           <EmptyState
             title="NO INSPECTION SCHEDULES FOUND"
-            message={searchTerm || statusFilter !== 'all' ? 'TRY ADJUSTING YOUR FILTERS' : 'CLICK NEW SCHEDULE TO PLAN AN INSPECTION'}
+            message={searchTerm || statusFilter !== 'all' ? 'TRY ADJUSTING YOUR FILTERS' : 'NO SCHEDULES FOUND'}
           />
         ) : (
           <IonGrid style={{ padding: 0 }}>
             <IonRow>
               {filteredSchedules.map((s) => {
                 const currentStatus = s.schedule_status || s.status || 'SCHEDULED';
-                const statusUpper = currentStatus.toUpperCase();
 
                 return (
                   <IonCol key={s.schedule_id} size="12" size-md="6">
@@ -275,7 +172,7 @@ export default function InspectionSchedules() {
                         </div>
 
                         {/* Schedule Metric Badges */}
-                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '8px 0', borderTop: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9', marginBottom: '12px' }}>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', padding: '8px 0', borderTop: '1px solid #f1f5f9' }}>
                           <span style={{ fontSize: '11px', color: '#1e293b', backgroundColor: '#f1f5f9', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                             <IonIcon icon={pricetagOutline} style={{ color: '#0891b2' }} />
                             <b>{s.tag_count || 0}</b> Tags
@@ -299,56 +196,6 @@ export default function InspectionSchedules() {
                             </span>
                           )}
                         </div>
-
-                        {/* Status Action Buttons */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            {statusUpper === 'SCHEDULED' && (
-                              <IonButton
-                                size="small"
-                                fill="outline"
-                                color="warning"
-                                onClick={() => handleStatusChange(s.schedule_id, 'IN_PROGRESS')}
-                              >
-                                <IonIcon icon={playOutline} slot="start" /> Start
-                              </IonButton>
-                            )}
-
-                            {statusUpper === 'IN_PROGRESS' && (
-                              <IonButton
-                                size="small"
-                                fill="solid"
-                                color="success"
-                                onClick={() => handleStatusChange(s.schedule_id, 'COMPLETED')}
-                              >
-                                <IonIcon icon={checkmarkCircleOutline} slot="start" /> Complete
-                              </IonButton>
-                            )}
-
-                            {statusUpper !== 'COMPLETED' && statusUpper !== 'CANCELLED' && (
-                              <IonButton
-                                size="small"
-                                fill="clear"
-                                color="medium"
-                                onClick={() => handleStatusChange(s.schedule_id, 'CANCELLED')}
-                              >
-                                <IonIcon icon={closeCircleOutline} slot="start" /> Cancel
-                              </IonButton>
-                            )}
-                          </div>
-
-                          <IonButton
-                            size="small"
-                            fill="clear"
-                            color="danger"
-                            onClick={() => {
-                              setSelectedSchedule(s);
-                              setShowDeleteAlert(true);
-                            }}
-                          >
-                            <IonIcon icon={trashOutline} />
-                          </IonButton>
-                        </div>
                       </IonCardContent>
                     </IonCard>
                   </IonCol>
@@ -357,94 +204,6 @@ export default function InspectionSchedules() {
             </IonRow>
           </IonGrid>
         )}
-
-        {/* Schedule Creation Modal */}
-        <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
-          <IonHeader>
-            <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-              <IonTitle>NEW INSPECTION SCHEDULE</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={() => setShowModal(false)}>CLOSE</IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-
-          <IonContent className="ion-padding">
-            <IonSelect
-              label="SELECT INSPECTION SITE"
-              labelPlacement="floating"
-              placeholder="CHOOSE A SITE"
-              value={form.inspection_site_id}
-              onIonChange={e => setForm({ ...form, inspection_site_id: e.detail.value })}
-              style={{ marginBottom: '14px' }}
-            >
-              {sites.map(s => (
-                <IonSelectOption key={s.id} value={s.id.toString()}>
-                  {s.site_name} ({s.site_code})
-                </IonSelectOption>
-              ))}
-            </IonSelect>
-
-            <IonInput
-              label="SCHEDULE NAME / PURPOSE"
-              labelPlacement="floating"
-              placeholder="E.G. ROUTINE QUARTERLY ODOR & NH3 AUDIT"
-              value={form.schedule_name}
-              onIonInput={e => setForm({ ...form, schedule_name: e.detail.value || '' })}
-              style={{ marginBottom: '14px' }}
-            />
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
-              <IonInput
-                label="SCHEDULED DATE"
-                labelPlacement="floating"
-                type="date"
-                value={form.scheduled_date}
-                onIonInput={e => setForm({ ...form, scheduled_date: e.detail.value || '' })}
-              />
-
-              <IonInput
-                label="SCHEDULED TIME"
-                labelPlacement="floating"
-                type="time"
-                value={form.scheduled_time}
-                onIonInput={e => setForm({ ...form, scheduled_time: e.detail.value || '' })}
-              />
-            </div>
-
-            <IonTextarea
-              label="SPECIAL INSTRUCTIONS / NOTES"
-              labelPlacement="floating"
-              placeholder="Focus on lagoon perimeter, check exhaust vents, inspect biofilters..."
-              value={form.notes}
-              onIonInput={e => setForm({ ...form, notes: e.detail.value || '' })}
-              rows={3}
-              style={{ marginBottom: '18px' }}
-            />
-
-            <IonButton expand="block" onClick={handleCreate} style={{ '--background': '#1a365d' }}>
-              CREATE INSPECTION SCHEDULE
-            </IonButton>
-          </IonContent>
-        </IonModal>
-
-        <DeleteAlert
-          isOpen={showDeleteAlert}
-          onClose={() => setShowDeleteAlert(false)}
-          onConfirm={handleDelete}
-          title="DELETE INSPECTION SCHEDULE?"
-          message={`Are you sure you want to delete "${selectedSchedule?.schedule_name}"?`}
-          requireTypeConfirm={false}
-        />
-
-        <IonToast
-          isOpen={showToast}
-          onDidDismiss={() => setShowToast(false)}
-          message={toastMessage}
-          duration={4000}
-          color={toastColor}
-          position="bottom"
-        />
 
         <IonToast
           isOpen={syncToast.isOpen}

@@ -54,7 +54,7 @@ export function useInspectionSchedules() {
         }));
         setSchedules(mapped);
       } else {
-        const normalized: InspectionScheduleSummary[] = (data || []).map((s: any) => ({
+        const normalized: InspectionScheduleSummary[] = ((data || []) as InspectionScheduleSummary[]).map((s) => ({
           ...s,
           status: s.schedule_status || s.status || 'SCHEDULED',
           schedule_status: s.schedule_status || s.status || 'SCHEDULED',
