@@ -383,3 +383,38 @@ export default function AdminInspectionSites() {
                         <IonBadge color="medium" style={{ fontSize: '11px' }}>
                           INACTIVE
                         </IonBadge>
+                      )}
+                    </div>
+
+                    <p style={{ color: '#475569', fontSize: '13px', margin: '3px 0' }}>
+                      <IonIcon icon={locationOutline} style={{ verticalAlign: 'middle', marginRight: '4px', color: '#059669' }} />
+                      {site.address || 'Address not specified'}
+                      {site.area_size_hectares ? ` • ${site.area_size_hectares} ha` : ''}
+                      {site.current_latitude && site.current_longitude ? ` (${site.current_latitude.toFixed(4)}°, ${site.current_longitude.toFixed(4)}°)` : ''}
+                    </p>
+
+                    {/* Summary metrics chips from inspection_site_summary */}
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+                      <span style={{ fontSize: '11px', color: '#1e293b', backgroundColor: '#f1f5f9', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <IonIcon icon={calendarOutline} style={{ color: '#2563eb' }} />
+                        <b>{site.schedule_count || 0}</b> Schedules
+                      </span>
+
+                      <span style={{ fontSize: '11px', color: '#1e293b', backgroundColor: '#f1f5f9', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <IonIcon icon={pricetagOutline} style={{ color: '#0891b2' }} />
+                        <b>{site.tag_count || 0}</b> Tags
+                      </span>
+
+                      <span style={{ fontSize: '11px', color: '#1e293b', backgroundColor: '#f1f5f9', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <IonIcon icon={imageOutline} style={{ color: '#7c3aed' }} />
+                        <b>{site.photo_count || 0}</b> Photos
+                      </span>
+
+                      {hasAvgAmmonia && (
+                        <span style={{ fontSize: '11px', color: (site.avg_ammonia || 0) > 25 ? '#dc2626' : '#15803d', backgroundColor: (site.avg_ammonia || 0) > 25 ? '#fef2f2' : '#f0fdf4', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
+                          Avg NH₃: {site.avg_ammonia?.toFixed(1)} PPM
+                        </span>
+                      )}
+
+                      {hasCritical && (
+                        <span style={{ fontSize: '11px', color: '#dc2626', backgroundColor: '#fee2e2', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
