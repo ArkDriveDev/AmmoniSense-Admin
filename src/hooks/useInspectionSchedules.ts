@@ -103,3 +103,37 @@ export function useInspectionSchedules() {
     } else if (status === 'COMPLETED') {
       updates.completed_at = new Date().toISOString();
     }
+
+    const { error: updateErr } = await supabase
+      .from('inspection_schedules')
+      .update(updates)
+      .eq('id', scheduleId);
+
+    if (updateErr) throw updateErr;
+    await fetchSchedules();
+  };
+
+  const deleteSchedule = async (scheduleId: number) => {
+    const { error: delErr } = await supabase
+      .from('inspection_schedules')
+      .delete()
+      .eq('id', scheduleId);
+
+    if (delErr) throw delErr;
+    await fetchSchedules();
+  };
+
+  useEffect(() => {
+    fetchSchedules();
+  }, [fetchSchedules]);
+
+  return {
+    schedules,
+    loading,
+    error,
+    refresh: fetchSchedules,
+    createSchedule,
+    updateScheduleStatus,
+    deleteSchedule,
+  };
+}
