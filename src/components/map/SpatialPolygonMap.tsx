@@ -7,7 +7,8 @@ import {
   earthOutline,
   locateOutline,
   shieldCheckmarkOutline,
-  warningOutline
+  warningOutline,
+  locationSharp
 } from 'ionicons/icons';
 import {
   MANOLO_FORTICH_DEFAULTS,
@@ -15,7 +16,11 @@ import {
   TILE_LAYERS,
   generateOdorZonePolygon
 } from './mapConstants';
-import { supabase } from '../../services/supabase';
+import {
+  getSiteMapPinMeta,
+  getAmmoniaColor,
+  getAmmoniaSeverityLabel
+} from '../../utils/siteUtils';
 
 export interface OdorZonePolygon {
   id: string | number;
@@ -42,17 +47,19 @@ export interface SensorReadingMarker {
   notes?: string;
 }
 
-export interface MonitoringSiteMarker {
+export interface InspectionSiteMarker {
   id: number | string;
   site_name: string;
   latitude: number;
   longitude: number;
-  site_type?: string;
-  owner_name?: string;
+  site_type?: string | null;
+  owner_name?: string | null;
   latest_ammonia?: number | null;
-  alert_status?: string;
-  area_size_hectares?: number;
+  alert_status?: string | null;
+  area_size_hectares?: number | null;
 }
+
+export type MonitoringSiteMarker = InspectionSiteMarker;
 
 interface SpatialPolygonMapProps {
   centerLat?: number;
@@ -60,7 +67,7 @@ interface SpatialPolygonMapProps {
   zoom?: number;
   siteName?: string;
   readings?: SensorReadingMarker[];
-  sites?: MonitoringSiteMarker[];
+  sites?: InspectionSiteMarker[];
   odorZones?: OdorZonePolygon[];
   selectedSiteId?: string | number;
   onSelectSite?: (siteId: string | number, lat: number, lng: number) => void;
@@ -68,11 +75,7 @@ interface SpatialPolygonMapProps {
   showSitesList?: boolean;
 }
 
-const getReadingColor = (ammonia: number, status?: string) => {
-  if (status === 'critical' || ammonia > 50) return '#dc2626'; // Danger Red
-  if (status === 'warning' || ammonia > 25) return '#f59e0b'; // Amber Warning
-  return '#16a34a'; // Forest Green
-};
+// (getAmmoniaColor imported from siteUtils)
 
 export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   centerLat = MANOLO_FORTICH_DEFAULTS.lat,
@@ -98,33 +101,6 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   const [mapLayer, setMapLayer] = useState<'street' | 'satellite'>('satellite');
   const [showBoundary, setShowBoundary] = useState<boolean>(true);
   const [showOdorZones, setShowOdorZones] = useState<boolean>(true);
-  const [dbOdorZones, setDbOdorZones] = useState<OdorZonePolygon[]>([]);
-
-  // Fetch odor zones from database table if present
-  useEffect(() => {
-    const fetchDbOdorZones = async () => {
-      try {
-        const { data, error } = await supabase.from('odor_zones').select('*');
-        if (!error && data && data.length > 0) {
-          const mapped: OdorZonePolygon[] = data.map((z: any) => ({
-            id: z.id,
-            name: z.name || z.zone_name || `Zone ${z.id}`,
-            coordinates: z.coordinates || z.polygon_coordinates || z.boundary_coordinates,
-            centerLat: z.center_lat || z.latitude,
-            centerLng: z.center_lng || z.longitude,
-            radiusMeters: z.radius_meters || z.radius,
-            ammoniaLevel: z.ammonia_level || z.ammonia || z.nh3_level,
-            status: z.status,
-            siteName: z.site_name,
-          }));
-          setDbOdorZones(mapped);
-        }
-      } catch (err) {
-        console.warn('Note: odor_zones table fetch skipped/not found, using dynamic polygon generation.');
-      }
-    };
-    fetchDbOdorZones();
-  }, []);
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -170,7 +146,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     const t1 = setTimeout(() => map.invalidateSize(), 100);
     const t2 = setTimeout(() => map.invalidateSize(), 300);
 
-    let resizeTimer: any = null;
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
       resizeObserver = new ResizeObserver(() => {
@@ -270,7 +246,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
 
     if (!showOdorZones) return;
 
-    const allOdorZones = [...odorZones, ...dbOdorZones];
+    const allOdorZones = odorZones;
 
     // 1. Render explicit odor zone polygons if provided or fetched from database
     allOdorZones.forEach((zone) => {
@@ -335,9 +311,9 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         }
       }
     });
-  }, [odorZones, dbOdorZones, sites, showOdorZones]);
+  }, [odorZones, sites, showOdorZones]);
 
-  // Render Monitoring Sites (Markers)
+  // Render Inspection Sites (Markers)
   useEffect(() => {
     if (!mapRef.current || !sitesLayerGroupRef.current) return;
     const sitesGroup = sitesLayerGroupRef.current;
@@ -346,32 +322,25 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     sites.forEach((site) => {
       if (!site.latitude || !site.longitude) return;
 
+      const pinMeta = getSiteMapPinMeta(site.site_type || undefined);
       const isSelected = String(selectedSiteId) === String(site.id);
+      const pinColor = isSelected ? '#1a365d' : pinMeta.pinColor;
       const nh3 = site.latest_ammonia;
-      const statusColor = nh3 && nh3 > 50 ? '#dc2626' : nh3 && nh3 > 25 ? '#ea580c' : '#16a34a';
+      const statusColor = getAmmoniaColor(nh3 || 0, site.alert_status || undefined);
 
       const siteIcon = L.divIcon({
-        className: 'site-facility-pin',
-        html: `<div style="
-          background-color: ${isSelected ? '#1a365d' : '#ffffff'};
-          color: ${isSelected ? '#ffffff' : statusColor};
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.35);
-          border: 3px solid ${statusColor};
-          cursor: pointer;
-          transition: transform 0.2s;
-        ">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512" fill="currentColor">
-            <path d="M448 64H64a32 32 0 00-32 32v320a32 32 0 0032 32h384a32 32 0 0032-32V96a32 32 0 00-32-32zm-32 336H96V112h320zM128 144h64v64h-64zm96 0h64v64h-64zm96 0h64v64h-64zM128 240h64v64h-64zm96 0h64v64h-64zm96 0h64v64h-64zM128 336h64v48h-64zm96 0h64v48h-64zm96 0h64v48h-64z"/>
-          </svg>
-        </div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+        className: 'custom-site-pin',
+        html: `
+          <div style="
+            position: relative;
+            background: ${pinColor};
+            width: 34px;
+            height: 34px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 2.5px solid #ffffff;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+            display: flex;
       });
 
       const marker = L.marker([site.latitude, site.longitude], { icon: siteIcon });
