@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { IonPage, IonContent, IonInput, IonButton, IonTitle, IonText, IonSpinner, IonIcon } from '@ionic/react';
+import { IonPage, IonContent, IonInput, IonButton, IonTitle, IonText, IonSpinner, IonIcon, IonToast } from '@ionic/react';
 import { personAddOutline, personOutline, mailOutline, lockClosedOutline, arrowForwardOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { supabase } from '../services/supabase';
@@ -12,6 +12,9 @@ export default function Setup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [toastColor, setToastColor] = useState<'danger' | 'success'>('danger');
 
   useEffect(() => {
     checkAdminExists();
@@ -45,12 +48,16 @@ export default function Setup() {
 
   const createAdmin = async () => {
     if (!fullName || !email || !password) {
-      alert('Please fill in all fields');
+      setToastColor('danger');
+      setToastMessage('Please fill in all fields');
+      setShowToast(true);
       return;
     }
 
     if (password.length < 6) {
-      alert('Password must be at least 6 characters');
+      setToastColor('danger');
+      setToastMessage('Password must be at least 6 characters');
+      setShowToast(true);
       return;
     }
 
@@ -72,7 +79,9 @@ export default function Setup() {
 
       if (error) {
         console.error('Signup error:', error);
-        alert('Error: ' + error.message);
+        setToastColor('danger');
+        setToastMessage('Error: ' + error.message);
+        setShowToast(true);
         setLoading(false);
         return;
       }
@@ -80,7 +89,9 @@ export default function Setup() {
       console.log('Auth user created:', data);
 
       if (!data.user) {
-        alert('Failed to create user');
+        setToastColor('danger');
+        setToastMessage('Failed to create user');
+        setShowToast(true);
         setLoading(false);
         return;
       }
@@ -97,18 +108,26 @@ export default function Setup() {
 
       if (profileError) {
         console.error('Profile error:', profileError);
-        alert('Profile error: ' + profileError.message);
+        setToastColor('danger');
+        setToastMessage('Profile error: ' + profileError.message);
+        setShowToast(true);
         setLoading(false);
         return;
       }
 
       console.log('Admin profile created successfully');
-      alert('Admin created successfully! Please login.');
-      history.push('/login');
+      setToastColor('success');
+      setToastMessage('Admin created successfully! Please login.');
+      setShowToast(true);
+      setTimeout(() => {
+        history.push('/login');
+      }, 1000);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Unexpected error:', err);
-      alert('An unexpected error occurred');
+      setToastColor('danger');
+      setToastMessage(err?.message || 'An unexpected error occurred');
+      setShowToast(true);
     } finally {
       setLoading(false);
     }
@@ -193,6 +212,15 @@ export default function Setup() {
             {loading ? 'Creating...' : 'Create Admin'}
           </IonButton>
         </div>
+
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={3500}
+          color={toastColor}
+          position="bottom"
+        />
       </IonContent>
     </IonPage>
   );

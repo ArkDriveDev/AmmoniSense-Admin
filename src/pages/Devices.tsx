@@ -7,266 +7,121 @@ import {
   IonList,
   IonItem,
   IonLabel,
-  IonButton,
-  IonModal,
-  IonInput,
-  IonSelect,
-  IonSelectOption,
-  IonButtons,
   IonBadge,
   IonIcon,
-  IonToast,
-  IonSearchbar
+  IonSearchbar,
+  IonButton,
+  IonButtons,
+  IonSelect,
+  IonSelectOption,
+  IonToast
 } from '@ionic/react';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '../services/supabase';
-import { 
-  hardwareChipOutline, 
-  businessOutline, 
-  addOutline,
-  locationOutline,
+import { useState } from 'react';
+import {
+  hardwareChipOutline,
   arrowUpOutline,
-  arrowDownOutline
+  arrowDownOutline,
+  barChartOutline,
+  businessOutline,
+  refreshOutline,
+  batteryChargingOutline,
+  timeOutline,
+  wifiOutline,
+  addOutline,
+  createOutline
 } from 'ionicons/icons';
+import { useHistory } from 'react-router-dom';
+import { supabase } from '../services/supabase';
 
-import DeleteAlert from '../components/DeleteAlert';
-import ConfirmAlert from '../components/ConfirmAlert';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
-import MapViewerModal from '../components/map/MapViewerModal';
+import DeviceModal, { DeviceFormData } from '../components/DeviceModal';
+import { useDevices } from '../hooks/useDevices';
+import { useInspectionSites } from '../hooks/useInspectionSites';
+import { Device } from '../types/schema';
+import useSyncFeedback from '../hooks/useSyncFeedback';
 
 export default function Devices() {
-  const [devices, setDevices] = useState<any[]>([]);
-  const [filteredDevices, setFilteredDevices] = useState<any[]>([]);
-  const [sites, setSites] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const history = useHistory();
+  const { devices, loading, refresh } = useDevices();
+  const { sites } = useInspectionSites();
+  const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('installed_at');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   const [showModal, setShowModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-  const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
-  const [selectedDevice, setSelectedDevice] = useState<any>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState('success');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('installed_at');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [form, setForm] = useState<DeviceFormData>({ device_uid: '', device_name: '', inspection_site_id: '', status: 'ACTIVE', firmware_version: '1.0.0' });
 
-  // Map Modal State
-  const [showMapModal, setShowMapModal] = useState(false);
-  const [mapTargetDevice, setMapTargetDevice] = useState<any>(null);
+  const openCreateModal = () => {
+    setIsEditing(false);
+    setSelectedDevice(null);
+    setForm({ device_uid: '', device_name: '', inspection_site_id: '', status: 'ACTIVE', firmware_version: '1.0.0' });
+    setShowModal(true);
+  };
 
-  const [form, setForm] = useState({
-    site_id: '',
-    device_uid: '',
-    firmware_version: '',
-    status: 'ACTIVE'
-  });
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    filterAndSortDevices();
-  }, [devices, searchTerm, sortBy, sortOrder]);
-
-  const filterAndSortDevices = () => {
-    let result = [...devices];
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(d =>
-        d.device_uid?.toLowerCase().includes(term) ||
-        d.monitoring_sites?.site_name?.toLowerCase().includes(term) ||
-        d.firmware_version?.toLowerCase().includes(term) ||
-        d.status?.toLowerCase().includes(term)
-      );
-    }
-
-    result.sort((a, b) => {
-      let aVal = a[sortBy] || '';
-      let bVal = b[sortBy] || '';
-      
-      if (sortBy === 'site_name') {
-        aVal = a.monitoring_sites?.site_name || '';
-        bVal = b.monitoring_sites?.site_name || '';
-      }
-      
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase();
-        bVal = bVal.toLowerCase();
-      }
-      
-      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
+  const openEditModal = (device: Device) => {
+    setIsEditing(true);
+    setSelectedDevice(device);
+    setForm({
+      device_uid: device.device_uid || '',
+      device_name: device.device_name || '',
+      inspection_site_id: device.inspection_site_id ? String(device.inspection_site_id) : '',
+      status: device.status || 'ACTIVE',
+      firmware_version: device.firmware_version || '1.0.0'
     });
-
-    setFilteredDevices(result);
+    setShowModal(true);
   };
 
-  const fetchData = async () => {
-    setLoading(true);
+  const handleSaveDevice = async () => {
+    if (!form.device_uid.trim()) {
+      setToastMessage('Device UID is required'); setToastColor('danger'); setShowToast(true); return;
+    }
     try {
-      const [devicesRes, sitesRes] = await Promise.all([
-        supabase
-          .from('devices')
-          .select(`
-            *,
-            monitoring_sites (
-              id,
-              site_name,
-              site_code,
-              current_latitude,
-              current_longitude,
-              site_owners (
-                id,
-                owner_name
-              )
-            )
-          `)
-          .order('installed_at', { ascending: false }),
-        supabase
-          .from('monitoring_sites')
-          .select(`
-            id, 
-            site_name, 
-            site_code,
-            site_owners (
-              id,
-              owner_name
-            )
-          `)
-      ]);
-
-      if (devicesRes.error) {
-        console.error('Error fetching devices:', devicesRes.error);
-        setToastMessage('Failed to fetch devices: ' + devicesRes.error.message);
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      setDevices(devicesRes.data || []);
-      setSites(sitesRes.data || []);
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setToastMessage('An unexpected error occurred');
-      setToastColor('danger');
-      setShowToast(true);
-    } finally {
-      setLoading(false);
+      const payload = {
+        device_uid: form.device_uid.trim().toUpperCase(),
+        device_name: form.device_name ? form.device_name.trim().toUpperCase() : null,
+        inspection_site_id: form.inspection_site_id ? Number(form.inspection_site_id) : null,
+        status: form.status,
+        firmware_version: form.firmware_version ? form.firmware_version.trim() : '1.0.0',
+      };
+      const query = isEditing && selectedDevice
+        ? supabase.from('devices').update(payload).eq('id', selectedDevice.id)
+        : supabase.from('devices').insert([{ ...payload, installed_at: new Date().toISOString() }]);
+      const { error } = await query;
+      if (error) throw error;
+      setToastMessage('Device saved successfully!'); setToastColor('success'); setShowToast(true); setShowModal(false); refresh();
+    } catch (err: any) {
+      setToastMessage('Failed to save device: ' + (err.message || 'Unknown error')); setToastColor('danger'); setShowToast(true);
     }
   };
 
-  const handleCreateDevice = async () => {
-    try {
-      if (!form.device_uid) {
-        setToastMessage('Please enter Device UID');
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      const { error } = await supabase.from('devices').insert([{
-        device_uid: form.device_uid,
-        site_id: form.site_id ? parseInt(form.site_id) : null,
-        status: form.status || 'ACTIVE',
-        firmware_version: form.firmware_version || '1.0.0',
-        installed_at: new Date().toISOString()
-      }]);
-
-      if (error) {
-        console.error('Error creating device:', error);
-        setToastMessage('Error creating device: ' + error.message);
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      setToastMessage('Device created successfully');
-      setToastColor('success');
-      setShowToast(true);
-      setShowModal(false);
-      setForm({ device_uid: '', site_id: '', firmware_version: '', status: 'ACTIVE' });
-      fetchData();
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setToastMessage('An unexpected error occurred');
-      setToastColor('danger');
-      setShowToast(true);
+  const filteredDevices = devices.filter(d => {
+    if (statusFilter !== 'all' && (d.status || '').toUpperCase() !== statusFilter.toUpperCase()) {
+      return false;
     }
-  };
-
-  const handleEditDevice = async () => {
-    try {
-      if (!form.device_uid) {
-        setToastMessage('Please enter Device UID');
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      const { error } = await supabase
-        .from('devices')
-        .update({
-          device_uid: form.device_uid,
-          site_id: form.site_id ? parseInt(form.site_id) : null,
-          status: form.status || 'ACTIVE',
-          firmware_version: form.firmware_version || '1.0.0'
-        })
-        .eq('id', selectedDevice.id);
-
-      if (error) {
-        console.error('Error updating device:', error);
-        setToastMessage('Error updating device: ' + error.message);
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      setToastMessage('Device updated successfully');
-      setToastColor('success');
-      setShowToast(true);
-      setShowUpdateConfirm(false);
-      setShowEditModal(false);
-      setSelectedDevice(null);
-      fetchData();
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setToastMessage('An unexpected error occurred');
-      setToastColor('danger');
-      setShowToast(true);
-    }
-  };
-
-  const handleDeleteDevice = async () => {
-    try {
-      const { error } = await supabase.from('devices').delete().eq('id', selectedDevice.id);
-
-      if (error) {
-        console.error('Error deleting device:', error);
-        setToastMessage('Error deleting device: ' + error.message);
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      setToastMessage('Device deleted successfully');
-      setToastColor('success');
-      setShowToast(true);
-      setShowDeleteAlert(false);
-      setSelectedDevice(null);
-      fetchData();
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setToastMessage('An unexpected error occurred');
-      setToastColor('danger');
-      setShowToast(true);
-    }
-  };
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      d.device_uid?.toLowerCase().includes(term) ||
+      d.device_name?.toLowerCase().includes(term) ||
+      d.firmware_version?.toLowerCase().includes(term) ||
+      d.inspection_sites?.site_name?.toLowerCase().includes(term)
+    );
+  }).sort((a, b) => {
+    const aVal = String(a[sortBy as keyof Device] ?? '').toLowerCase();
+    const bVal = String(b[sortBy as keyof Device] ?? '').toLowerCase();
+    if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   const handleSort = (field: string) => {
     if (sortBy === field) {
@@ -277,7 +132,7 @@ export default function Devices() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null | undefined) => {
     switch (status?.toUpperCase()) {
       case 'ACTIVE': return 'success';
       case 'INACTIVE': return 'danger';
@@ -291,23 +146,41 @@ export default function Devices() {
     <IonPage>
       <IonHeader>
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-          <IonTitle style={{ fontWeight: 'bold' }}>IOT DEVICES MANAGER</IonTitle>
+          <IonTitle style={{ fontWeight: 'bold' }}>REGISTERED BLE & IOT SENSORS</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={() => setShowModal(true)}>
-              <IonIcon icon={addOutline} /> ADD DEVICE
+            <IonButton onClick={openCreateModal}>
+              <IonIcon icon={addOutline} slot="start" /> REGISTER DEVICE
+            </IonButton>
+            <IonButton onClick={() => triggerSync(refresh)}>
+              <IonIcon icon={refreshOutline} />
             </IonButton>
           </IonButtons>
         </IonToolbar>
+
         <IonToolbar style={{ '--background': '#f8fafc' }}>
           <IonSearchbar
-            placeholder="SEARCH DEVICES OR FIRMWARE..."
+            placeholder="SEARCH SENSOR UID, NAME, SITE..."
             value={searchTerm}
-            onIonChange={(e) => setSearchTerm(e.detail.value || '')}
+            onIonInput={(e) => setSearchTerm(e.detail.value || '')}
             animated
           />
         </IonToolbar>
+
         <IonToolbar style={{ '--background': '#ffffff' }}>
-          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <IonSelect
+              value={statusFilter}
+              onIonChange={(e) => setStatusFilter(e.detail.value)}
+              interface="popover"
+              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
+            >
+              <IonSelectOption value="all">All Statuses</IonSelectOption>
+              <IonSelectOption value="ACTIVE">Active</IonSelectOption>
+              <IonSelectOption value="OFFLINE">Offline</IonSelectOption>
+              <IonSelectOption value="INACTIVE">Inactive</IonSelectOption>
+              <IonSelectOption value="MAINTENANCE">Maintenance</IonSelectOption>
+            </IonSelect>
+
             <IonButton 
               size="small" 
               fill={sortBy === 'device_uid' ? 'solid' : 'outline'}
@@ -321,38 +194,27 @@ export default function Devices() {
                 />
               )}
             </IonButton>
+
             <IonButton 
               size="small" 
-              fill={sortBy === 'site_name' ? 'solid' : 'outline'}
-              onClick={() => handleSort('site_name')}
+              fill={sortBy === 'battery_level' ? 'solid' : 'outline'}
+              onClick={() => handleSort('battery_level')}
             >
-              SITE
-              {sortBy === 'site_name' && (
+              BATTERY
+              {sortBy === 'battery_level' && (
                 <IonIcon 
                   icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
                   style={{ marginLeft: '4px' }} 
                 />
               )}
             </IonButton>
-            <IonButton 
-              size="small" 
-              fill={sortBy === 'status' ? 'solid' : 'outline'}
-              onClick={() => handleSort('status')}
-            >
-              STATUS
-              {sortBy === 'status' && (
-                <IonIcon 
-                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
-                  style={{ marginLeft: '4px' }} 
-                />
-              )}
-            </IonButton>
+
             <IonButton 
               size="small" 
               fill={sortBy === 'installed_at' ? 'solid' : 'outline'}
               onClick={() => handleSort('installed_at')}
             >
-              INSTALLED
+              REGISTERED
               {sortBy === 'installed_at' && (
                 <IonIcon 
                   icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
@@ -369,44 +231,83 @@ export default function Devices() {
           <LoadingSpinner />
         ) : filteredDevices.length === 0 ? (
           <EmptyState
-            title="NO DEVICES FOUND"
-            message={searchTerm ? 'TRY A DIFFERENT SEARCH' : 'CLICK ADD DEVICE TO REGISTER AN IOT SENSOR'}
+            title="NO BLE SENSORS FOUND"
+            message={searchTerm || statusFilter !== 'all' ? 'TRY A DIFFERENT SEARCH OR FILTER' : 'BLE sensors auto-register when connected via the AmmoniSense mobile app'}
           />
         ) : (
           <IonList style={{ background: 'transparent' }}>
-            {filteredDevices.map((d) => {
-              const site = d.monitoring_sites;
-              const owner = site?.site_owners?.owner_name;
+            {filteredDevices.map((d: Device) => {
+              const battery = d.battery_level;
+              const hasSite = !!d.inspection_sites;
 
               return (
-                <IonItem key={d.id} style={{ '--background': '#ffffff', borderRadius: '10px', marginBottom: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
-                  <IonLabel>
-                    <h2 style={{ color: '#1a365d', fontWeight: 'bold' }}>
-                      <IonIcon icon={hardwareChipOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                      {d.device_uid}
-                    </h2>
-                    <p style={{ color: '#475569' }}>
-                      <IonIcon icon={businessOutline} style={{ marginRight: '4px' }} />
-                      SITE: {site?.site_name || 'UNASSIGNED SITE'}
-                      {owner && <span style={{ color: '#64748b' }}> (OWNER: {owner})</span>}
+                <IonItem
+                  key={d.id}
+                  style={{
+                    '--background': '#ffffff',
+                    borderRadius: '12px',
+                    marginBottom: '10px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
+                  }}
+                >
+                  <IonLabel style={{ margin: '14px 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                      <h2 style={{ color: '#1a365d', fontWeight: 'bold', fontSize: '16px', margin: 0 }}>
+                        <IonIcon icon={hardwareChipOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                        {d.device_name || d.device_uid}
+                      </h2>
+                      <IonBadge color={getStatusColor(d.status)}>
+                        {d.status || 'ACTIVE'}
+                      </IonBadge>
+                    </div>
+
+                    <p style={{ color: '#475569', fontSize: '13px', margin: '2px 0' }}>
+                      <b>UID:</b> {d.device_uid}
+                      {d.firmware_version ? ` • Firmware: ${d.firmware_version}` : ''}
                     </p>
-                    <p style={{ color: '#64748b' }}>FIRMWARE: {d.firmware_version || '1.0.0'}</p>
-                    <p style={{ fontSize: '12px', color: '#94a3b8' }}>INSTALLED: {new Date(d.installed_at).toLocaleDateString()}</p>
+
+                    <p style={{ color: '#64748b', fontSize: '12px', margin: '2px 0' }}>
+                      <IonIcon icon={businessOutline} style={{ verticalAlign: 'middle', marginRight: '4px', color: '#059669' }} />
+                      <b>Assigned Site:</b> {hasSite ? `${d.inspection_sites?.site_name} (${d.inspection_sites?.site_code})` : 'Unassigned / Portable'}
+                    </p>
+
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '6px', fontSize: '11px', color: '#94a3b8' }}>
+                      {battery !== null && battery !== undefined && (
+                        <span style={{ color: battery > 20 ? '#15803d' : '#dc2626', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <IonIcon icon={batteryChargingOutline} /> Battery: {battery}%
+                        </span>
+                      )}
+
+                      {d.last_ping_at && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <IonIcon icon={wifiOutline} /> Last Ping: {new Date(d.last_ping_at).toLocaleTimeString()}
+                        </span>
+                      )}
+
+                      {d.installed_at && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <IonIcon icon={timeOutline} /> Registered: {new Date(d.installed_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
                   </IonLabel>
+
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                    <IonBadge color={getStatusColor(d.status)}>
-                      {d.status || 'ACTIVE'}
-                    </IonBadge>
+                    <IonButton
+                      size="small"
+                      fill="solid"
+                      color="primary"
+                      onClick={() => openEditModal(d)}
+                    >
+                      <IonIcon icon={createOutline} slot="start" /> Assign / Edit
+                    </IonButton>
                     <IonButton
                       size="small"
                       fill="outline"
                       color="secondary"
-                      onClick={() => {
-                        setMapTargetDevice(d);
-                        setShowMapModal(true);
-                      }}
+                      onClick={() => history.push(`/sensor-data`)}
                     >
-                      <IonIcon icon={locationOutline} slot="start" /> View Map
+                      <IonIcon icon={barChartOutline} slot="start" /> Telemetry
                     </IonButton>
                   </div>
                 </IonItem>
@@ -415,105 +316,32 @@ export default function Devices() {
           </IonList>
         )}
 
-        <IonModal isOpen={showModal}>
-          <IonHeader>
-            <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-              <IonTitle>CREATE NEW DEVICE</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={() => setShowModal(false)}>CLOSE</IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-
-          <IonContent className="ion-padding">
-            <IonInput
-              label="DEVICE UID"
-              labelPlacement="floating"
-              placeholder="E.G. ESP32-001"
-              value={form.device_uid}
-              onIonChange={(e) => setForm({ ...form, device_uid: e.detail.value?.toUpperCase() || '' })}
-              style={{ marginBottom: '16px' }}
-            />
-
-            <IonInput
-              label="FIRMWARE VERSION"
-              labelPlacement="floating"
-              placeholder="E.G. 1.0.0"
-              value={form.firmware_version}
-              onIonChange={(e) => setForm({ ...form, firmware_version: e.detail.value || '' })}
-              style={{ marginBottom: '16px' }}
-            />
-
-            <IonSelect
-              label="ASSIGN MONITORING SITE"
-              labelPlacement="floating"
-              placeholder="CHOOSE A SITE"
-              value={form.site_id}
-              onIonChange={(e) => setForm({ ...form, site_id: e.detail.value })}
-              style={{ marginBottom: '16px' }}
-            >
-              {sites.map((s) => (
-                <IonSelectOption key={s.id} value={s.id}>
-                  {s.site_name} ({s.site_code})
-                </IonSelectOption>
-              ))}
-            </IonSelect>
-
-            <IonSelect
-              label="STATUS"
-              labelPlacement="floating"
-              placeholder="CHOOSE STATUS"
-              value={form.status}
-              onIonChange={(e) => setForm({ ...form, status: e.detail.value })}
-              style={{ marginBottom: '16px' }}
-            >
-              <IonSelectOption value="ACTIVE">ACTIVE</IonSelectOption>
-              <IonSelectOption value="INACTIVE">INACTIVE</IonSelectOption>
-              <IonSelectOption value="OFFLINE">OFFLINE</IonSelectOption>
-              <IonSelectOption value="MAINTENANCE">MAINTENANCE</IonSelectOption>
-            </IonSelect>
-
-            <IonButton expand="block" onClick={handleCreateDevice} style={{ marginTop: '16px', '--background': '#1a365d' }}>
-              CREATE DEVICE
-            </IonButton>
-          </IonContent>
-        </IonModal>
-
-        {/* Map Location Inspection Modal */}
-        {mapTargetDevice && (
-          <MapViewerModal
-            isOpen={showMapModal}
-            onDismiss={() => setShowMapModal(false)}
-            title={`Device ${mapTargetDevice.device_uid} Spatial Map`}
-            siteName={mapTargetDevice.monitoring_sites?.site_name || 'Assigned Site'}
-            latitude={mapTargetDevice.monitoring_sites?.current_latitude || 8.3697}
-            longitude={mapTargetDevice.monitoring_sites?.current_longitude || 124.8640}
-          />
-        )}
-
-        <ConfirmAlert
-          isOpen={showUpdateConfirm}
-          onClose={() => setShowUpdateConfirm(false)}
-          onConfirm={handleEditDevice}
-          title="UPDATE DEVICE?"
-          message={`Update "${selectedDevice?.device_uid}"?`}
-        />
-
-        <DeleteAlert
-          isOpen={showDeleteAlert}
-          onClose={() => setShowDeleteAlert(false)}
-          onConfirm={handleDeleteDevice}
-          title="DELETE DEVICE?"
-          message={`Delete "${selectedDevice?.device_uid}"?`}
-          requireTypeConfirm={false}
+        {/* Device Registration & Site Assignment Modal */}
+        <DeviceModal
+          isOpen={showModal}
+          onDismiss={() => setShowModal(false)}
+          isEditing={isEditing}
+          form={form}
+          setForm={setForm}
+          sites={sites}
+          onSave={handleSaveDevice}
         />
 
         <IonToast
           isOpen={showToast}
           onDidDismiss={() => setShowToast(false)}
           message={toastMessage}
-          duration={5000}
+          duration={3500}
           color={toastColor}
+          position="bottom"
+        />
+
+        <IonToast
+          isOpen={syncToast.isOpen}
+          onDidDismiss={dismissSyncToast}
+          message={syncToast.message}
+          duration={syncToast.duration}
+          color={syncToast.color}
           position="bottom"
         />
       </IonContent>

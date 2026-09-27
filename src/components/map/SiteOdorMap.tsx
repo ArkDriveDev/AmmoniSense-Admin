@@ -12,11 +12,13 @@ import {
   MANOLO_FORTICH_BOUNDARY,
   TILE_LAYERS
 } from './mapConstants';
+import { getSiteMapPinMeta } from '../../utils/siteUtils';
 
 interface SiteOdorMapProps {
   latitude: number;
   longitude: number;
   siteName: string;
+  siteType?: string;
   ammonia: number | null;
   areaHectares?: number;
   height?: string;
@@ -25,7 +27,8 @@ interface SiteOdorMapProps {
 export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
   latitude = MANOLO_FORTICH_DEFAULTS.lat,
   longitude = MANOLO_FORTICH_DEFAULTS.lng,
-  siteName = 'Monitoring Site',
+  siteName = 'Inspection Site',
+  siteType,
   ammonia = 0,
   areaHectares = 1,
   height = '320px',
@@ -72,7 +75,7 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
       map.invalidateSize();
     }, 350);
 
-    let resizeTimer: any = null;
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
       resizeObserver = new ResizeObserver(() => {
@@ -224,31 +227,59 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
     });
     zonesGroup.addLayer(innerPlume);
 
-    // 5. Site Center Pin Marker & Popup
+    const pinMeta = getSiteMapPinMeta(siteType);
+
     const siteIcon = L.divIcon({
       className: 'custom-site-pin',
-      html: `<div style="background-color: ${plumeColor}; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 8px rgba(0,0,0,0.3); border: 3px solid white;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 512 512" fill="currentColor"><path d="M448 64H64a32 32 0 00-32 32v320a32 32 0 0032 32h384a32 32 0 0032-32V96a32 32 0 00-32-32zm-32 336H96V112h320zM128 144h64v64h-64zm96 0h64v64h-64zm96 0h64v64h-64zM128 240h64v64h-64zm96 0h64v64h-64zm96 0h64v64h-64zM128 336h64v48h-64zm96 0h64v48h-64zm96 0h64v48h-64z"/></svg>
-      </div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
+      html: `
+        <div style="
+          position: relative;
+          background: ${pinMeta.pinColor};
+          width: 34px;
+          height: 34px;
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 2.5px solid #ffffff;
+          box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        ">
+          <span style="
+            transform: rotate(45deg);
+            font-size: 16px;
+            line-height: 1;
+            display: block;
+          ">${pinMeta.emoji}</span>
+        </div>
+      `,
+      iconSize: [34, 34],
+      iconAnchor: [17, 34],
     });
 
     const marker = L.marker([latitude, longitude], { icon: siteIcon });
     marker.bindPopup(`
       <div style="font-family: system-ui, sans-serif; min-width: 180px; padding: 4px;">
-        <h4 style="margin: 0 0 6px 0; color: #1a365d; font-size: 14px; font-weight: 700;">${siteName}</h4>
-        <div style="font-size: 12px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between;">
-          <span>Latest NH₃:</span>
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+          <span style="font-size: 18px;">${pinMeta.emoji}</span>
+          <h4 style="margin: 0; color: #1a365d; font-size: 14px; font-weight: 700;">${siteName}</h4>
+        </div>
+        <div style="font-size: 12px; margin-bottom: 6px;">
+          <span style="display:inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; background: ${pinMeta.fillColor}; color: ${pinMeta.pinColor}; border: 1px solid ${pinMeta.pinColor}40;">
+            ${pinMeta.label}
+          </span>
+        </div>
+        <div style="font-size: 12px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 4px 8px; border-radius: 6px; border: 1px solid #e2e8f0;">
+          <span style="color: #64748b; font-size: 11px;">Latest NH₃:</span>
           <strong style="color: ${plumeColor}; font-size: 13px;">${nh3Val > 0 ? nh3Val.toFixed(1) + ' ppm' : 'No Data'}</strong>
         </div>
-        <div style="font-size: 11px; color: #475569;"><b>Primary Odor Radius:</b> ~${Math.round(innerOdorRadius)}m</div>
+        <div style="font-size: 11px; color: #475569; margin-top: 4px;"><b>Primary Odor Radius:</b> ~${Math.round(innerOdorRadius)}m</div>
         <div style="font-size: 11px; color: #475569;"><b>Community Buffer:</b> 500m Boundary</div>
         <div style="font-size: 10px; color: #64748b; margin-top: 4px;">Manolo Fortich, Bukidnon</div>
       </div>
     `);
     zonesGroup.addLayer(marker);
-  }, [latitude, longitude, siteName, ammonia, areaHectares]);
+  }, [latitude, longitude, siteName, siteType, ammonia, areaHectares]);
 
   const handleCenterSite = () => {
     if (mapRef.current) {

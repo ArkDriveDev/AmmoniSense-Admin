@@ -11,77 +11,115 @@ import {
   IonButton,
   IonButtons,
   IonSearchbar,
-  IonIcon
+  IonIcon,
+  IonToast
 } from '@ionic/react';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../services/supabase';
-import { refreshOutline, alertCircleOutline } from 'ionicons/icons';
+import { refreshOutline, alertCircleOutline, businessOutline, hardwareChipOutline, pricetagOutline } from 'ionicons/icons';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { InspectionTagDetails, InspectionTag } from '../types/schema';
+import useSyncFeedback from '../hooks/useSyncFeedback';
+
+export interface AlertItem {
+  id: number;
+  tag_name: string;
+  device_uid: string | null;
+  site_name: string | null;
+  site_code: string | null;
+  schedule_name: string | null;
+  ammonia: number | null;
+  severity: 'CRITICAL' | 'HIGH' | 'WARNING';
+  created_at: string;
+  photo_url: string | null;
+  is_read: boolean;
+}
 
 export default function Notifications() {
-  const [alerts, setAlerts] = useState<any[]>([]);
-  const [filteredAlerts, setFilteredAlerts] = useState<any[]>([]);
+  const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [filteredAlerts, setFilteredAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSeverity, setFilterSeverity] = useState('all');
 
-  useEffect(() => {
-    fetchAlerts();
-  }, []);
-
-  useEffect(() => {
-    filterAlerts();
-  }, [alerts, searchTerm, filterSeverity]);
-
-  const fetchAlerts = async () => {
+  const fetchAlerts = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Query sensor_data for high NH3 readings / warnings / critical status
-      const { data: sensorAlerts, error: sensorErr } = await supabase
-        .from('sensor_data')
+      // 1. Query inspection_tag_details view or inspection_tags for warning/critical ammonia readings
+      const { data, error } = await supabase
+        .from('inspection_tag_details')
         .select('*')
-        .or('status.eq.warning,status.eq.critical,ammonia.gt.25')
+        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25')
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (!sensorErr && sensorAlerts && sensorAlerts.length > 0) {
-        const formatted = sensorAlerts.map(s => {
-          const isCritical = s.ammonia > 50 || s.status === 'critical';
+      if (!error && data) {
+        const formatted: AlertItem[] = data.map((t: InspectionTagDetails) => {
+          const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (t.ammonia || 0) > 50;
+          const isHigh = (t.status || '').toUpperCase() === 'HIGH' || ((t.ammonia || 0) > 35 && (t.ammonia || 0) <= 50);
           return {
-            id: s.id,
-            device_uid: s.device_uid,
-            ammonia: s.ammonia,
-            severity: isCritical ? 'SEVERE' : 'MODERATE',
-            created_at: s.created_at || s.submitted_at,
+            id: t.tag_id,
+            tag_name: t.tag_name,
+            device_uid: t.device_uid,
+            site_name: t.site_name,
+            site_code: t.site_code,
+            schedule_name: t.schedule_name,
+            ammonia: t.ammonia,
+            severity: isCritical ? 'CRITICAL' : isHigh ? 'HIGH' : 'WARNING',
+            created_at: t.created_at,
+            photo_url: t.photo_thumbnail_url || t.photo_url,
             is_read: false
           };
         });
         setAlerts(formatted);
-        return;
-      }
-
-      // 2. Fallback query on legacy alerts table if present
-      const { data: legacyData, error: legacyErr } = await supabase
-        .from('alerts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (!legacyErr && legacyData) {
-        setAlerts(legacyData);
       } else {
-        setAlerts([]);
+        // Fallback to direct inspection_tags query
+        const { data: rawTags } = await supabase
+          .from('inspection_tags')
+          .select('*')
+          .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (rawTags) {
+          const formatted: AlertItem[] = rawTags.map((t: InspectionTag) => {
+            const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (t.ammonia || 0) > 50;
+            const isHigh = (t.status || '').toUpperCase() === 'HIGH' || ((t.ammonia || 0) > 35 && (t.ammonia || 0) <= 50);
+            return {
+              id: t.id,
+              tag_name: t.tag_name,
+              device_uid: t.device_uid || null,
+              site_name: null,
+              site_code: null,
+              schedule_name: null,
+              ammonia: t.ammonia ?? null,
+              severity: isCritical ? 'CRITICAL' : isHigh ? 'HIGH' : 'WARNING',
+              created_at: t.created_at || new Date().toISOString(),
+              photo_url: t.photo_thumbnail_url || t.photo_url || null,
+              is_read: false
+            };
+          });
+          setAlerts(formatted);
+        } else {
+          setAlerts([]);
+        }
       }
     } catch (err) {
-      console.error('Unexpected error fetching notifications:', err);
+      console.error('Error fetching notifications:', err);
       setAlerts([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterAlerts = () => {
+  useEffect(() => {
+    fetchAlerts();
+  }, [fetchAlerts]);
+
+  useEffect(() => {
     let result = [...alerts];
 
     if (filterSeverity !== 'all') {
@@ -91,14 +129,16 @@ export default function Notifications() {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(a =>
+        a.tag_name?.toLowerCase().includes(term) ||
         a.device_uid?.toLowerCase().includes(term) ||
+        a.site_name?.toLowerCase().includes(term) ||
         a.severity?.toLowerCase().includes(term) ||
         a.ammonia?.toString().includes(term)
       );
     }
 
     setFilteredAlerts(result);
-  };
+  }, [alerts, searchTerm, filterSeverity]);
 
   const markAsRead = (id: number) => {
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_read: true } : a));
@@ -108,26 +148,37 @@ export default function Notifications() {
     setAlerts(prev => prev.map(a => ({ ...a, is_read: true })));
   };
 
+  const getBadgeColor = (severity: string) => {
+    switch (severity) {
+      case 'CRITICAL': return 'danger';
+      case 'HIGH': return 'warning';
+      case 'WARNING': return 'warning';
+      default: return 'medium';
+    }
+  };
+
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-          <IonTitle style={{ fontWeight: 'bold' }}>ENVIRONMENTAL ALERTS</IonTitle>
+          <IonTitle style={{ fontWeight: 'bold' }}>ENVIRONMENTAL ALERTS & CRITICAL READINGS</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={markAllAsRead}>MARK ALL READ</IonButton>
-            <IonButton onClick={fetchAlerts}>
+            <IonButton onClick={() => triggerSync(fetchAlerts)}>
               <IonIcon icon={refreshOutline} />
             </IonButton>
           </IonButtons>
         </IonToolbar>
+
         <IonToolbar style={{ '--background': '#f8fafc' }}>
           <IonSearchbar
-            placeholder="SEARCH ALERTS OR DEVICE..."
+            placeholder="SEARCH ALERTS, TAGS, DEVICES, SITES..."
             value={searchTerm}
-            onIonChange={(e) => setSearchTerm(e.detail.value || '')}
+            onIonInput={(e) => setSearchTerm(e.detail.value || '')}
             animated
           />
         </IonToolbar>
+
         <IonToolbar style={{ '--background': '#ffffff' }}>
           <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap' }}>
             <IonButton 
@@ -139,19 +190,27 @@ export default function Notifications() {
             </IonButton>
             <IonButton 
               size="small" 
-              fill={filterSeverity === 'SEVERE' ? 'solid' : 'outline'}
+              fill={filterSeverity === 'CRITICAL' ? 'solid' : 'outline'}
               color="danger"
-              onClick={() => setFilterSeverity('SEVERE')}
+              onClick={() => setFilterSeverity('CRITICAL')}
             >
-              {"SEVERE (>50 PPM)"}
+              {"CRITICAL (>50 PPM)"}
             </IonButton>
             <IonButton 
               size="small" 
-              fill={filterSeverity === 'MODERATE' ? 'solid' : 'outline'}
+              fill={filterSeverity === 'HIGH' ? 'solid' : 'outline'}
               color="warning"
-              onClick={() => setFilterSeverity('MODERATE')}
+              onClick={() => setFilterSeverity('HIGH')}
             >
-              {"MODERATE (25-50 PPM)"}
+              {"HIGH (35-50 PPM)"}
+            </IonButton>
+            <IonButton 
+              size="small" 
+              fill={filterSeverity === 'WARNING' ? 'solid' : 'outline'}
+              color="warning"
+              onClick={() => setFilterSeverity('WARNING')}
+            >
+              {"WARNING (25-35 PPM)"}
             </IonButton>
           </div>
         </IonToolbar>
@@ -163,25 +222,65 @@ export default function Notifications() {
         ) : filteredAlerts.length === 0 ? (
           <EmptyState
             title="NO ACTIVE ALERTS"
-            message={searchTerm || filterSeverity !== 'all' ? 'TRY DIFFERENT FILTERS' : 'ALL MONITORING SITES NORMAL'}
+            message={searchTerm || filterSeverity !== 'all' ? 'TRY DIFFERENT FILTERS' : 'ALL INSPECTION SITES AND TAGS ARE WITHIN SAFE AMMONIA LIMITS'}
           />
         ) : (
           <IonList style={{ background: 'transparent' }}>
             {filteredAlerts.map((a) => (
-              <IonItem key={a.id} button onClick={() => markAsRead(a.id)} style={{ '--background': '#ffffff', borderRadius: '10px', marginBottom: '8px' }}>
-                <IonLabel>
-                  <h2 style={{ color: a.severity === 'SEVERE' ? '#dc2626' : '#f59e0b', fontWeight: 'bold' }}>
-                    <IonIcon icon={alertCircleOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                    {a.severity} AMMONIA ALERT
-                  </h2>
-                  <p style={{ color: '#1a365d', fontWeight: 'bold' }}>AMMONIA: {a.ammonia} PPM</p>
-                  <p style={{ color: '#475569' }}>DEVICE: {a.device_uid || 'N/A'}</p>
-                  <p style={{ fontSize: '12px', color: '#94a3b8' }}>
-                    {new Date(a.created_at).toLocaleString()}
+              <IonItem
+                key={a.id}
+                button
+                onClick={() => markAsRead(a.id)}
+                style={{
+                  '--background': '#ffffff',
+                  borderRadius: '12px',
+                  marginBottom: '10px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                  borderLeft: `4px solid ${a.severity === 'CRITICAL' ? '#dc2626' : '#f59e0b'}`
+                }}
+              >
+                <IonLabel style={{ margin: '14px 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <IonIcon icon={alertCircleOutline} style={{ color: a.severity === 'CRITICAL' ? '#dc2626' : '#f59e0b', fontSize: '18px' }} />
+                    <h2 style={{ color: a.severity === 'CRITICAL' ? '#dc2626' : '#d97706', fontWeight: 'bold', margin: 0, fontSize: '16px' }}>
+                      {a.severity} AMMONIA EXCEEDANCE
+                    </h2>
+                  </div>
+
+                  <p style={{ color: '#1a365d', fontWeight: 'bold', fontSize: '14px', margin: '3px 0' }}>
+                    AMMONIA: {a.ammonia?.toFixed(1) || '0'} PPM
+                  </p>
+
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', color: '#475569', fontSize: '12px', margin: '4px 0' }}>
+                    {a.tag_name && (
+                      <span>
+                        <IonIcon icon={pricetagOutline} style={{ verticalAlign: 'middle', marginRight: '3px', color: '#0891b2' }} />
+                        Tag: {a.tag_name}
+                      </span>
+                    )}
+
+                    {a.site_name && (
+                      <span>
+                        <IonIcon icon={businessOutline} style={{ verticalAlign: 'middle', marginRight: '3px', color: '#059669' }} />
+                        Site: {a.site_name}
+                      </span>
+                    )}
+
+                    {a.device_uid && (
+                      <span>
+                        <IonIcon icon={hardwareChipOutline} style={{ verticalAlign: 'middle', marginRight: '3px', color: '#1a365d' }} />
+                        Device: {a.device_uid}
+                      </span>
+                    )}
+                  </div>
+
+                  <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0 0' }}>
+                    Logged: {new Date(a.created_at).toLocaleString()}
                   </p>
                 </IonLabel>
-                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                  <IonBadge color={a.severity === 'SEVERE' ? 'danger' : 'warning'}>
+
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                  <IonBadge color={getBadgeColor(a.severity)}>
                     {a.severity}
                   </IonBadge>
                   {a.is_read ? (
@@ -194,6 +293,15 @@ export default function Notifications() {
             ))}
           </IonList>
         )}
+
+        <IonToast
+          isOpen={syncToast.isOpen}
+          onDidDismiss={dismissSyncToast}
+          message={syncToast.message}
+          duration={syncToast.duration}
+          color={syncToast.color}
+          position="bottom"
+        />
       </IonContent>
     </IonPage>
   );

@@ -7,7 +7,8 @@ import {
   earthOutline,
   locateOutline,
   shieldCheckmarkOutline,
-  warningOutline
+  warningOutline,
+  locationSharp
 } from 'ionicons/icons';
 import {
   MANOLO_FORTICH_DEFAULTS,
@@ -15,7 +16,11 @@ import {
   TILE_LAYERS,
   generateOdorZonePolygon
 } from './mapConstants';
-import { supabase } from '../../services/supabase';
+import {
+  getSiteMapPinMeta,
+  getAmmoniaColor,
+  getAmmoniaSeverityLabel
+} from '../../utils/siteUtils';
 
 export interface OdorZonePolygon {
   id: string | number;
@@ -42,17 +47,19 @@ export interface SensorReadingMarker {
   notes?: string;
 }
 
-export interface MonitoringSiteMarker {
+export interface InspectionSiteMarker {
   id: number | string;
   site_name: string;
   latitude: number;
   longitude: number;
-  site_type?: string;
-  owner_name?: string;
+  site_type?: string | null;
+  owner_name?: string | null;
   latest_ammonia?: number | null;
-  alert_status?: string;
-  area_size_hectares?: number;
+  alert_status?: string | null;
+  area_size_hectares?: number | null;
 }
+
+export type MonitoringSiteMarker = InspectionSiteMarker;
 
 interface SpatialPolygonMapProps {
   centerLat?: number;
@@ -60,7 +67,7 @@ interface SpatialPolygonMapProps {
   zoom?: number;
   siteName?: string;
   readings?: SensorReadingMarker[];
-  sites?: MonitoringSiteMarker[];
+  sites?: InspectionSiteMarker[];
   odorZones?: OdorZonePolygon[];
   selectedSiteId?: string | number;
   onSelectSite?: (siteId: string | number, lat: number, lng: number) => void;
@@ -68,11 +75,7 @@ interface SpatialPolygonMapProps {
   showSitesList?: boolean;
 }
 
-const getReadingColor = (ammonia: number, status?: string) => {
-  if (status === 'critical' || ammonia > 50) return '#dc2626'; // Danger Red
-  if (status === 'warning' || ammonia > 25) return '#f59e0b'; // Amber Warning
-  return '#16a34a'; // Forest Green
-};
+// (getAmmoniaColor imported from siteUtils)
 
 export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   centerLat = MANOLO_FORTICH_DEFAULTS.lat,
@@ -98,33 +101,6 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   const [mapLayer, setMapLayer] = useState<'street' | 'satellite'>('satellite');
   const [showBoundary, setShowBoundary] = useState<boolean>(true);
   const [showOdorZones, setShowOdorZones] = useState<boolean>(true);
-  const [dbOdorZones, setDbOdorZones] = useState<OdorZonePolygon[]>([]);
-
-  // Fetch odor zones from database table if present
-  useEffect(() => {
-    const fetchDbOdorZones = async () => {
-      try {
-        const { data, error } = await supabase.from('odor_zones').select('*');
-        if (!error && data && data.length > 0) {
-          const mapped: OdorZonePolygon[] = data.map((z: any) => ({
-            id: z.id,
-            name: z.name || z.zone_name || `Zone ${z.id}`,
-            coordinates: z.coordinates || z.polygon_coordinates || z.boundary_coordinates,
-            centerLat: z.center_lat || z.latitude,
-            centerLng: z.center_lng || z.longitude,
-            radiusMeters: z.radius_meters || z.radius,
-            ammoniaLevel: z.ammonia_level || z.ammonia || z.nh3_level,
-            status: z.status,
-            siteName: z.site_name,
-          }));
-          setDbOdorZones(mapped);
-        }
-      } catch (err) {
-        console.warn('Note: odor_zones table fetch skipped/not found, using dynamic polygon generation.');
-      }
-    };
-    fetchDbOdorZones();
-  }, []);
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -170,7 +146,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     const t1 = setTimeout(() => map.invalidateSize(), 100);
     const t2 = setTimeout(() => map.invalidateSize(), 300);
 
-    let resizeTimer: any = null;
+    let resizeTimer: ReturnType<typeof setTimeout> | null = null;
     let resizeObserver: ResizeObserver | null = null;
     if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
       resizeObserver = new ResizeObserver(() => {
@@ -270,7 +246,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
 
     if (!showOdorZones) return;
 
-    const allOdorZones = [...odorZones, ...dbOdorZones];
+    const allOdorZones = odorZones;
 
     // 1. Render explicit odor zone polygons if provided or fetched from database
     allOdorZones.forEach((zone) => {
@@ -335,9 +311,9 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         }
       }
     });
-  }, [odorZones, dbOdorZones, sites, showOdorZones]);
+  }, [odorZones, sites, showOdorZones]);
 
-  // Render Monitoring Sites (Markers)
+  // Render Inspection Sites (Markers)
   useEffect(() => {
     if (!mapRef.current || !sitesLayerGroupRef.current) return;
     const sitesGroup = sitesLayerGroupRef.current;
@@ -346,40 +322,55 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     sites.forEach((site) => {
       if (!site.latitude || !site.longitude) return;
 
+      const pinMeta = getSiteMapPinMeta(site.site_type || undefined);
       const isSelected = String(selectedSiteId) === String(site.id);
+      const pinColor = isSelected ? '#1a365d' : pinMeta.pinColor;
       const nh3 = site.latest_ammonia;
-      const statusColor = nh3 && nh3 > 50 ? '#dc2626' : nh3 && nh3 > 25 ? '#ea580c' : '#16a34a';
+      const statusColor = getAmmoniaColor(nh3 || 0, site.alert_status || undefined);
 
       const siteIcon = L.divIcon({
-        className: 'site-facility-pin',
-        html: `<div style="
-          background-color: ${isSelected ? '#1a365d' : '#ffffff'};
-          color: ${isSelected ? '#ffffff' : statusColor};
-          width: 32px;
-          height: 32px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 10px rgba(0,0,0,0.35);
-          border: 3px solid ${statusColor};
-          cursor: pointer;
-          transition: transform 0.2s;
-        ">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 512 512" fill="currentColor">
-            <path d="M448 64H64a32 32 0 00-32 32v320a32 32 0 0032 32h384a32 32 0 0032-32V96a32 32 0 00-32-32zm-32 336H96V112h320zM128 144h64v64h-64zm96 0h64v64h-64zm96 0h64v64h-64zM128 240h64v64h-64zm96 0h64v64h-64zm96 0h64v64h-64zM128 336h64v48h-64zm96 0h64v48h-64zm96 0h64v48h-64z"/>
-          </svg>
-        </div>`,
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
+        className: 'custom-site-pin',
+        html: `
+          <div style="
+            position: relative;
+            background: ${pinColor};
+            width: 34px;
+            height: 34px;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 2.5px solid #ffffff;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            ${isSelected ? 'outline: 3px solid #1a365d; outline-offset: 2px;' : ''}
+          ">
+            <span style="
+              transform: rotate(45deg);
+              font-size: 16px;
+              line-height: 1;
+              display: block;
+            ">${pinMeta.emoji}</span>
+          </div>
+        `,
+        iconSize: [34, 34],
+        iconAnchor: [17, 34],
       });
 
       const marker = L.marker([site.latitude, site.longitude], { icon: siteIcon });
 
       marker.bindPopup(`
         <div style="font-family: system-ui, sans-serif; min-width: 190px; padding: 4px;">
-          <h4 style="margin: 0 0 4px 0; color: #1a365d; font-size: 14px; font-weight: 700;">${site.site_name}</h4>
-          <div style="font-size: 12px; color: #475569; margin-bottom: 4px;"><b>Type:</b> ${site.site_type || 'Livestock Farm'}</div>
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <span style="font-size: 18px;">${pinMeta.emoji}</span>
+            <h4 style="margin: 0; color: #1a365d; font-size: 14px; font-weight: 700;">${site.site_name}</h4>
+          </div>
+          <div style="font-size: 12px; margin-bottom: 6px;">
+            <span style="display:inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; background: ${pinMeta.fillColor}; color: ${pinMeta.pinColor}; border: 1px solid ${pinMeta.pinColor}40;">
+              ${pinMeta.label}
+            </span>
+          </div>
           ${site.owner_name ? `<div style="font-size: 11px; color: #64748b; margin-bottom: 4px;"><b>Owner:</b> ${site.owner_name}</div>` : ''}
           <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:4px 8px; border-radius:6px; margin-top:6px; border:1px solid #e2e8f0;">
             <span style="font-size: 11px; color:#64748b;">Latest NH₃:</span>
@@ -408,25 +399,81 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     readings.forEach((reading) => {
       if (!reading.latitude || !reading.longitude) return;
 
-      const color = getReadingColor(reading.ammonia, reading.status);
+      const color = getAmmoniaColor(reading.ammonia, reading.status);
+      let tagIcon: L.DivIcon;
 
-      const circleMarker = L.circleMarker([reading.latitude, reading.longitude], {
-        radius: 8,
-        fillColor: color,
-        color: '#ffffff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.92,
-      });
+      if (reading.photo_url) {
+        tagIcon = L.divIcon({
+          className: 'custom-photo-thumb-marker',
+          html: `
+            <div style="
+              position: relative;
+              width: 38px;
+              height: 38px;
+              border-radius: 50%;
+              border: 3px solid #8b5cf6;
+              box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+              background: #0f172a;
+              overflow: hidden;
+              cursor: pointer;
+            ">
+              <img src="${reading.photo_url}" style="width: 100%; height: 100%; object-fit: cover;" alt="Tag Photo" />
+              <span style="
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: ${color};
+                color: #ffffff;
+                font-size: 8px;
+                font-weight: 800;
+                text-align: center;
+                line-height: 11px;
+              ">${Number(reading.ammonia || 0).toFixed(1)}</span>
+            </div>
+          `,
+          iconSize: [38, 38],
+          iconAnchor: [19, 19],
+        });
+      } else {
+        tagIcon = L.divIcon({
+          className: 'custom-reading-tag-marker',
+          html: `
+            <div style="
+              position: relative;
+              background: ${color};
+              color: #ffffff;
+              font-weight: 800;
+              font-size: 11px;
+              padding: 3px 8px;
+              border-radius: 14px;
+              border: 2px solid #ffffff;
+              box-shadow: 0 3px 12px rgba(0,0,0,0.35);
+              white-space: nowrap;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              gap: 3px;
+            ">
+              <span>📍 ${Number(reading.ammonia || 0).toFixed(1)}</span>
+              <span style="font-size: 8px; opacity: 0.9;">PPM</span>
+            </div>
+          `,
+          iconSize: [64, 26],
+          iconAnchor: [32, 13],
+        });
+      }
+
+      const marker = L.marker([reading.latitude, reading.longitude], { icon: tagIcon });
 
       const popupContent = `
         <div style="font-family: system-ui, sans-serif; min-width: 170px; padding: 4px;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
             <h4 style="margin: 0; font-size: 14px; color: ${color}; font-weight: 700;">
-              NH₃: ${reading.ammonia.toFixed(1)} ppm
+              NH₃: ${Number(reading.ammonia || 0).toFixed(1)} ppm
             </h4>
             <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; color: white; background: ${color}; text-transform: uppercase;">
-              ${reading.status || (reading.ammonia > 50 ? 'Critical' : reading.ammonia > 25 ? 'Warning' : 'Normal')}
+              ${reading.status || getAmmoniaSeverityLabel(reading.ammonia)}
             </span>
           </div>
           ${reading.site_name ? `<div style="font-size: 12px; color: #334155; margin-bottom: 2px;"><b>Site:</b> ${reading.site_name}</div>` : ''}
@@ -444,8 +491,8 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         </div>
       `;
 
-      circleMarker.bindPopup(popupContent);
-      readingsGroup.addLayer(circleMarker);
+      marker.bindPopup(popupContent);
+      readingsGroup.addLayer(marker);
     });
   }, [readings]);
 
@@ -615,39 +662,118 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         </button>
       </div>
 
+      {/* Empty readings indicator if 0 readings */}
+      {readings.length === 0 && (
+        <div style={{
+          position: 'absolute',
+          top: '12px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1000,
+          backgroundColor: 'rgba(255, 255, 255, 0.94)',
+          backdropFilter: 'blur(6px)',
+          padding: '6px 14px',
+          borderRadius: '20px',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+          fontSize: '11px',
+          fontWeight: 600,
+          color: '#64748b',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          pointerEvents: 'none',
+        }}>
+          <IonIcon icon={locateOutline} style={{ fontSize: '14px', color: '#94a3b8' }} />
+          0 Mapped Locations
+        </div>
+      )}
+
       {/* Bottom Map Legend */}
       <div style={{
         position: 'absolute',
         bottom: '10px',
         right: '10px',
         zIndex: 1000,
-        backgroundColor: 'rgba(255, 255, 255, 0.94)',
-        backdropFilter: 'blur(6px)',
-        padding: '8px 12px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(8px)',
+        padding: '10px 14px',
+        borderRadius: '10px',
+        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.16)',
         fontSize: '11px',
         color: '#1e293b',
         display: 'flex',
         flexDirection: 'column',
-        gap: '4px'
+        gap: '6px',
+        maxWidth: '260px'
       }}>
-        <div style={{ fontWeight: 700, marginBottom: '2px', color: '#1a365d' }}>Spatial Map Legend</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '3px', border: '1.5px dashed #ea580c', backgroundColor: 'rgba(249,115,22,0.3)' }}></span>
-          <span>Odor Zone Polygon</span>
+        <div style={{ fontWeight: 800, color: '#1a365d', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span>🗺️</span> Spatial Map Legend
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#16a34a' }}></span>
-          <span>Normal Reading (&lt; 25 ppm)</span>
+
+        {/* Site Types Grid */}
+        <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginTop: '2px' }}>Site Types</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 8px', fontSize: '10.5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>🐔</span>
+            <span>Poultry</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>🐷</span>
+            <span>Piggery</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>🌱</span>
+            <span>Agricultural</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>🏭</span>
+            <span>Industrial</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>💧</span>
+            <span>Waterway</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>🏢</span>
+            <span>General</span>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></span>
-          <span>Warning Reading (25–50 ppm)</span>
+
+        <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
+
+        {/* Ammonia Levels */}
+        <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Ammonia Levels</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '10.5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#22c55e' }}></span>
+            <span><b>0 – 5 PPM</b>: Normal (Safe)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#eab308' }}></span>
+            <span><b>5 – 10 PPM</b>: Warning (Moderate)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#f97316' }}></span>
+            <span><b>10 – 20 PPM</b>: High (Action Req.)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#ef4444' }}></span>
+            <span><b>&gt; 20 PPM</b>: Critical (Hazardous)</span>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#dc2626' }}></span>
-          <span>Critical Reading (&gt; 50 ppm)</span>
+
+        <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
+
+        {/* Layers & Tags */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '10.5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid #8b5cf6', backgroundColor: '#8b5cf6', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px' }}>📷</span>
+            <span>Photo Tag Marker</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '2px', border: '1.5px dashed #ea580c', backgroundColor: 'rgba(249,115,22,0.3)' }}></span>
+            <span>Odor Dispersion Zone</span>
+          </div>
         </div>
       </div>
     </div>

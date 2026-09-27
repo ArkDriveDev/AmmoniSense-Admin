@@ -1,17 +1,13 @@
 import {
-  IonSplitPane,
-  IonMenu,
-  IonContent,
-  IonList,
-  IonItem,
   IonHeader,
   IonToolbar,
   IonTitle,
-  IonPage,
   IonIcon,
   IonLabel,
-  IonMenuButton,
+  IonItem,
+  IonList,
   IonButtons,
+  IonButton,
   IonAvatar,
   IonText
 } from '@ionic/react';
@@ -23,21 +19,34 @@ import {
   businessOutline,
   hardwareChipOutline,
   barChartOutline,
+  calendarOutline,
+  notificationsOutline,
   logOutOutline,
   personCircleOutline,
-  closeOutline,
   menuOutline
 } from 'ionicons/icons';
 import { useEffect, useState } from 'react';
 
-export default function AdminLayout({ children }: any) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const history = useHistory();
   const location = useLocation();
   const [userName, setUserName] = useState('MENRO Admin');
   const [userEmail, setUserEmail] = useState('');
 
+  // Responsive sidebar state: open by default on desktop, closed on mobile
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 992 : false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 992 : true);
+
   useEffect(() => {
     fetchUserProfile();
+
+    const handleResize = () => {
+      const mobile = window.innerWidth < 992;
+      setIsMobile(mobile);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const fetchUserProfile = async () => {
@@ -65,7 +74,18 @@ export default function AdminLayout({ children }: any) {
     }
   };
 
+  // Close sidebar menu whenever navigating to any page
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
+  const handleNavigate = (path: string) => {
+    setSidebarOpen(false);
+    history.push(path);
+  };
+
   const logout = async () => {
+    setSidebarOpen(false);
     await supabase.auth.signOut();
     history.push('/login');
   };
@@ -75,22 +95,72 @@ export default function AdminLayout({ children }: any) {
   };
 
   return (
-    <IonSplitPane contentId="main">
-      <IonMenu contentId="main" type="push" side="start">
-        <IonHeader>
-          <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-            <IonTitle style={{ fontSize: '16px', fontWeight: 'bold' }}>
-              MENRO ADMIN
-            </IonTitle>
-            <IonButtons slot="end">
-              <IonMenuButton autoHide={false}>
-                <IonIcon icon={closeOutline} />
-              </IonMenuButton>
-            </IonButtons>
-          </IonToolbar>
-        </IonHeader>
+    <div style={{
+      display: 'flex',
+      width: '100vw',
+      height: '100vh',
+      overflow: 'hidden',
+      position: 'relative',
+      backgroundColor: '#f8fafc'
+    }}>
+      {/* Mobile Drawer Backdrop */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            zIndex: 9998,
+            backdropFilter: 'blur(2px)',
+            transition: 'opacity 0.25s ease'
+          }}
+        />
+      )}
 
-        <IonContent>
+      {/* Sidebar Panel (Collapsible on Desktop, Drawer on Mobile) */}
+      <aside
+        style={{
+          position: isMobile ? 'fixed' : 'relative',
+          top: 0,
+          left: 0,
+          bottom: 0,
+          height: '100%',
+          width: isMobile ? '280px' : (sidebarOpen ? '260px' : '0px'),
+          minWidth: isMobile ? (sidebarOpen ? '280px' : '0px') : (sidebarOpen ? '260px' : '0px'),
+          maxWidth: isMobile ? '280px' : (sidebarOpen ? '260px' : '0px'),
+          backgroundColor: '#ffffff',
+          borderRight: !isMobile && sidebarOpen ? '1px solid #e2e8f0' : 'none',
+          boxShadow: isMobile && sidebarOpen ? '6px 0 25px rgba(0,0,0,0.2)' : 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 9999,
+          transform: isMobile ? (sidebarOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          overflow: 'hidden',
+          visibility: (!isMobile && !sidebarOpen) ? 'hidden' : 'visible',
+          opacity: (!isMobile && !sidebarOpen) ? 0 : 1,
+        }}
+      >
+        {/* Sidebar Header */}
+        <div style={{
+          height: '56px',
+          minHeight: '56px',
+          backgroundColor: '#1a365d',
+          color: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 16px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <span style={{ fontSize: '15px', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+            MENRO ADMIN
+          </span>
+        </div>
+
+        {/* Sidebar Body */}
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+          {/* User Profile */}
           <div style={{ 
             padding: '16px', 
             textAlign: 'center',
@@ -98,8 +168,8 @@ export default function AdminLayout({ children }: any) {
             marginBottom: '8px'
           }}>
             <IonAvatar style={{ 
-              width: '60px', 
-              height: '60px', 
+              width: '56px', 
+              height: '56px', 
               margin: '0 auto 8px auto',
               backgroundColor: '#1a365d',
               display: 'flex',
@@ -107,96 +177,160 @@ export default function AdminLayout({ children }: any) {
               justifyContent: 'center'
             }}>
               <IonIcon icon={personCircleOutline} style={{ 
-                fontSize: '44px', 
+                fontSize: '40px', 
                 color: 'white' 
               }} />
             </IonAvatar>
             <IonText>
-              <h3 style={{ margin: '4px 0', fontWeight: 'bold', color: '#1a365d' }}>{userName}</h3>
+              <h3 style={{ margin: '4px 0 2px 0', fontWeight: 'bold', color: '#1a365d', fontSize: '15px' }}>{userName}</h3>
               <p style={{ fontSize: '12px', color: '#64748b', margin: '0' }}>{userEmail}</p>
             </IonText>
           </div>
 
-          <IonList style={{ padding: '0' }}>
+          {/* Navigation Items */}
+          <IonList style={{ padding: '0 8px', background: 'transparent' }}>
             <IonItem 
               button 
-              onClick={() => history.push('/dashboard')}
+              lines="none"
+              onClick={() => handleNavigate('/dashboard')}
               color={isActive('/dashboard') ? 'primary' : undefined}
-              style={isActive('/dashboard') ? { 
-                borderLeft: '4px solid #1a365d',
-                fontWeight: 'bold'
-              } : {}}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: isActive('/dashboard') ? '4px solid #1a365d' : 'none',
+                fontWeight: isActive('/dashboard') ? 'bold' : 'normal'
+              }}
             >
               <IonIcon icon={homeOutline} slot="start" />
-              <IonLabel>DASHBOARD</IonLabel>
+              <IonLabel style={{ fontSize: '13px' }}>DASHBOARD</IonLabel>
             </IonItem>
 
             <IonItem 
               button 
-              onClick={() => history.push('/livestock')}
-              color={isActive('/livestock') ? 'primary' : undefined}
-              style={isActive('/livestock') ? { 
-                borderLeft: '4px solid #1a365d',
-                fontWeight: 'bold'
-              } : {}}
+              lines="none"
+              onClick={() => handleNavigate('/inspection-sites')}
+              color={isActive('/inspection-sites') || isActive('/livestock') ? 'primary' : undefined}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: isActive('/inspection-sites') || isActive('/livestock') ? '4px solid #1a365d' : 'none',
+                fontWeight: isActive('/inspection-sites') || isActive('/livestock') ? 'bold' : 'normal'
+              }}
             >
               <IonIcon icon={businessOutline} slot="start" />
-              <IonLabel>MONITORING SITES</IonLabel>
+              <IonLabel style={{ fontSize: '13px' }}>INSPECTION SITES</IonLabel>
             </IonItem>
 
             <IonItem 
               button 
-              onClick={() => history.push('/devices')}
-              color={isActive('/devices') ? 'primary' : undefined}
-              style={isActive('/devices') ? { 
-                borderLeft: '4px solid #1a365d',
-                fontWeight: 'bold'
-              } : {}}
+              lines="none"
+              onClick={() => handleNavigate('/inspection-schedules')}
+              color={isActive('/inspection-schedules') ? 'primary' : undefined}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: isActive('/inspection-schedules') ? '4px solid #1a365d' : 'none',
+                fontWeight: isActive('/inspection-schedules') ? 'bold' : 'normal'
+              }}
             >
-              <IonIcon icon={hardwareChipOutline} slot="start" />
-              <IonLabel>IOT DEVICES</IonLabel>
+              <IonIcon icon={calendarOutline} slot="start" />
+              <IonLabel style={{ fontSize: '13px' }}>INSPECTION SCHEDULES</IonLabel>
             </IonItem>
 
             <IonItem 
               button 
-              onClick={() => history.push('/sensor-data')}
+              lines="none"
+              onClick={() => handleNavigate('/sensor-data')}
               color={isActive('/sensor-data') ? 'primary' : undefined}
-              style={isActive('/sensor-data') ? { 
-                borderLeft: '4px solid #1a365d',
-                fontWeight: 'bold'
-              } : {}}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: isActive('/sensor-data') ? '4px solid #1a365d' : 'none',
+                fontWeight: isActive('/sensor-data') ? 'bold' : 'normal'
+              }}
             >
               <IonIcon icon={barChartOutline} slot="start" />
-              <IonLabel>SENSOR DATA & MAPS</IonLabel>
+              <IonLabel style={{ fontSize: '13px' }}>TAGS & TELEMETRY</IonLabel>
             </IonItem>
 
             <IonItem 
               button 
-              onClick={logout}
-              style={{ marginTop: '16px' }}
+              lines="none"
+              onClick={() => handleNavigate('/devices')}
+              color={isActive('/devices') ? 'primary' : undefined}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: isActive('/devices') ? '4px solid #1a365d' : 'none',
+                fontWeight: isActive('/devices') ? 'bold' : 'normal'
+              }}
             >
-              <IonIcon icon={logOutOutline} slot="start" />
-              <IonLabel color="danger">LOGOUT</IonLabel>
+              <IonIcon icon={hardwareChipOutline} slot="start" />
+              <IonLabel style={{ fontSize: '13px' }}>BLE DEVICES</IonLabel>
+            </IonItem>
+
+            <IonItem 
+              button 
+              lines="none"
+              onClick={() => handleNavigate('/notifications')}
+              color={isActive('/notifications') ? 'primary' : undefined}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: isActive('/notifications') ? '4px solid #1a365d' : 'none',
+                fontWeight: isActive('/notifications') ? 'bold' : 'normal'
+              }}
+            >
+              <IonIcon icon={notificationsOutline} slot="start" />
+              <IonLabel style={{ fontSize: '13px' }}>ALERTS</IonLabel>
+            </IonItem>
+
+            <IonItem 
+              button 
+              lines="none"
+              onClick={logout}
+              style={{ marginTop: '16px', borderRadius: '8px' }}
+            >
+              <IonIcon icon={logOutOutline} slot="start" color="danger" />
+              <IonLabel color="danger" style={{ fontSize: '13px', fontWeight: 'bold' }}>LOGOUT</IonLabel>
             </IonItem>
           </IonList>
-        </IonContent>
-      </IonMenu>
+        </div>
+      </aside>
 
-      <IonPage id="main">
+      {/* Main Content Area */}
+      <div style={{
+        flex: 1,
+        minWidth: 0,
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden'
+      }}>
+        {/* Top Header with Hamburger Toggle */}
         <IonHeader>
           <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
             <IonButtons slot="start">
-              <IonMenuButton>
-                <IonIcon icon={menuOutline} />
-              </IonMenuButton>
+              <IonButton
+                fill="clear"
+                onClick={() => setSidebarOpen(prev => !prev)}
+                style={{ color: '#ffffff', '--color': '#ffffff' }}
+                title={sidebarOpen ? "Close Menu" : "Open Menu"}
+              >
+                <IonIcon icon={menuOutline} slot="icon-only" style={{ fontSize: '24px' }} />
+              </IonButton>
             </IonButtons>
-            <IonTitle style={{ fontWeight: 'bold' }}>MENRO ENVIRONMENTAL ADMIN</IonTitle>
+            <IonTitle style={{ fontWeight: 'bold', fontSize: '16px' }}>
+              MENRO ENVIRONMENTAL ADMIN
+            </IonTitle>
           </IonToolbar>
         </IonHeader>
-        <IonContent>
+
+        {/* Page View Body */}
+        <div style={{ flex: 1, minWidth: 0, height: '100%', overflow: 'hidden' }}>
           {children}
-        </IonContent>
-      </IonPage>
-    </IonSplitPane>
+        </div>
+      </div>
+    </div>
   );
 }

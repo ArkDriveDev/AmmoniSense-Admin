@@ -5,9 +5,11 @@ import { supabase } from '../services/supabase';
 import Setup from '../pages/Setup';
 import Login from '../pages/Login';
 import Dashboard from '../pages/Dashboard';
-import Livestock from '../pages/Livestock';
-import Devices from '../pages/Devices';
+import AdminInspectionSites from '../pages/AdminInspectionSites';
+import InspectionSchedules from '../pages/InspectionSchedules';
 import SensorData from '../pages/SensorData';
+import Devices from '../pages/Devices';
+import Notifications from '../pages/Notifications';
 
 import ProtectedRoute from '../components/ProtectedRoute';
 import AdminLayout from '../layouts/AdminLayout';
@@ -78,11 +80,33 @@ export default function AppRouter() {
       />
 
       <Route
-        path="/livestock"
+        path="/inspection-sites"
         render={() => (
           <ProtectedRoute>
             <AdminLayout>
-              <Livestock />
+              <AdminInspectionSites />
+            </AdminLayout>
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        path="/inspection-schedules"
+        render={() => (
+          <ProtectedRoute>
+            <AdminLayout>
+              <InspectionSchedules />
+            </AdminLayout>
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        path="/sensor-data"
+        render={() => (
+          <ProtectedRoute>
+            <AdminLayout>
+              <SensorData />
             </AdminLayout>
           </ProtectedRoute>
         )}
@@ -100,15 +124,24 @@ export default function AppRouter() {
       />
 
       <Route
-        path="/sensor-data"
+        path="/notifications"
         render={() => (
           <ProtectedRoute>
             <AdminLayout>
-              <SensorData />
+              <Notifications />
             </AdminLayout>
           </ProtectedRoute>
         )}
       />
+
+      {/* Backward-compatibility aliases */}
+      <Route exact path="/livestock">
+        <Redirect to="/inspection-sites" />
+      </Route>
+
+      <Route exact path="/inspection-tags">
+        <Redirect to="/sensor-data" />
+      </Route>
     </Switch>
   );
 }
