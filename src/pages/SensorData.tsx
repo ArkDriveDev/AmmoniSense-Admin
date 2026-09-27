@@ -160,25 +160,52 @@ export default function SensorData() {
           latitude: t.tag_latitude ?? t.reading_latitude ?? t.latitude,
           longitude: t.tag_longitude ?? t.reading_longitude ?? t.longitude,
           schedule_id: t.inspection_schedule_id ?? t.schedule_id,
+        }));
+        setTags(normalized);
+      }
     } catch (err) {
-      console.error('Unexpected error:', err);
+      console.error('Error fetching inspection tags:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterLogs = () => {
-    let result = [...logs];
+  useEffect(() => {
+    fetchSites();
+    fetchDevices();
+    fetchTags();
 
-    if (deviceFilter !== 'all') {
-      result = result.filter(l => l.device_uid === deviceFilter);
+    if (realtimeEnabled) {
+      const subscription = supabase
+        .channel('inspection_tags_channel')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'inspection_tags'
+          },
+          () => {
+            fetchTags();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
     }
+  }, [realtimeEnabled, fetchSites, fetchDevices, fetchTags]);
+
+  useEffect(() => {
+    let result = [...tags];
 
     if (siteFilter !== 'all') {
-      const selectedSiteId = Number(siteFilter);
-      result = result.filter(l => l.devices?.site_id === selectedSiteId);
+      result = result.filter(t => t.inspection_site_id === Number(siteFilter));
     }
 
+    if (deviceFilter !== 'all') {
+      result = result.filter(t => t.device_uid === deviceFilter);
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(l =>
