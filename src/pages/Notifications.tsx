@@ -256,9 +256,31 @@ export default function Notifications() {
                       <span>
                         <IonIcon icon={pricetagOutline} style={{ verticalAlign: 'middle', marginRight: '3px', color: '#0891b2' }} />
                         Tag: {a.tag_name}
+                      </span>
+                    )}
+
+                    {a.site_name && (
+                      <span>
+                        <IonIcon icon={businessOutline} style={{ verticalAlign: 'middle', marginRight: '3px', color: '#059669' }} />
+                        Site: {a.site_name}
+                      </span>
+                    )}
+
+                    {a.device_uid && (
+                      <span>
+                        <IonIcon icon={hardwareChipOutline} style={{ verticalAlign: 'middle', marginRight: '3px', color: '#1a365d' }} />
+                        Device: {a.device_uid}
+                      </span>
+                    )}
+                  </div>
+
+                  <p style={{ fontSize: '11px', color: '#94a3b8', margin: '2px 0 0 0' }}>
+                    Logged: {new Date(a.created_at).toLocaleString()}
+                  </p>
                 </IonLabel>
-                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                  <IonBadge color={a.severity === 'SEVERE' ? 'danger' : 'warning'}>
+
+                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
+                  <IonBadge color={getBadgeColor(a.severity)}>
                     {a.severity}
                   </IonBadge>
                   {a.is_read ? (
@@ -271,6 +293,15 @@ export default function Notifications() {
             ))}
           </IonList>
         )}
+
+        <IonToast
+          isOpen={syncToast.isOpen}
+          onDidDismiss={dismissSyncToast}
+          message={syncToast.message}
+          duration={syncToast.duration}
+          color={syncToast.color}
+          position="bottom"
+        />
       </IonContent>
     </IonPage>
   );
