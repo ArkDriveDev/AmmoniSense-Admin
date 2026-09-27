@@ -33,3 +33,38 @@ export interface InspectionSchedule {
   inspection_site_id: number;
   schedule_name: string;
   scheduled_date: string; // YYYY-MM-DD
+  scheduled_time?: string | null; // HH:MM:SS
+  status?: ScheduleStatus;
+  started_at?: string | null;
+  completed_at?: string | null;
+  offline_temp_id?: string | null;
+  created_at?: string;
+  created_by?: string | null;
+  updated_at?: string;
+  notes?: string | null;
+}
+
+// 3. Table: inspection_tags
+export type TagStatus = 'NORMAL' | 'WARNING' | 'HIGH' | 'CRITICAL';
+
+export interface InspectionTag {
+  id: number;
+  tag_name: string;
+  inspection_schedule_id?: number | null;
+  inspection_site_id?: number | null;
+  ammonia?: number | null; // PPM
+  temperature?: number | null; // °C
+  humidity?: number | null; // %
+  battery?: number | null; // %
+  status?: TagStatus | string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  device_uid?: string | null;
+  photo_url?: string | null;
+  photo_thumbnail_url?: string | null;
+  inspection_photo_id?: number | null;
+  notes?: string | null;
+  offline_temp_id?: string | null;
+  created_at?: string;
+  created_by?: string | null;
+}
