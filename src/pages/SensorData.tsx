@@ -446,8 +446,8 @@ export default function SensorData() {
                             }}
                           >
                             <img
-                              src={l.photo_url}
-                              alt="Inspection"
+                              src={t.photo_thumbnail_url || t.photo_url || ''}
+                              alt={t.tag_name}
                               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             />
                             <div style={{
@@ -464,34 +464,53 @@ export default function SensorData() {
                               alignItems: 'center',
                               gap: '4px'
                             }}>
-                              <IonIcon icon={imageOutline} /> View Stamped EXIF Photo
+                              <IonIcon icon={imageOutline} /> View Stamped Photo EXIF
                             </div>
                           </div>
-                        ) : null}
+                        )}
 
                         <div style={{ fontSize: '12px', color: '#475569', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                          <div>
-                            <IonIcon icon={hardwareChipOutline} style={{ marginRight: '6px', color: '#1a365d' }} />
-                            <b>Device UID:</b> {l.device_uid || 'N/A'}
-                          </div>
+                          {t.schedule_name && (
+                            <div>
+                              <IonIcon icon={calendarOutline} style={{ marginRight: '6px', color: '#2563eb' }} />
+                              <b>Schedule:</b> {t.schedule_name}
+                            </div>
+                          )}
 
-                          {l.latitude && l.longitude && (
+                          {t.device_uid && (
+                            <div>
+                              <IonIcon icon={hardwareChipOutline} style={{ marginRight: '6px', color: '#1a365d' }} />
+                              <b>Device:</b> {t.device_uid} {t.device_name ? `(${t.device_name})` : ''}
+                            </div>
+                          )}
+
+                          {t.latitude && t.longitude && (
                             <div>
                               <IonIcon icon={locationOutline} style={{ marginRight: '6px', color: '#2d7d46' }} />
-                              <b>GPS:</b> {l.latitude.toFixed(5)}°, {l.longitude.toFixed(5)}°
+                              <b>GPS:</b> {t.latitude.toFixed(5)}°, {t.longitude.toFixed(5)}°
                             </div>
                           )}
 
-                          {l.temperature && (
-                            <div>
-                              <b>Temp / Humidity:</b> {l.temperature}°C / {l.humidity || '--'}%
-                            </div>
-                          )}
-
-                          <div>
-                            <IonIcon icon={calendarOutline} style={{ marginRight: '6px', color: '#64748b' }} />
-                            <b>Recorded:</b> {new Date(l.created_at || l.submitted_at).toLocaleString()}
+                          <div style={{ display: 'flex', gap: '12px' }}>
+                            {t.temperature !== null && t.temperature !== undefined && (
+                              <span>
+                                <IonIcon icon={thermometerOutline} style={{ verticalAlign: 'middle', marginRight: '3px' }} />
+                                {t.temperature.toFixed(1)}°C
+                              </span>
+                            )}
+                            {t.humidity !== null && t.humidity !== undefined && (
+                              <span>Hum: {t.humidity.toFixed(0)}%</span>
+                            )}
+                            {t.battery !== null && t.battery !== undefined && (
+                              <span>
+                                <IonIcon icon={batteryChargingOutline} style={{ verticalAlign: 'middle', marginRight: '3px' }} />
+                                {t.battery.toFixed(0)}%
+                              </span>
+                            )}
                           </div>
+
+                          {t.notes && (
+                            <div style={{ fontStyle: 'italic', color: '#64748b' }}>
                         </div>
                       </IonCardContent>
 
