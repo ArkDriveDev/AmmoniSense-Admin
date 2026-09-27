@@ -78,38 +78,53 @@ export default function SensorData() {
         .select('device_uid')
         .order('device_uid');
       if (data && data.length > 0) {
+        setDevices(data);
+      }
     } catch (err) {
       console.error('Error fetching devices:', err);
     }
-  };
+  }, []);
 
-  const fetchLogs = async () => {
+  const fetchTags = useCallback(async () => {
     setLoading(true);
     try {
+      // Query inspection_tag_details view
       const { data, error } = await supabase
-        .from('sensor_data')
-        .select(`
-          *,
-          devices (
-            device_uid,
-            site_id,
-            monitoring_sites (
-              id,
-              site_name,
-              current_latitude,
-              current_longitude
-            )
-          )
-        `)
+        .from('inspection_tag_details')
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(200);
 
       if (error) {
-        console.error('Error fetching sensor data:', error);
-        return;
-      }
+        // Fallback to direct inspection_tags query if view is compiling
+        const { data: rawTags, error: rawErr } = await supabase
+          .from('inspection_tags')
+          .select(`
+            *,
+            inspection_sites (
+              id,
+              site_name,
+              site_code
+            ),
+            inspection_schedules (
+              id,
+              schedule_name,
+              scheduled_date
+            )
+          `)
+          .order('created_at', { ascending: false })
+          .limit(200);
 
-      setLogs(data || []);
+        if (rawErr) throw rawErr;
+
+        const mapped: InspectionTagDetails[] = (rawTags || []).map((t) => ({
+          tag_id: t.id,
+          tag_name: t.tag_name || `Tag #${t.id}`,
+          inspection_site_id: t.inspection_site_id,
+          inspection_schedule_id: t.inspection_schedule_id,
+          sensor_data_id: null,
+          tag_latitude: t.latitude,
+          tag_longitude: t.longitude,
     } catch (err) {
       console.error('Unexpected error:', err);
     } finally {
