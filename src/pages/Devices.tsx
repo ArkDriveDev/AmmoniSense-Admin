@@ -173,6 +173,14 @@ export default function Devices() {
               onIonChange={(e) => setStatusFilter(e.detail.value)}
               interface="popover"
               style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
+            >
+              <IonSelectOption value="all">All Statuses</IonSelectOption>
+              <IonSelectOption value="ACTIVE">Active</IonSelectOption>
+              <IonSelectOption value="OFFLINE">Offline</IonSelectOption>
+              <IonSelectOption value="INACTIVE">Inactive</IonSelectOption>
+              <IonSelectOption value="MAINTENANCE">Maintenance</IonSelectOption>
+            </IonSelect>
+
             <IonButton 
               size="small" 
               fill={sortBy === 'device_uid' ? 'solid' : 'outline'}
@@ -186,38 +194,27 @@ export default function Devices() {
                 />
               )}
             </IonButton>
+
             <IonButton 
               size="small" 
-              fill={sortBy === 'site_name' ? 'solid' : 'outline'}
-              onClick={() => handleSort('site_name')}
+              fill={sortBy === 'battery_level' ? 'solid' : 'outline'}
+              onClick={() => handleSort('battery_level')}
             >
-              SITE
-              {sortBy === 'site_name' && (
+              BATTERY
+              {sortBy === 'battery_level' && (
                 <IonIcon 
                   icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
                   style={{ marginLeft: '4px' }} 
                 />
               )}
             </IonButton>
-            <IonButton 
-              size="small" 
-              fill={sortBy === 'status' ? 'solid' : 'outline'}
-              onClick={() => handleSort('status')}
-            >
-              STATUS
-              {sortBy === 'status' && (
-                <IonIcon 
-                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
-                  style={{ marginLeft: '4px' }} 
-                />
-              )}
-            </IonButton>
+
             <IonButton 
               size="small" 
               fill={sortBy === 'installed_at' ? 'solid' : 'outline'}
               onClick={() => handleSort('installed_at')}
             >
-              INSTALLED
+              REGISTERED
               {sortBy === 'installed_at' && (
                 <IonIcon 
                   icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
@@ -234,26 +231,31 @@ export default function Devices() {
           <LoadingSpinner />
         ) : filteredDevices.length === 0 ? (
           <EmptyState
-            title="NO DEVICES FOUND"
-            message={searchTerm ? 'TRY A DIFFERENT SEARCH' : 'CLICK ADD DEVICE TO REGISTER AN IOT SENSOR'}
+            title="NO BLE SENSORS FOUND"
+            message={searchTerm || statusFilter !== 'all' ? 'TRY A DIFFERENT SEARCH OR FILTER' : 'BLE sensors auto-register when connected via the AmmoniSense mobile app'}
           />
         ) : (
           <IonList style={{ background: 'transparent' }}>
-            {filteredDevices.map((d) => {
-              const site = d.monitoring_sites;
-              const owner = site?.site_owners?.owner_name;
+            {filteredDevices.map((d: Device) => {
+              const battery = d.battery_level;
+              const hasSite = !!d.inspection_sites;
 
               return (
-                <IonItem key={d.id} style={{ '--background': '#ffffff', borderRadius: '10px', marginBottom: '8px', boxShadow: '0 2px 6px rgba(0,0,0,0.04)' }}>
-                  <IonLabel>
-                    <h2 style={{ color: '#1a365d', fontWeight: 'bold' }}>
-                      <IonIcon icon={hardwareChipOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                      {d.device_uid}
-                    </h2>
-                    <p style={{ color: '#475569' }}>
-                      <IonIcon icon={businessOutline} style={{ marginRight: '4px' }} />
-                      SITE: {site?.site_name || 'UNASSIGNED SITE'}
-                      {owner && <span style={{ color: '#64748b' }}> (OWNER: {owner})</span>}
+                <IonItem
+                  key={d.id}
+                  style={{
+                    '--background': '#ffffff',
+                    borderRadius: '12px',
+                    marginBottom: '10px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.04)'
+                  }}
+                >
+                  <IonLabel style={{ margin: '14px 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                      <h2 style={{ color: '#1a365d', fontWeight: 'bold', fontSize: '16px', margin: 0 }}>
+                        <IonIcon icon={hardwareChipOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                        {d.device_name || d.device_uid}
+                      </h2>
                     </p>
                     <p style={{ color: '#64748b' }}>FIRMWARE: {d.firmware_version || '1.0.0'}</p>
                     <p style={{ fontSize: '12px', color: '#94a3b8' }}>INSTALLED: {new Date(d.installed_at).toLocaleDateString()}</p>
