@@ -264,15 +264,22 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
           <span style="font-size: 18px;">${pinMeta.emoji}</span>
           <h4 style="margin: 0; color: #1a365d; font-size: 14px; font-weight: 700;">${siteName}</h4>
         </div>
+        <div style="font-size: 12px; margin-bottom: 6px;">
+          <span style="display:inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; background: ${pinMeta.fillColor}; color: ${pinMeta.pinColor}; border: 1px solid ${pinMeta.pinColor}40;">
+            ${pinMeta.label}
+          </span>
+        </div>
+        <div style="font-size: 12px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; background: #f8fafc; padding: 4px 8px; border-radius: 6px; border: 1px solid #e2e8f0;">
+          <span style="color: #64748b; font-size: 11px;">Latest NH₃:</span>
           <strong style="color: ${plumeColor}; font-size: 13px;">${nh3Val > 0 ? nh3Val.toFixed(1) + ' ppm' : 'No Data'}</strong>
         </div>
-        <div style="font-size: 11px; color: #475569;"><b>Primary Odor Radius:</b> ~${Math.round(innerOdorRadius)}m</div>
+        <div style="font-size: 11px; color: #475569; margin-top: 4px;"><b>Primary Odor Radius:</b> ~${Math.round(innerOdorRadius)}m</div>
         <div style="font-size: 11px; color: #475569;"><b>Community Buffer:</b> 500m Boundary</div>
         <div style="font-size: 10px; color: #64748b; margin-top: 4px;">Manolo Fortich, Bukidnon</div>
       </div>
     `);
     zonesGroup.addLayer(marker);
-  }, [latitude, longitude, siteName, ammonia, areaHectares]);
+  }, [latitude, longitude, siteName, siteType, ammonia, areaHectares]);
 
   const handleCenterSite = () => {
     if (mapRef.current) {
