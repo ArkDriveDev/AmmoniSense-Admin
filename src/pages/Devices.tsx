@@ -256,16 +256,46 @@ export default function Devices() {
                         <IonIcon icon={hardwareChipOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
                         {d.device_name || d.device_uid}
                       </h2>
+                      <IonBadge color={getStatusColor(d.status)}>
+                        {d.status || 'ACTIVE'}
+                      </IonBadge>
+                    </div>
+
+                    <p style={{ color: '#475569', fontSize: '13px', margin: '2px 0' }}>
+                      <b>UID:</b> {d.device_uid}
+                      {d.firmware_version ? ` • Firmware: ${d.firmware_version}` : ''}
                     </p>
-                    <p style={{ color: '#64748b' }}>FIRMWARE: {d.firmware_version || '1.0.0'}</p>
-                    <p style={{ fontSize: '12px', color: '#94a3b8' }}>INSTALLED: {new Date(d.installed_at).toLocaleDateString()}</p>
+
+                    <p style={{ color: '#64748b', fontSize: '12px', margin: '2px 0' }}>
+                      <IonIcon icon={businessOutline} style={{ verticalAlign: 'middle', marginRight: '4px', color: '#059669' }} />
+                      <b>Assigned Site:</b> {hasSite ? `${d.inspection_sites?.site_name} (${d.inspection_sites?.site_code})` : 'Unassigned / Portable'}
+                    </p>
+
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '6px', fontSize: '11px', color: '#94a3b8' }}>
+                      {battery !== null && battery !== undefined && (
+                        <span style={{ color: battery > 20 ? '#15803d' : '#dc2626', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <IonIcon icon={batteryChargingOutline} /> Battery: {battery}%
+                        </span>
+                      )}
+
+                      {d.last_ping_at && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <IonIcon icon={wifiOutline} /> Last Ping: {new Date(d.last_ping_at).toLocaleTimeString()}
+                        </span>
+                      )}
+
+                      {d.installed_at && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <IonIcon icon={timeOutline} /> Registered: {new Date(d.installed_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
                   </IonLabel>
+
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                    <IonBadge color={getStatusColor(d.status)}>
-                      {d.status || 'ACTIVE'}
-                    </IonBadge>
                     <IonButton
                       size="small"
+                      fill="solid"
                       fill="outline"
                       color="secondary"
                       onClick={() => {
