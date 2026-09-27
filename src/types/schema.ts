@@ -103,3 +103,38 @@ export interface InspectionPhoto {
   id: number;
   sensor_data_id?: number | null;
   inspection_site_id?: number | null;
+  photo_url: string;
+  photo_thumbnail_url?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  grid_cell_id?: string | null;
+  captured_at?: string | null;
+  captured_by?: string | null; // UUID FK profiles (NOT uploaded_by)
+  is_used?: boolean;
+  is_site_photo?: boolean;
+  notes?: string | null;
+  created_at?: string;
+  storage_bucket?: string | null;
+  storage_path?: string | null;
+  file_size?: number | null;
+  mime_type?: string | null;
+  width?: number | null;
+  height?: number | null;
+}
+
+// ============================================================================
+// Database Views
+// ============================================================================
+
+// View: inspection_schedule_summary
+export interface InspectionScheduleSummary {
+  schedule_id: number;
+  schedule_name: string;
+  scheduled_date: string;
+  schedule_status: ScheduleStatus | string;
+  status?: ScheduleStatus | string; // mapped compatibility
+  started_at?: string | null;
+  completed_at?: string | null;
+  inspection_site_id: number;
+  site_name: string;
+  site_code: string;
