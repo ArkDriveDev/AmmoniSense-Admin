@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, FormEvent } from 'react';
 import {
   IonPage,
   IonContent,
@@ -9,9 +9,10 @@ import {
   IonCard,
   IonCardContent,
   IonToast,
-  IonIcon
+  IonIcon,
+  InputCustomEvent
 } from '@ionic/react';
-import { lockClosedOutline, mailOutline, logInOutline, checkmarkCircleOutline, alertCircleOutline } from 'ionicons/icons';
+import { logInOutline, checkmarkCircleOutline, alertCircleOutline } from 'ionicons/icons';
 import { supabase } from '../services/supabase';
 
 export default function Login() {
@@ -22,7 +23,7 @@ export default function Login() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState<'danger' | 'success'>('danger');
 
-  const handleLogin = async (e?: React.FormEvent) => {
+  const handleLogin = async (e?: FormEvent) => {
     if (e) e.preventDefault();
 
     if (!email || !password) {
@@ -78,10 +79,11 @@ export default function Login() {
           window.location.href = '/dashboard';
         }, 800);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Login error:', err);
       setToastColor('danger');
-      setToastMessage(err.message || 'An unexpected login error occurred.');
+      const message = err instanceof Error ? err.message : 'An unexpected login error occurred.';
+      setToastMessage(message);
       setShowToast(true);
       setLoading(false);
     }
@@ -113,7 +115,7 @@ export default function Login() {
                     type="email"
                     placeholder="admin@ammonisense.com"
                     value={email}
-                    onIonInput={e => setEmail(e.detail.value!)}
+                    onIonInput={(e: InputCustomEvent) => setEmail((e.detail.value as string) || '')}
                     style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px' }}
                   />
                 </div>
@@ -125,7 +127,7 @@ export default function Login() {
                     type="password"
                     placeholder="••••••••"
                     value={password}
-                    onIonInput={e => setPassword(e.detail.value!)}
+                    onIonInput={(e: InputCustomEvent) => setPassword((e.detail.value as string) || '')}
                     style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px 12px' }}
                   />
                 </div>

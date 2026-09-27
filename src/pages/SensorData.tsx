@@ -21,7 +21,10 @@ import {
   IonModal,
   IonRefresher,
   IonRefresherContent,
-  IonToast
+  IonToast,
+  SearchbarCustomEvent,
+  SelectCustomEvent,
+  RefresherCustomEvent
 } from '@ionic/react';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -155,7 +158,7 @@ export default function SensorData() {
 
         setTags(mapped);
       } else {
-        const normalized: InspectionTagDetails[] = (data || []).map((t: any) => ({
+        const normalized: InspectionTagDetails[] = ((data || []) as (InspectionTagDetails & { tag_latitude?: number; reading_latitude?: number })[]).map((t) => ({
           ...t,
           latitude: t.tag_latitude ?? t.reading_latitude ?? t.latitude,
           longitude: t.tag_longitude ?? t.reading_longitude ?? t.longitude,
@@ -228,7 +231,7 @@ export default function SensorData() {
     setFilteredTags(result);
   }, [tags, searchTerm, siteFilter, deviceFilter, statusFilter]);
 
-  const handleRefresh = async (event: CustomEvent) => {
+  const handleRefresh = async (event: RefresherCustomEvent) => {
     await fetchTags();
     event.detail.complete();
   };
@@ -283,7 +286,7 @@ export default function SensorData() {
           <IonSearchbar
             placeholder="SEARCH TAGS, SITES, DEVICES, SCHEDULES..."
             value={searchTerm}
-            onIonInput={(e) => setSearchTerm(e.detail.value || '')}
+            onIonInput={(e: SearchbarCustomEvent) => setSearchTerm(e.detail.value || '')}
             animated
           />
         </IonToolbar>
@@ -296,7 +299,7 @@ export default function SensorData() {
                 <IonSelect
                   value={siteFilter}
                   placeholder="FILTER BY SITE"
-                  onIonChange={(e) => setSiteFilter(e.detail.value)}
+                  onIonChange={(e: SelectCustomEvent) => setSiteFilter(e.detail.value || 'all')}
                   interface="popover"
                 >
                   <IonSelectOption value="all">ALL INSPECTION SITES</IonSelectOption>
@@ -312,7 +315,7 @@ export default function SensorData() {
                 <IonSelect
                   value={deviceFilter}
                   placeholder="FILTER BY DEVICE"
-                  onIonChange={(e) => setDeviceFilter(e.detail.value)}
+                  onIonChange={(e: SelectCustomEvent) => setDeviceFilter(e.detail.value || 'all')}
                   interface="popover"
                 >
                   <IonSelectOption value="all">ALL DEVICES</IonSelectOption>
@@ -328,7 +331,7 @@ export default function SensorData() {
                 <IonSelect
                   value={statusFilter}
                   placeholder="STATUS"
-                  onIonChange={(e) => setStatusFilter(e.detail.value)}
+                  onIonChange={(e: SelectCustomEvent) => setStatusFilter(e.detail.value || 'all')}
                   interface="popover"
                 >
                   <IonSelectOption value="all">ALL STATUSES</IonSelectOption>

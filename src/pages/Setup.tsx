@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { IonPage, IonContent, IonInput, IonButton, IonTitle, IonText, IonSpinner, IonIcon, IonToast } from '@ionic/react';
-import { personAddOutline, personOutline, mailOutline, lockClosedOutline, arrowForwardOutline } from 'ionicons/icons';
+import { personAddOutline, arrowForwardOutline } from 'ionicons/icons';
 import { useHistory } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 
@@ -123,10 +123,11 @@ export default function Setup() {
         history.push('/login');
       }, 1000);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Unexpected error:', err);
       setToastColor('danger');
-      setToastMessage(err?.message || 'An unexpected error occurred');
+      const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setToastMessage(message);
       setShowToast(true);
     } finally {
       setLoading(false);
