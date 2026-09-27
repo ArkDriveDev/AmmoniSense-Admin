@@ -278,5 +278,10 @@ export function useDashboardData() {
   }, []);
 
   useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
   return { stats, chartData, loading, refresh: fetchDashboardData };
 }
+
+export default useDashboardData;
