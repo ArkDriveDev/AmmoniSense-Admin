@@ -1,104 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
+
+export interface ChartDataset {
+  label?: string;
+  data: number[];
+  borderColor?: string | string[];
+  backgroundColor?: string | string[];
+  fill?: boolean;
+  tension?: number;
+  borderWidth?: number;
+}
+
+export interface ChartDataGroup {
+  labels: string[];
+  datasets: ChartDataset[];
+}
+
+export interface DashboardCharts {
+  ammoniaTrend: ChartDataGroup;
+  alertSeverity: ChartDataGroup;
+  alertTrend: ChartDataGroup;
+  deviceStatus: ChartDataGroup;
+  topAlertingDevices: ChartDataGroup;
+  clientsLivestock: ChartDataGroup;
+  scheduleStatus: ChartDataGroup;
+}
 
 export function useDashboardData() {
   const [stats, setStats] = useState({
-    livestock: 0, // Monitoring Sites
+    sites: 0,
+    schedules: 0,
     devices: 0,
     alerts: 0,
-    clients: 0, // Site Owners
-    sensorReadings: 0
+    tags: 0,
   });
-  const [chartData, setChartData] = useState<any>(null);
+  const [chartData, setChartData] = useState<DashboardCharts | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    try {
-      // 1. Get stats from official schema tables (monitoring_sites, devices, site_owners, sensor_data)
-      const [sitesRes, devicesRes, ownersRes, sensorRes, warningSensorRes] = await Promise.all([
-        supabase.from('monitoring_sites').select('id', { count: 'exact', head: true }),
-        supabase.from('devices').select('id', { count: 'exact', head: true }),
-        supabase.from('site_owners').select('id', { count: 'exact', head: true }),
-        supabase.from('sensor_data').select('id', { count: 'exact', head: true }),
-        supabase.from('sensor_data').select('id', { count: 'exact', head: true }).or('status.eq.warning,status.eq.critical,ammonia.gt.25')
-      ]);
-
-      setStats({
-        livestock: sitesRes.count || 0,
-        devices: devicesRes.count || 0,
-        alerts: warningSensorRes.count || 0,
-        clients: ownersRes.count || 0,
-        sensorReadings: sensorRes.count || 0
-      });
-
-      // 2. Fetch ammonia trend data
-      const { data: ammoniaData } = await supabase
-        .from('sensor_data')
-        .select('ammonia, created_at')
-        .order('created_at', { ascending: true })
-        .limit(1000);
-
-      // 3. Fetch alert severity / status distribution from sensor_data
-      const { data: severityData } = await supabase
-        .from('sensor_data')
-        .select('status, ammonia');
-
-      // 4. Fetch reading timestamp trend
-      const { data: alertTrendData } = await supabase
-        .from('sensor_data')
-        .select('created_at, status, ammonia')
-        .or('status.eq.warning,status.eq.critical,ammonia.gt.25');
-
-      // 5. Fetch device status distribution
-      const { data: deviceStatusData } = await supabase
-        .from('devices')
-        .select('status');
-
-      // 6. Fetch top alerting devices from sensor_data
-      const { data: topDevices } = await supabase
-        .from('sensor_data')
-        .select('device_uid')
-        .or('status.eq.warning,status.eq.critical,ammonia.gt.25')
-        .limit(1000);
-
-      // 7. Fetch owners with monitoring sites
-      const { data: clientSites } = await supabase
-        .from('monitoring_sites')
-        .select('site_owners(owner_name)');
-
-      // Process data for charts
-      const processedData = processChartData(
-        ammoniaData || [],
-        severityData || [],
-        alertTrendData || [],
-        deviceStatusData || [],
-        topDevices || [],
-        clientSites || []
-      );
-
-      setChartData(processedData);
-
-    } catch (err) {
-      console.error('Error fetching dashboard data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const processChartData = (
-    ammoniaData: any[],
-    severityData: any[],
-    alertTrendData: any[],
-    deviceStatusData: any[],
-    topDevices: any[],
-    clientSites: any[]
-  ) => {
-    // Ammonia Trend
+    ammoniaData: { ammonia?: number | null; created_at?: string }[],
+    severityData: { status?: string | null; ammonia?: number | null }[],
+    alertTrendData: { created_at?: string; status?: string | null; ammonia?: number | null }[],
+    deviceStatusData: { status?: string | null }[],
+    topDevices: { device_uid?: string | null }[],
     const grouped: Record<string, number[]> = {};
     
     if (ammoniaData && ammoniaData.length > 0) {
