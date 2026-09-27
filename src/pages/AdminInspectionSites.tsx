@@ -313,3 +313,38 @@ export default function AdminInspectionSites() {
 
             <IonButton 
               size="small" 
+              fill={sortBy === 'site_code' ? 'solid' : 'outline'}
+              onClick={() => handleSort('site_code')}
+            >
+              CODE
+              {sortBy === 'site_code' && (
+                <IonIcon 
+                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
+                  style={{ marginLeft: '4px' }} 
+                />
+              )}
+            </IonButton>
+
+            <IonButton 
+              size="small" 
+              fill={sortBy === 'site_type' ? 'solid' : 'outline'}
+              onClick={() => handleSort('site_type')}
+            >
+              TYPE
+              {sortBy === 'site_type' && (
+                <IonIcon 
+                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
+                  style={{ marginLeft: '4px' }} 
+                />
+              )}
+            </IonButton>
+          </div>
+        </IonToolbar>
+      </IonHeader>
+
+      <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>
+        {loading ? (
+          <LoadingSpinner />
+        ) : filteredSites.length === 0 ? (
+          <EmptyState
+            title="NO INSPECTION SITES FOUND"
