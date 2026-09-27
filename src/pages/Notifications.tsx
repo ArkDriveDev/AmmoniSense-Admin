@@ -206,6 +206,12 @@ export default function Notifications() {
             </IonButton>
             <IonButton 
               size="small" 
+              fill={filterSeverity === 'WARNING' ? 'solid' : 'outline'}
+              color="warning"
+              onClick={() => setFilterSeverity('WARNING')}
+            >
+              {"WARNING (25-35 PPM)"}
+            </IonButton>
           </div>
         </IonToolbar>
       </IonHeader>
@@ -216,22 +222,40 @@ export default function Notifications() {
         ) : filteredAlerts.length === 0 ? (
           <EmptyState
             title="NO ACTIVE ALERTS"
-            message={searchTerm || filterSeverity !== 'all' ? 'TRY DIFFERENT FILTERS' : 'ALL MONITORING SITES NORMAL'}
+            message={searchTerm || filterSeverity !== 'all' ? 'TRY DIFFERENT FILTERS' : 'ALL INSPECTION SITES AND TAGS ARE WITHIN SAFE AMMONIA LIMITS'}
           />
         ) : (
           <IonList style={{ background: 'transparent' }}>
             {filteredAlerts.map((a) => (
-              <IonItem key={a.id} button onClick={() => markAsRead(a.id)} style={{ '--background': '#ffffff', borderRadius: '10px', marginBottom: '8px' }}>
-                <IonLabel>
-                  <h2 style={{ color: a.severity === 'SEVERE' ? '#dc2626' : '#f59e0b', fontWeight: 'bold' }}>
-                    <IonIcon icon={alertCircleOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                    {a.severity} AMMONIA ALERT
-                  </h2>
-                  <p style={{ color: '#1a365d', fontWeight: 'bold' }}>AMMONIA: {a.ammonia} PPM</p>
-                  <p style={{ color: '#475569' }}>DEVICE: {a.device_uid || 'N/A'}</p>
-                  <p style={{ fontSize: '12px', color: '#94a3b8' }}>
-                    {new Date(a.created_at).toLocaleString()}
+              <IonItem
+                key={a.id}
+                button
+                onClick={() => markAsRead(a.id)}
+                style={{
+                  '--background': '#ffffff',
+                  borderRadius: '12px',
+                  marginBottom: '10px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                  borderLeft: `4px solid ${a.severity === 'CRITICAL' ? '#dc2626' : '#f59e0b'}`
+                }}
+              >
+                <IonLabel style={{ margin: '14px 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                    <IonIcon icon={alertCircleOutline} style={{ color: a.severity === 'CRITICAL' ? '#dc2626' : '#f59e0b', fontSize: '18px' }} />
+                    <h2 style={{ color: a.severity === 'CRITICAL' ? '#dc2626' : '#d97706', fontWeight: 'bold', margin: 0, fontSize: '16px' }}>
+                      {a.severity} AMMONIA EXCEEDANCE
+                    </h2>
+                  </div>
+
+                  <p style={{ color: '#1a365d', fontWeight: 'bold', fontSize: '14px', margin: '3px 0' }}>
+                    AMMONIA: {a.ammonia?.toFixed(1) || '0'} PPM
                   </p>
+
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', color: '#475569', fontSize: '12px', margin: '4px 0' }}>
+                    {a.tag_name && (
+                      <span>
+                        <IonIcon icon={pricetagOutline} style={{ verticalAlign: 'middle', marginRight: '3px', color: '#0891b2' }} />
+                        Tag: {a.tag_name}
                 </IonLabel>
                 <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                   <IonBadge color={a.severity === 'SEVERE' ? 'danger' : 'warning'}>
