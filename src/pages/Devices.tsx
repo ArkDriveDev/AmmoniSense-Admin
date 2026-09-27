@@ -58,154 +58,48 @@ export default function Devices() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState('success');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('installed_at');
-  const [sortOrder, setSortOrder] = useState('desc');
+  const [form, setForm] = useState<DeviceFormData>({ device_uid: '', device_name: '', inspection_site_id: '', status: 'ACTIVE', firmware_version: '1.0.0' });
 
-  // Map Modal State
-  const [showMapModal, setShowMapModal] = useState(false);
-  const [mapTargetDevice, setMapTargetDevice] = useState<any>(null);
+  const openCreateModal = () => {
+    setIsEditing(false);
+    setSelectedDevice(null);
+    setForm({ device_uid: '', device_name: '', inspection_site_id: '', status: 'ACTIVE', firmware_version: '1.0.0' });
+    setShowModal(true);
+  };
 
-  const [form, setForm] = useState({
-    site_id: '',
-    device_uid: '',
-    firmware_version: '',
-    status: 'ACTIVE'
-  });
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  useEffect(() => {
-    filterAndSortDevices();
-  }, [devices, searchTerm, sortBy, sortOrder]);
-
-  const filterAndSortDevices = () => {
-    let result = [...devices];
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(d =>
-        d.device_uid?.toLowerCase().includes(term) ||
-        d.monitoring_sites?.site_name?.toLowerCase().includes(term) ||
-        d.firmware_version?.toLowerCase().includes(term) ||
-        d.status?.toLowerCase().includes(term)
-      );
-    }
-
-    result.sort((a, b) => {
-      let aVal = a[sortBy] || '';
-      let bVal = b[sortBy] || '';
-      
-      if (sortBy === 'site_name') {
-        aVal = a.monitoring_sites?.site_name || '';
-        bVal = b.monitoring_sites?.site_name || '';
-      }
-      
-      if (typeof aVal === 'string') {
-        aVal = aVal.toLowerCase();
-        bVal = bVal.toLowerCase();
-      }
-      
-      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
-      return 0;
+  const openEditModal = (device: Device) => {
+    setIsEditing(true);
+    setSelectedDevice(device);
+    setForm({
+      device_uid: device.device_uid || '',
+      device_name: device.device_name || '',
+      inspection_site_id: device.inspection_site_id ? String(device.inspection_site_id) : '',
+      status: device.status || 'ACTIVE',
+      firmware_version: device.firmware_version || '1.0.0'
     });
-
-    setFilteredDevices(result);
+    setShowModal(true);
   };
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [devicesRes, sitesRes] = await Promise.all([
-        supabase
-          .from('devices')
-          .select(`
-            *,
-            monitoring_sites (
-              id,
-              site_name,
-              site_code,
-              current_latitude,
-              current_longitude,
-              site_owners (
-                id,
-                owner_name
-              )
-            )
-          `)
-          .order('installed_at', { ascending: false }),
-        supabase
-          .from('monitoring_sites')
-          .select(`
-            id, 
-            site_name, 
-            site_code,
-            site_owners (
-              id,
-              owner_name
-            )
-          `)
-      ]);
-
-      if (devicesRes.error) {
-        console.error('Error fetching devices:', devicesRes.error);
-        setToastMessage('Failed to fetch devices: ' + devicesRes.error.message);
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      setDevices(devicesRes.data || []);
-      setSites(sitesRes.data || []);
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setToastMessage('An unexpected error occurred');
-      setToastColor('danger');
-      setShowToast(true);
-    } finally {
-      setLoading(false);
+  const handleSaveDevice = async () => {
+    if (!form.device_uid.trim()) {
+      setToastMessage('Device UID is required'); setToastColor('danger'); setShowToast(true); return;
     }
-  };
-
-  const handleCreateDevice = async () => {
     try {
-      if (!form.device_uid) {
-        setToastMessage('Please enter Device UID');
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      const { error } = await supabase.from('devices').insert([{
-        device_uid: form.device_uid,
-        site_id: form.site_id ? parseInt(form.site_id) : null,
-        status: form.status || 'ACTIVE',
-        firmware_version: form.firmware_version || '1.0.0',
-        installed_at: new Date().toISOString()
-      }]);
-
-      if (error) {
-        console.error('Error creating device:', error);
-        setToastMessage('Error creating device: ' + error.message);
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      setToastMessage('Device created successfully');
-      setToastColor('success');
-      setShowToast(true);
-      setShowModal(false);
-      setForm({ device_uid: '', site_id: '', firmware_version: '', status: 'ACTIVE' });
-      fetchData();
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setToastMessage('An unexpected error occurred');
-      setToastColor('danger');
-      setShowToast(true);
+      const payload = {
+        device_uid: form.device_uid.trim().toUpperCase(),
+        device_name: form.device_name ? form.device_name.trim().toUpperCase() : null,
+        inspection_site_id: form.inspection_site_id ? Number(form.inspection_site_id) : null,
+        status: form.status,
+        firmware_version: form.firmware_version ? form.firmware_version.trim() : '1.0.0',
+      };
+      const query = isEditing && selectedDevice
+        ? supabase.from('devices').update(payload).eq('id', selectedDevice.id)
+        : supabase.from('devices').insert([{ ...payload, installed_at: new Date().toISOString() }]);
+      const { error } = await query;
+      if (error) throw error;
+      setToastMessage('Device saved successfully!'); setToastColor('success'); setShowToast(true); setShowModal(false); refresh();
+    } catch (err: any) {
+      setToastMessage('Failed to save device: ' + (err.message || 'Unknown error')); setToastColor('danger'); setShowToast(true);
     }
   };
 
