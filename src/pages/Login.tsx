@@ -11,7 +11,7 @@ import {
   IonToast,
   IonIcon
 } from '@ionic/react';
-import { lockClosedOutline, mailOutline, logInOutline } from 'ionicons/icons';
+import { lockClosedOutline, mailOutline, logInOutline, checkmarkCircleOutline, alertCircleOutline } from 'ionicons/icons';
 import { supabase } from '../services/supabase';
 
 export default function Login() {
@@ -20,11 +20,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [toastColor, setToastColor] = useState<'danger' | 'success'>('danger');
 
   const handleLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
     if (!email || !password) {
+      setToastColor('danger');
       setToastMessage('Please enter both email and password.');
       setShowToast(true);
       return;
@@ -39,6 +41,7 @@ export default function Login() {
       });
 
       if (error) {
+        setToastColor('danger');
         setToastMessage(error.message);
         setShowToast(true);
         setLoading(false);
@@ -59,6 +62,7 @@ export default function Login() {
 
         const role = profile?.role?.toLowerCase() || '';
         if (role && role !== 'menro_admin' && !role.includes('admin')) {
+          setToastColor('danger');
           setToastMessage('Access restricted to MENRO Admin accounts only.');
           setShowToast(true);
           await supabase.auth.signOut();
@@ -66,10 +70,17 @@ export default function Login() {
           return;
         }
 
-        window.location.href = '/dashboard';
+        setToastColor('success');
+        setToastMessage('Login successful! Welcome back.');
+        setShowToast(true);
+
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 800);
       }
     } catch (err: any) {
       console.error('Login error:', err);
+      setToastColor('danger');
       setToastMessage(err.message || 'An unexpected login error occurred.');
       setShowToast(true);
       setLoading(false);
@@ -136,9 +147,10 @@ export default function Login() {
           isOpen={showToast}
           onDidDismiss={() => setShowToast(false)}
           message={toastMessage}
-          duration={5000}
-          color="danger"
+          duration={3000}
+          color={toastColor}
           position="top"
+          icon={toastColor === 'success' ? checkmarkCircleOutline : alertCircleOutline}
         />
       </IonContent>
     </IonPage>
