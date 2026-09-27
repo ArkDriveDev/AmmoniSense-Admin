@@ -96,47 +96,61 @@ export function useSiteAnalytics() {
       if (sitesErr) throw sitesErr;
 
       // 2. Fetch summary metrics from inspection_site_summary
+      const summaryMap = new Map<number, InspectionSiteSummary>();
       try {
-        const { data: oData } = await supabase.from('site_owners').select('*');
-        if (oData) ownersData = oData;
-      } catch (e) {
-        console.warn('Could not fetch site_owners, using default owners mapping:', e);
+        const { data: sumData } = await supabase
+          .from('inspection_site_summary')
+          .select('*');
+
+        if (sumData) {
+          sumData.forEach((s: InspectionSiteSummary) => {
+            summaryMap.set(s.inspection_site_id, s);
+          });
+        }
+      } catch (err) {
+        console.warn('Could not fetch inspection_site_summary:', err);
       }
 
       // 3. Fetch devices
-      let devicesData: any[] = [];
+      let devicesData: Device[] = [];
       try {
         const { data: dData } = await supabase.from('devices').select('*');
         if (dData) devicesData = dData;
-      } catch (e) {
-        console.warn('Could not fetch devices:', e);
+      } catch (err) {
+        console.warn('Could not fetch devices:', err);
       }
 
-      // 4. Fetch telemetry sensor readings for the last 14 days
-      let sensorData: any[] = [];
+      // 4. Fetch inspection_tags for the last 14 days
+      let tagsData: InspectionTag[] = [];
       try {
         const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
-        const { data: sData } = await supabase
-          .from('sensor_data')
+        const { data: tData } = await supabase
+          .from('inspection_tags')
           .select('*')
           .gte('created_at', fourteenDaysAgo)
           .order('created_at', { ascending: false });
 
-        if (sData) sensorData = sData;
-      } catch (e) {
-        console.warn('Could not fetch sensor_data:', e);
+        if (tData) tagsData = tData;
+      } catch (err) {
+        console.warn('Could not fetch inspection_tags:', err);
+      }
+
+      // 5. Fetch total schedule count
+      let totalSchedules = 0;
+      try {
+        const { count } = await supabase
+          .from('inspection_schedules')
+          .select('id', { count: 'exact', head: true });
+        totalSchedules = count || 0;
+      } catch (err) {
+        console.warn('Could not count inspection_schedules:', err);
       }
 
       const sevenDaysAgoTime = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      const allReadings = sensorData;
+      const allTags = tagsData;
       const allDevices = devicesData;
-      const allOwners = ownersData;
 
-      // Map site analytics in JS (failsafe & resilient)
-      const processedSites: SiteAnalyticsData[] = (sitesData || []).map((site: any) => {
-        // Match site owner
-        const owner = allOwners.find((o: any) => o.id === site.owner_id || o.id === site.client_id);
-        const ownerName = owner?.owner_name || owner?.full_name || site.owner_name || 'Unassigned';
+      const processedSites: SiteAnalyticsData[] = (sitesData || []).map((site: InspectionSite) => {
 
         // Match devices
         const siteDevices = allDevices.filter((d: any) => d.site_id === site.id);
