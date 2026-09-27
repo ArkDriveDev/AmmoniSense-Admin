@@ -511,10 +511,17 @@ export default function SensorData() {
 
                           {t.notes && (
                             <div style={{ fontStyle: 'italic', color: '#64748b' }}>
+                              <b>Notes:</b> {t.notes}
+                            </div>
+                          )}
+
+                          <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                            Recorded: {new Date(t.created_at).toLocaleString()}
+                          </div>
                         </div>
                       </IonCardContent>
 
-                      {l.photo_url && (
+                      {(t.photo_url || t.photo_thumbnail_url) && (
                         <div style={{ padding: '0 16px 14px 16px' }}>
                           <IonButton
                             expand="block"
@@ -522,11 +529,11 @@ export default function SensorData() {
                             size="small"
                             style={{ '--color': '#1a365d', '--border-color': '#1a365d' }}
                             onClick={() => {
-                              setSelectedPhoto(l);
+                              setSelectedPhoto(t);
                               setShowPhotoModal(true);
                             }}
                           >
-                            <IonIcon icon={eyeOutline} slot="start" /> View Stamped Photo EXIF
+                            <IonIcon icon={eyeOutline} slot="start" /> View Photo & Metadata
                           </IonButton>
                         </div>
                       )}
@@ -538,12 +545,12 @@ export default function SensorData() {
           </IonGrid>
         )}
 
-        {/* Stamped Photo Modal Viewer */}
+        {/* Stamped Photo Modal */}
         <IonModal isOpen={showPhotoModal} onDidDismiss={() => setShowPhotoModal(false)}>
           <IonHeader>
             <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
               <IonTitle style={{ fontSize: '16px', fontWeight: 'bold' }}>
-                Inspection EXIF Photo Details
+                Inspection Stamped Photo & Metadata
               </IonTitle>
               <IonButtons slot="end">
                 <IonButton onClick={() => setShowPhotoModal(false)}>Close</IonButton>
@@ -556,8 +563,8 @@ export default function SensorData() {
               <div style={{ maxWidth: '650px', margin: '0 auto' }}>
                 <div style={{ width: '100%', borderRadius: '12px', overflow: 'hidden', backgroundColor: '#0f172a', marginBottom: '16px', border: '1px solid #cbd5e1' }}>
                   <img
-                    src={selectedPhoto.photo_url}
-                    alt="Inspection EXIF Stamped"
+                    src={selectedPhoto.photo_url || selectedPhoto.photo_thumbnail_url || ''}
+                    alt={selectedPhoto.tag_name}
                     style={{ width: '100%', maxHeight: '450px', objectFit: 'contain' }}
                   />
                 </div>
@@ -565,15 +572,17 @@ export default function SensorData() {
                 <IonCard style={{ margin: '0 0 16px 0', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
                   <IonCardContent>
                     <h4 style={{ margin: '0 0 12px 0', fontWeight: 'bold', color: '#1a365d' }}>
-                      Embedded EXIF Metadata & Reading Summary
+                      {selectedPhoto.tag_name} Inspection Details
                     </h4>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px', color: '#334155' }}>
-                      <div><b>Ammonia Level:</b> {selectedPhoto.ammonia} PPM</div>
-                      <div><b>Status:</b> {selectedPhoto.status || 'Normal'}</div>
+                      <div><b>Ammonia Level:</b> {selectedPhoto.ammonia?.toFixed(1)} PPM</div>
+                      <div><b>Status:</b> {selectedPhoto.status || 'NORMAL'}</div>
+                      <div><b>Inspection Site:</b> {selectedPhoto.site_name || 'N/A'}</div>
+                      <div><b>Schedule:</b> {selectedPhoto.schedule_name || 'N/A'}</div>
                       <div><b>Latitude:</b> {selectedPhoto.latitude?.toFixed(6) || 'N/A'}</div>
                       <div><b>Longitude:</b> {selectedPhoto.longitude?.toFixed(6) || 'N/A'}</div>
-                      <div><b>Captured At:</b> {new Date(selectedPhoto.created_at || selectedPhoto.submitted_at).toLocaleString()}</div>
-                      <div><b>Device UID:</b> {selectedPhoto.device_uid}</div>
+                      <div><b>Device UID:</b> {selectedPhoto.device_uid || 'N/A'}</div>
+                      <div><b>Captured At:</b> {new Date(selectedPhoto.created_at).toLocaleString()}</div>
                     </div>
                   </IonCardContent>
                 </IonCard>
@@ -581,6 +590,15 @@ export default function SensorData() {
             )}
           </IonContent>
         </IonModal>
+
+        <IonToast
+          isOpen={syncToast.isOpen}
+          onDidDismiss={dismissSyncToast}
+          message={syncToast.message}
+          duration={syncToast.duration}
+          color={syncToast.color}
+          position="bottom"
+        />
       </IonContent>
     </IonPage>
   );
