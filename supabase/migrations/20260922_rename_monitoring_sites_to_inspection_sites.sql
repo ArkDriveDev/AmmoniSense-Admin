@@ -103,3 +103,7 @@ CREATE POLICY "Inspector can insert inspection_sites"
 CREATE POLICY "Inspector can update inspection_sites"
   ON public.inspection_sites FOR UPDATE
   USING (auth.uid() IS NOT NULL);
+
+-- 7. BACKWARD COMPATIBLE VIEW
+CREATE OR REPLACE VIEW public.monitoring_sites AS
+  SELECT * FROM public.inspection_sites;
