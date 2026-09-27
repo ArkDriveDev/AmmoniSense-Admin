@@ -138,6 +138,10 @@ export default function AppRouter() {
       <Route exact path="/livestock">
         <Redirect to="/inspection-sites" />
       </Route>
+
+      <Route exact path="/inspection-tags">
+        <Redirect to="/sensor-data" />
+      </Route>
     </Switch>
   );
 }
