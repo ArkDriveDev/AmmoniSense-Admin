@@ -628,3 +628,38 @@ export default function AdminInspectionSites() {
               type="number"
               value={form.area_size_hectares}
               onIonInput={e => setForm({ ...form, area_size_hectares: e.detail.value || '' })}
+              style={{ marginBottom: '14px' }}
+            />
+            <IonTextarea
+              label="OBSERVATION NOTES"
+              labelPlacement="floating"
+              value={form.notes}
+              autocapitalize="characters"
+              onIonInput={e => setForm({ ...form, notes: (e.detail.value || '').toUpperCase() })}
+              rows={3}
+              style={{ textTransform: 'uppercase', marginBottom: '16px' }}
+            />
+            <IonItem lines="none" style={{ '--background': '#f8fafc', borderRadius: '8px', marginBottom: '16px' }}>
+              <IonLabel>Active Facility Status</IonLabel>
+              <IonToggle
+                checked={form.is_active}
+                onIonChange={e => setForm({ ...form, is_active: e.detail.checked })}
+              />
+            </IonItem>
+            <IonButton expand="block" onClick={() => setShowUpdateConfirm(true)} style={{ '--background': '#1a365d' }}>
+              UPDATE INSPECTION SITE
+            </IonButton>
+          </IonContent>
+        </IonModal>
+
+        {/* Map Modal for Site Spatial Inspection */}
+        {mapTarget && (
+          <MapViewerModal
+            isOpen={showMapModal}
+            onDismiss={() => setShowMapModal(false)}
+            title={`${mapTarget.site_name} Location`}
+            siteName={mapTarget.site_name}
+            latitude={mapTarget.current_latitude || 8.3697}
+            longitude={mapTarget.current_longitude || 124.8640}
+          />
+        )}
