@@ -68,3 +68,11 @@ export default function DeviceModal({ isOpen, onDismiss, isEditing, form, setFor
           value={form.firmware_version} onIonInput={e => setForm({ ...form, firmware_version: e.detail.value || '' })}
           style={{ marginBottom: '18px' }}
         />
+
+        <IonButton expand="block" onClick={onSave} style={{ '--background': '#1a365d' }}>
+          {isEditing ? 'SAVE ASSIGNMENT & DEVICE' : 'REGISTER DEVICE'}
+        </IonButton>
+      </IonContent>
+    </IonModal>
+  );
+}
