@@ -418,3 +418,38 @@ export default function AdminInspectionSites() {
 
                       {hasCritical && (
                         <span style={{ fontSize: '11px', color: '#dc2626', backgroundColor: '#fee2e2', padding: '3px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
+                          <IonIcon icon={warningOutline} />
+                          {site.critical_readings} Critical Readings
+                        </span>
+                      )}
+
+                      {site.last_inspection_at && (
+                        <span style={{ fontSize: '11px', color: '#64748b', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          Last inspected: {new Date(site.last_inspection_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </IonLabel>
+
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px', justifyContent: 'flex-end' }}>
+                      <IonButton
+                        size="small"
+                        fill="outline"
+                        color="secondary"
+                        onClick={() => {
+                          setMapTarget(site);
+                          setShowMapModal(true);
+                        }}
+                      >
+                        <IonIcon icon={locationOutline} slot="start" /> Map
+                      </IonButton>
+                      <IonButton size="small" fill="clear" color="primary" onClick={() => openEditModal(site)}>
+                        <IonIcon icon={createOutline} />
+                      </IonButton>
+                      <IonButton size="small" fill="clear" color="danger" onClick={() => openDeleteAlert(site)}>
+                        <IonIcon icon={trashOutline} />
+                      </IonButton>
+                    </div>
+                  </div>
+                </IonItem>
