@@ -67,3 +67,39 @@ export function getSiteTypeMeta(siteType?: string): SiteTypeMeta {
       borderColor: '#BAE6FD',
     };
   }
+
+  return {
+    icon: pricetagOutline,
+    label: siteType || 'Inspection Site',
+    badgeBg: '#EBF3FA',
+    badgeColor: '#1D5D9B',
+    borderColor: '#BFDBFE',
+  };
+}
+
+export interface SiteMapPinMeta {
+  emoji: string;
+  pinColor: string;
+  fillColor: string;
+  label: string;
+}
+
+export function getSiteMapPinMeta(siteType?: string): SiteMapPinMeta {
+  const norm = (siteType || '').trim().toLowerCase();
+
+  if (norm.includes('poultry')) {
+    return {
+      emoji: '🐔',
+      pinColor: '#D97706',
+      fillColor: '#FEF3C7',
+      label: 'Poultry Farm',
+    };
+  }
+
+  if (norm.includes('piggery') || norm.includes('pig') || norm.includes('swine')) {
+    return {
+      emoji: '🐷',
+      pinColor: '#DB2777',
+      fillColor: '#FCE7F3',
+      label: 'Piggery Farm',
+    };
