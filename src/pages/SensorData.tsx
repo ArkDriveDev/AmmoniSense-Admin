@@ -206,39 +206,55 @@ export default function SensorData() {
 
     if (deviceFilter !== 'all') {
       result = result.filter(t => t.device_uid === deviceFilter);
+    }
+
+    if (statusFilter !== 'all') {
+      result = result.filter(t => (t.status || '').toUpperCase() === statusFilter.toUpperCase());
+    }
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      result = result.filter(l =>
-        l.device_uid?.toLowerCase().includes(term) ||
-        l.status?.toLowerCase().includes(term) ||
-        l.ammonia?.toString().includes(term)
+      result = result.filter(t =>
+        t.tag_name?.toLowerCase().includes(term) ||
+        t.site_name?.toLowerCase().includes(term) ||
+        t.site_code?.toLowerCase().includes(term) ||
+        t.device_uid?.toLowerCase().includes(term) ||
+        t.schedule_name?.toLowerCase().includes(term) ||
+        t.status?.toLowerCase().includes(term) ||
+        t.notes?.toLowerCase().includes(term)
       );
     }
 
-    setFilteredLogs(result);
-  };
+    setFilteredTags(result);
+  }, [tags, searchTerm, siteFilter, deviceFilter, statusFilter]);
 
   const handleRefresh = async (event: CustomEvent) => {
-    await fetchLogs();
+    await fetchTags();
     event.detail.complete();
   };
 
-  // Convert sensor records into SpatialPolygonMap markers
-  const mapMarkers: SensorReadingMarker[] = filteredLogs
-    .filter(l => l.latitude && l.longitude)
-    .map(l => ({
-      id: l.id,
-      latitude: l.latitude,
-      longitude: l.longitude,
-      ammonia: l.ammonia || 0,
-      device_uid: l.device_uid,
-      created_at: l.created_at || l.submitted_at,
-      photo_url: l.photo_url || undefined,
-      status: l.status,
+  // Convert inspection tags to map markers
+  const mapMarkers: SensorReadingMarker[] = filteredTags
+    .filter(t => t.latitude != null && t.longitude != null && !isNaN(Number(t.latitude)) && !isNaN(Number(t.longitude)) && Number(t.latitude) !== 0)
+    .map(t => ({
+      id: t.tag_id,
+      latitude: Number(t.latitude),
+      longitude: Number(t.longitude),
+      ammonia: Number(t.ammonia) || 0,
+      device_uid: t.device_uid || t.tag_name,
+      created_at: t.created_at,
+      photo_url: t.photo_url || t.photo_thumbnail_url || undefined,
+      status: t.status || undefined,
+      site_name: t.site_name || undefined,
     }));
 
   const activeSiteObj = sites.find(s => s.id === Number(siteFilter));
 
+  const getStatusBadgeColor = (status: string | null, ammonia: number | null) => {
+    const s = (status || '').toUpperCase();
+    if (s === 'CRITICAL' || (ammonia !== null && ammonia > 50)) return 'danger';
+    if (s === 'HIGH' || (ammonia !== null && ammonia > 35)) return 'warning';
+    if (s === 'WARNING' || (ammonia !== null && ammonia > 25)) return 'warning';
   return (
     <IonPage>
       <IonHeader>
