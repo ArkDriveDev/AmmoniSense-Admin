@@ -104,16 +104,22 @@ export default function Notifications() {
           });
           setAlerts(formatted);
         } else {
+          setAlerts([]);
+        }
       }
     } catch (err) {
-      console.error('Unexpected error fetching notifications:', err);
+      console.error('Error fetching notifications:', err);
       setAlerts([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filterAlerts = () => {
+  useEffect(() => {
+    fetchAlerts();
+  }, [fetchAlerts]);
+
+  useEffect(() => {
     let result = [...alerts];
 
     if (filterSeverity !== 'all') {
@@ -123,14 +129,16 @@ export default function Notifications() {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(a =>
+        a.tag_name?.toLowerCase().includes(term) ||
         a.device_uid?.toLowerCase().includes(term) ||
+        a.site_name?.toLowerCase().includes(term) ||
         a.severity?.toLowerCase().includes(term) ||
         a.ammonia?.toString().includes(term)
       );
     }
 
     setFilteredAlerts(result);
-  };
+  }, [alerts, searchTerm, filterSeverity]);
 
   const markAsRead = (id: number) => {
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, is_read: true } : a));
@@ -140,26 +148,37 @@ export default function Notifications() {
     setAlerts(prev => prev.map(a => ({ ...a, is_read: true })));
   };
 
+  const getBadgeColor = (severity: string) => {
+    switch (severity) {
+      case 'CRITICAL': return 'danger';
+      case 'HIGH': return 'warning';
+      case 'WARNING': return 'warning';
+      default: return 'medium';
+    }
+  };
+
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-          <IonTitle style={{ fontWeight: 'bold' }}>ENVIRONMENTAL ALERTS</IonTitle>
+          <IonTitle style={{ fontWeight: 'bold' }}>ENVIRONMENTAL ALERTS & CRITICAL READINGS</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={markAllAsRead}>MARK ALL READ</IonButton>
-            <IonButton onClick={fetchAlerts}>
+            <IonButton onClick={() => triggerSync(fetchAlerts)}>
               <IonIcon icon={refreshOutline} />
             </IonButton>
           </IonButtons>
         </IonToolbar>
+
         <IonToolbar style={{ '--background': '#f8fafc' }}>
           <IonSearchbar
-            placeholder="SEARCH ALERTS OR DEVICE..."
+            placeholder="SEARCH ALERTS, TAGS, DEVICES, SITES..."
             value={searchTerm}
-            onIonChange={(e) => setSearchTerm(e.detail.value || '')}
+            onIonInput={(e) => setSearchTerm(e.detail.value || '')}
             animated
           />
         </IonToolbar>
+
         <IonToolbar style={{ '--background': '#ffffff' }}>
           <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap' }}>
             <IonButton 
@@ -171,20 +190,22 @@ export default function Notifications() {
             </IonButton>
             <IonButton 
               size="small" 
-              fill={filterSeverity === 'SEVERE' ? 'solid' : 'outline'}
+              fill={filterSeverity === 'CRITICAL' ? 'solid' : 'outline'}
               color="danger"
-              onClick={() => setFilterSeverity('SEVERE')}
+              onClick={() => setFilterSeverity('CRITICAL')}
             >
-              {"SEVERE (>50 PPM)"}
+              {"CRITICAL (>50 PPM)"}
             </IonButton>
             <IonButton 
               size="small" 
-              fill={filterSeverity === 'MODERATE' ? 'solid' : 'outline'}
+              fill={filterSeverity === 'HIGH' ? 'solid' : 'outline'}
               color="warning"
-              onClick={() => setFilterSeverity('MODERATE')}
+              onClick={() => setFilterSeverity('HIGH')}
             >
-              {"MODERATE (25-50 PPM)"}
+              {"HIGH (35-50 PPM)"}
             </IonButton>
+            <IonButton 
+              size="small" 
           </div>
         </IonToolbar>
       </IonHeader>
