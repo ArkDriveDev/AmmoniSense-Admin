@@ -103,73 +103,25 @@ export default function Devices() {
     }
   };
 
-  const handleEditDevice = async () => {
-    try {
-      if (!form.device_uid) {
-        setToastMessage('Please enter Device UID');
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      const { error } = await supabase
-        .from('devices')
-        .update({
-          device_uid: form.device_uid,
-          site_id: form.site_id ? parseInt(form.site_id) : null,
-          status: form.status || 'ACTIVE',
-          firmware_version: form.firmware_version || '1.0.0'
-        })
-        .eq('id', selectedDevice.id);
-
-      if (error) {
-        console.error('Error updating device:', error);
-        setToastMessage('Error updating device: ' + error.message);
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      setToastMessage('Device updated successfully');
-      setToastColor('success');
-      setShowToast(true);
-      setShowUpdateConfirm(false);
-      setShowEditModal(false);
-      setSelectedDevice(null);
-      fetchData();
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setToastMessage('An unexpected error occurred');
-      setToastColor('danger');
-      setShowToast(true);
+  const filteredDevices = devices.filter(d => {
+    if (statusFilter !== 'all' && (d.status || '').toUpperCase() !== statusFilter.toUpperCase()) {
+      return false;
     }
-  };
-
-  const handleDeleteDevice = async () => {
-    try {
-      const { error } = await supabase.from('devices').delete().eq('id', selectedDevice.id);
-
-      if (error) {
-        console.error('Error deleting device:', error);
-        setToastMessage('Error deleting device: ' + error.message);
-        setToastColor('danger');
-        setShowToast(true);
-        return;
-      }
-
-      setToastMessage('Device deleted successfully');
-      setToastColor('success');
-      setShowToast(true);
-      setShowDeleteAlert(false);
-      setSelectedDevice(null);
-      fetchData();
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setToastMessage('An unexpected error occurred');
-      setToastColor('danger');
-      setShowToast(true);
-    }
-  };
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      d.device_uid?.toLowerCase().includes(term) ||
+      d.device_name?.toLowerCase().includes(term) ||
+      d.firmware_version?.toLowerCase().includes(term) ||
+      d.inspection_sites?.site_name?.toLowerCase().includes(term)
+    );
+  }).sort((a, b) => {
+    const aVal = String(a[sortBy as keyof Device] ?? '').toLowerCase();
+    const bVal = String(b[sortBy as keyof Device] ?? '').toLowerCase();
+    if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   const handleSort = (field: string) => {
     if (sortBy === field) {
@@ -180,7 +132,7 @@ export default function Devices() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null | undefined) => {
     switch (status?.toUpperCase()) {
       case 'ACTIVE': return 'success';
       case 'INACTIVE': return 'danger';
@@ -194,23 +146,33 @@ export default function Devices() {
     <IonPage>
       <IonHeader>
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-          <IonTitle style={{ fontWeight: 'bold' }}>IOT DEVICES MANAGER</IonTitle>
+          <IonTitle style={{ fontWeight: 'bold' }}>REGISTERED BLE & IOT SENSORS</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={() => setShowModal(true)}>
-              <IonIcon icon={addOutline} /> ADD DEVICE
+            <IonButton onClick={openCreateModal}>
+              <IonIcon icon={addOutline} slot="start" /> REGISTER DEVICE
+            </IonButton>
+            <IonButton onClick={() => triggerSync(refresh)}>
+              <IonIcon icon={refreshOutline} />
             </IonButton>
           </IonButtons>
         </IonToolbar>
+
         <IonToolbar style={{ '--background': '#f8fafc' }}>
           <IonSearchbar
-            placeholder="SEARCH DEVICES OR FIRMWARE..."
+            placeholder="SEARCH SENSOR UID, NAME, SITE..."
             value={searchTerm}
-            onIonChange={(e) => setSearchTerm(e.detail.value || '')}
+            onIonInput={(e) => setSearchTerm(e.detail.value || '')}
             animated
           />
         </IonToolbar>
+
         <IonToolbar style={{ '--background': '#ffffff' }}>
-          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <IonSelect
+              value={statusFilter}
+              onIonChange={(e) => setStatusFilter(e.detail.value)}
+              interface="popover"
+              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
             <IonButton 
               size="small" 
               fill={sortBy === 'device_uid' ? 'solid' : 'outline'}
