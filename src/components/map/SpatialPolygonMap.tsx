@@ -411,6 +411,41 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
               width: 38px;
               height: 38px;
               border-radius: 50%;
+              border: 3px solid #8b5cf6;
+              box-shadow: 0 4px 12px rgba(139, 92, 246, 0.4);
+              background: #0f172a;
+              overflow: hidden;
+              cursor: pointer;
+            ">
+              <img src="${reading.photo_url}" style="width: 100%; height: 100%; object-fit: cover;" alt="Tag Photo" />
+              <span style="
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background: ${color};
+                color: #ffffff;
+                font-size: 8px;
+                font-weight: 800;
+                text-align: center;
+                line-height: 11px;
+              ">${Number(reading.ammonia || 0).toFixed(1)}</span>
+            </div>
+          `,
+          iconSize: [38, 38],
+          iconAnchor: [19, 19],
+        });
+      } else {
+        tagIcon = L.divIcon({
+          className: 'custom-reading-tag-marker',
+          html: `
+            <div style="
+              position: relative;
+              background: ${color};
+              color: #ffffff;
+              font-weight: 800;
+              font-size: 11px;
+              padding: 3px 8px;
 
       const popupContent = `
         <div style="font-family: system-ui, sans-serif; min-width: 170px; padding: 4px;">
