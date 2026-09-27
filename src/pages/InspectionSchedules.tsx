@@ -68,3 +68,38 @@ export default function InspectionSchedules() {
     schedule_name: '',
     scheduled_date: new Date().toISOString().split('T')[0],
     scheduled_time: '09:00:00',
+    notes: ''
+  });
+
+  const filteredSchedules = schedules.filter(s => {
+    if (statusFilter !== 'all' && s.status?.toUpperCase() !== statusFilter.toUpperCase()) {
+      return false;
+    }
+    if (siteFilter !== 'all' && s.inspection_site_id !== Number(siteFilter)) {
+      return false;
+    }
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      s.schedule_name?.toLowerCase().includes(term) ||
+      s.site_name?.toLowerCase().includes(term) ||
+      s.site_code?.toLowerCase().includes(term) ||
+      s.created_by_name?.toLowerCase().includes(term)
+    );
+  });
+
+  const handleCreate = async () => {
+    if (!form.inspection_site_id || !form.schedule_name || !form.scheduled_date) {
+      setToastMessage('Please fill in Site, Schedule Name, and Date');
+      setToastColor('danger');
+      setShowToast(true);
+      return;
+    }
+
+    try {
+      await createSchedule({
+        inspection_site_id: Number(form.inspection_site_id),
+        schedule_name: form.schedule_name.trim(),
+        scheduled_date: form.scheduled_date,
+        scheduled_time: form.scheduled_time || undefined,
+        notes: form.notes ? form.notes.trim() : undefined,
