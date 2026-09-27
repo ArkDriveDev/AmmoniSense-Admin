@@ -348,3 +348,38 @@ export default function AdminInspectionSites() {
         ) : filteredSites.length === 0 ? (
           <EmptyState
             title="NO INSPECTION SITES FOUND"
+            message={searchTerm || typeFilter !== 'all' ? 'TRY A DIFFERENT FILTER OR SEARCH TERM' : 'CLICK ADD INSPECTION SITE TO REGISTER A SITE'}
+          />
+        ) : (
+          <IonList style={{ background: 'transparent' }}>
+            {filteredSites.map((site) => {
+              const hasCritical = (site.critical_readings || 0) > 0;
+              const hasAvgAmmonia = site.avg_ammonia !== null && site.avg_ammonia !== undefined;
+
+              return (
+                <IonItem
+                  key={site.id}
+                  style={{
+                    '--background': '#ffffff',
+                    borderRadius: '12px',
+                    marginBottom: '12px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    borderLeft: `5px solid ${hasCritical ? '#dc2626' : site.is_active ? '#1a365d' : '#94a3b8'}`
+                  }}
+                >
+                  <IonLabel style={{ margin: '14px 0' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                      <h2 style={{ color: '#1a365d', fontWeight: 'bold', fontSize: '17px', margin: 0 }}>
+                        <IonIcon icon={businessOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                        {site.site_name}
+                      </h2>
+                      <IonBadge color="primary" style={{ fontSize: '11px' }}>
+                        {site.site_code}
+                      </IonBadge>
+                      <IonBadge color="secondary" style={{ fontSize: '11px' }}>
+                        {site.site_type || 'Unspecified'}
+                      </IonBadge>
+                      {!site.is_active && (
+                        <IonBadge color="medium" style={{ fontSize: '11px' }}>
+                          INACTIVE
+                        </IonBadge>
