@@ -11,50 +11,59 @@ import {
   IonButton,
   IonButtons,
   IonSearchbar,
-  IonIcon
+  IonIcon,
+  IonToast
 } from '@ionic/react';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../services/supabase';
-import { refreshOutline, alertCircleOutline } from 'ionicons/icons';
+import { refreshOutline, alertCircleOutline, businessOutline, hardwareChipOutline, pricetagOutline } from 'ionicons/icons';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { InspectionTagDetails, InspectionTag } from '../types/schema';
+import useSyncFeedback from '../hooks/useSyncFeedback';
+
+export interface AlertItem {
+  id: number;
+  tag_name: string;
+  device_uid: string | null;
+  site_name: string | null;
+  site_code: string | null;
+  schedule_name: string | null;
+  ammonia: number | null;
+  severity: 'CRITICAL' | 'HIGH' | 'WARNING';
+  created_at: string;
+  photo_url: string | null;
+  is_read: boolean;
+}
 
 export default function Notifications() {
-  const [alerts, setAlerts] = useState<any[]>([]);
-  const [filteredAlerts, setFilteredAlerts] = useState<any[]>([]);
+  const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [filteredAlerts, setFilteredAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSeverity, setFilterSeverity] = useState('all');
 
-  useEffect(() => {
-    fetchAlerts();
-  }, []);
-
-  useEffect(() => {
-    filterAlerts();
-  }, [alerts, searchTerm, filterSeverity]);
-
-  const fetchAlerts = async () => {
+  const fetchAlerts = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Query sensor_data for high NH3 readings / warnings / critical status
-      const { data: sensorAlerts, error: sensorErr } = await supabase
-        .from('sensor_data')
+      // 1. Query inspection_tag_details view or inspection_tags for warning/critical ammonia readings
+      const { data, error } = await supabase
+        .from('inspection_tag_details')
         .select('*')
-        .or('status.eq.warning,status.eq.critical,ammonia.gt.25')
+        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25')
         .order('created_at', { ascending: false })
         .limit(100);
 
-      if (!sensorErr && sensorAlerts && sensorAlerts.length > 0) {
-        const formatted = sensorAlerts.map(s => {
-          const isCritical = s.ammonia > 50 || s.status === 'critical';
+      if (!error && data) {
+        const formatted: AlertItem[] = data.map((t: InspectionTagDetails) => {
+          const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (t.ammonia || 0) > 50;
+          const isHigh = (t.status || '').toUpperCase() === 'HIGH' || ((t.ammonia || 0) > 35 && (t.ammonia || 0) <= 50);
           return {
-            id: s.id,
-            device_uid: s.device_uid,
-            ammonia: s.ammonia,
-            severity: isCritical ? 'SEVERE' : 'MODERATE',
-            created_at: s.created_at || s.submitted_at,
+            id: t.tag_id,
+            tag_name: t.tag_name,
+            device_uid: t.device_uid,
             is_read: false
           };
         });
