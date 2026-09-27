@@ -1,17 +1,13 @@
 import {
-  IonSplitPane,
-  IonMenu,
-  IonContent,
-  IonList,
-  IonItem,
   IonHeader,
   IonToolbar,
   IonTitle,
-  IonPage,
   IonIcon,
   IonLabel,
-  IonMenuButton,
+  IonItem,
+  IonList,
   IonButtons,
+  IonButton,
   IonAvatar,
   IonText
 } from '@ionic/react';
@@ -23,21 +19,34 @@ import {
   businessOutline,
   hardwareChipOutline,
   barChartOutline,
+  calendarOutline,
+  notificationsOutline,
   logOutOutline,
   personCircleOutline,
-  closeOutline,
   menuOutline
 } from 'ionicons/icons';
 import { useEffect, useState } from 'react';
 
-export default function AdminLayout({ children }: any) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const history = useHistory();
   const location = useLocation();
   const [userName, setUserName] = useState('MENRO Admin');
   const [userEmail, setUserEmail] = useState('');
 
+  // Responsive sidebar state: open by default on desktop, closed on mobile
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 992 : false);
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 992 : true);
+
   useEffect(() => {
     fetchUserProfile();
+
+    const handleResize = () => {
+      const mobile = window.innerWidth < 992;
+      setIsMobile(mobile);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const fetchUserProfile = async () => {
@@ -65,7 +74,18 @@ export default function AdminLayout({ children }: any) {
     }
   };
 
+  // Close sidebar menu whenever navigating to any page
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
+  const handleNavigate = (path: string) => {
+    setSidebarOpen(false);
+    history.push(path);
+  };
+
   const logout = async () => {
+    setSidebarOpen(false);
     await supabase.auth.signOut();
     history.push('/login');
   };
@@ -75,20 +95,12 @@ export default function AdminLayout({ children }: any) {
   };
 
   return (
-    <IonSplitPane contentId="main">
-      <IonMenu contentId="main" type="push" side="start">
-        <IonHeader>
-          <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-            <IonTitle style={{ fontSize: '16px', fontWeight: 'bold' }}>
-              MENRO ADMIN
-            </IonTitle>
-            <IonButtons slot="end">
-              <IonMenuButton autoHide={false}>
-                <IonIcon icon={closeOutline} />
-              </IonMenuButton>
-            </IonButtons>
-          </IonToolbar>
-        </IonHeader>
+    <div style={{
+      display: 'flex',
+      width: '100vw',
+      height: '100vh',
+      overflow: 'hidden',
+      position: 'relative',
 
         <IonContent>
           <div style={{ 
