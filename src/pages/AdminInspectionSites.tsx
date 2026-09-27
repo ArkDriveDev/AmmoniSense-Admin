@@ -138,3 +138,38 @@ export default function AdminInspectionSites() {
       setToastMessage('Inspection site registered successfully!');
       setToastColor('success');
       setShowToast(true);
+      setShowModal(false);
+      resetForm();
+      fetchInspectionSites();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Error creating inspection site:', err);
+      setToastMessage('Error creating Inspection Site: ' + message);
+      setToastColor('danger');
+      setShowToast(true);
+    }
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedSite || !form.site_name) return;
+
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const updatedBy = userData.user?.id || null;
+
+      const payload = {
+        site_code: form.site_code.trim().toUpperCase(),
+        site_name: form.site_name.trim().toUpperCase(),
+        site_type: form.site_type,
+        address: form.address ? form.address.trim().toUpperCase() : null,
+        current_latitude: form.current_latitude ? parseFloat(form.current_latitude) : null,
+        current_longitude: form.current_longitude ? parseFloat(form.current_longitude) : null,
+        area_size_hectares: form.area_size_hectares ? parseFloat(form.area_size_hectares) : null,
+        is_active: form.is_active,
+        notes: form.notes ? form.notes.trim().toUpperCase() : null,
+        updated_by: updatedBy,
+        updated_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from('inspection_sites')
