@@ -1,48 +1,65 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
+import { InspectionSite, InspectionSiteSummary, Device, InspectionTag } from '../types/schema';
 
 export interface SiteAnalyticsData {
   id: number;
   site_name: string;
   site_code?: string;
-  site_type: 'Piggery' | 'Ambient' | 'Industrial' | string;
+  site_type: string;
   address: string;
   latitude: number;
   longitude: number;
   area_size_hectares: number;
-  owner_name: string;
-  owner_contact?: string;
-  owner_email?: string;
-  
+  site_photo_url?: string | null;
+  is_active: boolean;
+  notes?: string | null;
+
+  // Aggregate metrics from inspection_site_summary
+  schedule_count: number;
+  tag_count: number;
+  photo_count: number;
+  avg_ammonia: number | null;
+  critical_readings: number;
+  last_inspection_at: string | null;
+
   // Latest reading info
   latest_ammonia: number | null;
   latest_temperature: number | null;
   latest_humidity: number | null;
+  latest_battery: number | null;
   last_reading_at: string | null;
-  alert_status: 'normal' | 'warning' | 'critical';
-  
+  alert_status: 'normal' | 'warning' | 'high' | 'critical';
+
   // Device & activity stats
   device_status: 'Online' | 'Offline';
   active_device_count: number;
   devices: {
     id: number;
     device_uid: string;
+    device_name?: string | null;
     status: string;
-    firmware_version?: string;
-    installed_at?: string;
+    firmware_version?: string | null;
+    battery_level?: number | null;
+    installed_at?: string | null;
+    last_ping_at?: string | null;
   }[];
-  
+
   reading_count_7days: number;
   trend_7days: { date: string; ammonia: number }[];
   recent_readings: {
     id: number;
+    tag_name: string;
     device_uid: string;
     ammonia: number;
     temperature: number;
     humidity: number;
+    battery: number;
     status: string;
     created_at: string;
-    photo_url?: string;
+    photo_url?: string | null;
+    photo_thumbnail_url?: string | null;
+    notes?: string | null;
   }[];
 }
 
@@ -51,6 +68,7 @@ export interface SiteGlobalStats {
   activeDevices: number;
   sitesWithAlerts: number;
   criticalAlerts: number;
+  totalSchedules: number;
 }
 
 export function useSiteAnalytics() {
@@ -60,6 +78,7 @@ export function useSiteAnalytics() {
     activeDevices: 0,
     sitesWithAlerts: 0,
     criticalAlerts: 0,
+    totalSchedules: 0,
   });
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,15 +87,15 @@ export function useSiteAnalytics() {
     setLoading(true);
     setError(null);
     try {
-      // 1. Fetch monitoring sites cleanly without nested PostgREST joins to prevent 400 FK errors
+      // 1. Fetch inspection sites
       const { data: sitesData, error: sitesErr } = await supabase
-        .from('monitoring_sites')
-        .select('*');
+        .from('inspection_sites')
+        .select('*')
+        .order('site_name');
 
       if (sitesErr) throw sitesErr;
 
-      // 2. Fetch site owners separately with fallback
-      let ownersData: any[] = [];
+      // 2. Fetch summary metrics from inspection_site_summary
       try {
         const { data: oData } = await supabase.from('site_owners').select('*');
         if (oData) ownersData = oData;
