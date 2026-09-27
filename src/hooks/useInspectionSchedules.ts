@@ -68,3 +68,38 @@ export function useInspectionSchedules() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const createSchedule = async (payload: {
+    inspection_site_id: number;
+    schedule_name: string;
+    scheduled_date: string;
+    scheduled_time?: string;
+    notes?: string;
+  }) => {
+    const { data: userData } = await supabase.auth.getUser();
+    const createdBy = userData.user?.id;
+
+    const { error: insertErr } = await supabase
+      .from('inspection_schedules')
+      .insert([{
+        ...payload,
+        status: 'SCHEDULED',
+        created_by: createdBy || null,
+      }]);
+
+    if (insertErr) throw insertErr;
+    await fetchSchedules();
+  };
+
+  const updateScheduleStatus = async (scheduleId: number, status: ScheduleStatus) => {
+    const updates: Partial<InspectionSchedule> = {
+      status,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (status === 'IN_PROGRESS') {
+      updates.started_at = new Date().toISOString();
+    } else if (status === 'COMPLETED') {
+      updates.completed_at = new Date().toISOString();
+    }
