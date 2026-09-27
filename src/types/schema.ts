@@ -138,3 +138,38 @@ export interface InspectionScheduleSummary {
   inspection_site_id: number;
   site_name: string;
   site_code: string;
+  tag_count: number;
+  photo_count: number;
+  avg_ammonia: number | null;
+  max_ammonia: number | null;
+  critical_readings: number;
+  created_by: string | null;
+  created_by_name: string | null;
+}
+
+// View: inspection_site_summary
+export interface InspectionSiteSummary {
+  inspection_site_id: number;
+  site_name: string;
+  site_code: string;
+  site_type?: string | null;
+  schedule_count: number;
+  tag_count: number;
+  photo_count: number;
+  avg_ammonia: number | null;
+  critical_readings: number;
+  last_inspection_at: string | null;
+}
+
+// View: inspection_tag_details
+export interface InspectionTagDetails {
+  tag_id: number;
+  tag_name: string;
+  inspection_site_id: number | null;
+  inspection_schedule_id: number | null;
+  sensor_data_id: number | null;
+  tag_latitude: number | null;
+  tag_longitude: number | null;
+  photo_url: string | null;
+  photo_thumbnail_url: string | null;
+  photo_storage_path?: string | null;
