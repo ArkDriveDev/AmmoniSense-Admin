@@ -16,28 +16,31 @@ import {
   IonCardContent,
   IonSearchbar,
   IonSelect,
-  IonSelectOption
+  IonSelectOption,
+  IonToast
 } from '@ionic/react';
 import {
   businessOutline,
   hardwareChipOutline,
   alertCircleOutline,
-  warningOutline,
   refreshOutline,
   funnelOutline,
   swapVerticalOutline,
   mapOutline,
-  searchOutline
+  searchOutline,
+  calendarOutline
 } from 'ionicons/icons';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useSiteAnalytics, SiteAnalyticsData } from '../hooks/useSiteAnalytics';
 import { StatsCard } from '../components/charts';
 import SiteAnalyticsCard from '../components/dashboard/SiteAnalyticsCard';
 import SpatialPolygonMap, { SensorReadingMarker } from '../components/map/SpatialPolygonMap';
 import { supabase } from '../services/supabase';
+import useSyncFeedback from '../hooks/useSyncFeedback';
 
 export default function Dashboard() {
   const { sites, globalStats, loading, refresh } = useSiteAnalytics();
+  const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -46,28 +49,36 @@ export default function Dashboard() {
   const [mapReadings, setMapReadings] = useState<SensorReadingMarker[]>([]);
   const [showGlobalMap, setShowGlobalMap] = useState<boolean>(false);
 
-  useEffect(() => {
-    fetchMapReadings();
-  }, []);
-
-  const fetchMapReadings = async () => {
+  const fetchMapReadings = useCallback(async () => {
     try {
-      const { data } = await supabase.from('sensor_data').select('*').order('created_at', { ascending: false }).limit(60);
+      const { data } = await supabase
+        .from('inspection_tags')
+        .select('*')
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(60);
+
       if (data) {
-        setMapReadings(data.filter((d) => d.latitude && d.longitude).map((d) => ({
+        setMapReadings(data.map((d) => ({
           id: d.id,
           latitude: d.latitude,
           longitude: d.longitude,
           ammonia: d.ammonia || 0,
-          device_uid: d.device_uid,
-          created_at: d.created_at || d.submitted_at,
+          device_uid: d.device_uid || d.tag_name,
+          created_at: d.created_at,
+          photo_url: d.photo_thumbnail_url || d.photo_url || undefined,
           status: d.status
         })));
       }
     } catch (err) {
       console.error('Error fetching map readings:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchMapReadings();
+  }, [fetchMapReadings]);
 
   const handleRefresh = async (event: CustomEvent) => {
     await refresh();
@@ -79,10 +90,17 @@ export default function Dashboard() {
     let result = [...sites];
     if (searchTerm.trim() !== '') {
       const term = searchTerm.toLowerCase();
-      result = result.filter((s) => s.site_name.toLowerCase().includes(term) || s.owner_name.toLowerCase().includes(term) || s.site_type.toLowerCase().includes(term) || s.address.toLowerCase().includes(term));
+      result = result.filter((s) =>
+        s.site_name.toLowerCase().includes(term) ||
+        (s.site_code && s.site_code.toLowerCase().includes(term)) ||
+        s.site_type.toLowerCase().includes(term) ||
+        s.address.toLowerCase().includes(term)
+      );
     }
-    if (selectedType !== 'all') result = result.filter((s) => s.site_type.toLowerCase() === selectedType.toLowerCase());
-    if (selectedStatus !== 'all') result = result.filter((s) => s.alert_status.toLowerCase() === selectedStatus.toLowerCase());
+    if (selectedType !== 'all') {
+      result = result.filter((s) => s.site_type.toLowerCase() === selectedType.toLowerCase());
+    }
+    if (selectedStatus !== 'all') {
 
     result.sort((a, b) => {
       if (sortBy === 'site_name') return a.site_name.localeCompare(b.site_name);
