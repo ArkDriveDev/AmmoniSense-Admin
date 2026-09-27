@@ -125,6 +125,41 @@ export default function SensorData() {
           sensor_data_id: null,
           tag_latitude: t.latitude,
           tag_longitude: t.longitude,
+          photo_url: t.photo_url,
+          photo_thumbnail_url: t.photo_thumbnail_url,
+          photo_storage_path: null,
+          photo_thumbnail_storage_path: null,
+          created_at: t.created_at,
+          notes: t.notes,
+          offline_temp_id: t.offline_temp_id,
+          created_by: t.created_by,
+          ammonia: t.ammonia,
+          temperature: t.temperature,
+          humidity: t.humidity,
+          battery: t.battery,
+          status: t.status,
+          reading_latitude: t.latitude,
+          reading_longitude: t.longitude,
+          reading_at: t.created_at,
+          device_uid: t.device_uid,
+          device_name: null,
+          schedule_name: t.inspection_schedules?.schedule_name || null,
+          scheduled_date: t.inspection_schedules?.scheduled_date || null,
+          site_name: t.inspection_sites?.site_name || null,
+          site_code: t.inspection_sites?.site_code || null,
+          created_by_name: null,
+          latitude: t.latitude,
+          longitude: t.longitude,
+          schedule_id: t.inspection_schedule_id,
+        }));
+
+        setTags(mapped);
+      } else {
+        const normalized: InspectionTagDetails[] = (data || []).map((t: any) => ({
+          ...t,
+          latitude: t.tag_latitude ?? t.reading_latitude ?? t.latitude,
+          longitude: t.tag_longitude ?? t.reading_longitude ?? t.longitude,
+          schedule_id: t.inspection_schedule_id ?? t.schedule_id,
     } catch (err) {
       console.error('Unexpected error:', err);
     } finally {
