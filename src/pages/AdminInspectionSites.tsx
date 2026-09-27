@@ -663,3 +663,38 @@ export default function AdminInspectionSites() {
             longitude={mapTarget.current_longitude || 124.8640}
           />
         )}
+
+        <ConfirmAlert
+          isOpen={showUpdateConfirm}
+          onClose={() => setShowUpdateConfirm(false)}
+          onConfirm={handleUpdate}
+          title="UPDATE INSPECTION SITE?"
+          message={`Are you sure you want to update "${selectedSite?.site_name}"?`}
+        />
+
+        <DeleteAlert
+          isOpen={showDeleteAlert}
+          onClose={() => setShowDeleteAlert(false)}
+          onConfirm={handleDelete}
+          title="DELETE INSPECTION SITE?"
+          message={`Are you sure you want to delete "${selectedSite?.site_name}"? This will also remove any related schedules and tags.`}
+          requireTypeConfirm={false}
+        />
+
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={4000}
+          color={toastColor}
+          position="bottom"
+        />
+
+        <IonToast
+          isOpen={syncToast.isOpen}
+          onDidDismiss={dismissSyncToast}
+          message={syncToast.message}
+          duration={syncToast.duration}
+          color={syncToast.color}
+          position="bottom"
+        />
