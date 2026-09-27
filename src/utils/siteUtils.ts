@@ -103,3 +103,38 @@ export function getSiteMapPinMeta(siteType?: string): SiteMapPinMeta {
       fillColor: '#FCE7F3',
       label: 'Piggery Farm',
     };
+  }
+
+  if (norm.includes('agri') || norm.includes('crop') || norm.includes('farm')) {
+    return {
+      emoji: '🌱',
+      pinColor: '#059669',
+      fillColor: '#D1FAE5',
+      label: 'Agricultural Zone',
+    };
+  }
+
+  if (norm.includes('indus') || norm.includes('factory') || norm.includes('facility')) {
+    return {
+      emoji: '🏭',
+      pinColor: '#4F46E5',
+      fillColor: '#EEF2FF',
+      label: 'Industrial Facility',
+    };
+  }
+
+  if (norm.includes('river') || norm.includes('water')) {
+    return {
+      emoji: '💧',
+      pinColor: '#0284C7',
+      fillColor: '#E0F2FE',
+      label: 'River / Waterway',
+    };
+  }
+
+  return {
+    emoji: '🏢',
+    pinColor: '#1D5D9B',
+    fillColor: '#EBF3FA',
+    label: siteType || 'Inspection Site',
+  };
