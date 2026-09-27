@@ -14,7 +14,9 @@ import {
   IonButtons,
   IonSelect,
   IonSelectOption,
-  IonToast
+  IonToast,
+  SearchbarCustomEvent,
+  SelectCustomEvent
 } from '@ionic/react';
 
 import { useState } from 'react';
@@ -22,86 +24,26 @@ import {
   hardwareChipOutline,
   arrowUpOutline,
   arrowDownOutline,
-  barChartOutline,
   businessOutline,
   refreshOutline,
   batteryChargingOutline,
   timeOutline,
-  wifiOutline,
-  addOutline,
-  createOutline
+  wifiOutline
 } from 'ionicons/icons';
-import { useHistory } from 'react-router-dom';
-import { supabase } from '../services/supabase';
 
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
-import DeviceModal, { DeviceFormData } from '../components/DeviceModal';
 import { useDevices } from '../hooks/useDevices';
-import { useInspectionSites } from '../hooks/useInspectionSites';
 import { Device } from '../types/schema';
 import useSyncFeedback from '../hooks/useSyncFeedback';
 
 export default function Devices() {
-  const history = useHistory();
   const { devices, loading, refresh } = useDevices();
-  const { sites } = useInspectionSites();
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('installed_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-
-  const [showModal, setShowModal] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastColor, setToastColor] = useState('success');
-  const [form, setForm] = useState<DeviceFormData>({ device_uid: '', device_name: '', inspection_site_id: '', status: 'ACTIVE', firmware_version: '1.0.0' });
-
-  const openCreateModal = () => {
-    setIsEditing(false);
-    setSelectedDevice(null);
-    setForm({ device_uid: '', device_name: '', inspection_site_id: '', status: 'ACTIVE', firmware_version: '1.0.0' });
-    setShowModal(true);
-  };
-
-  const openEditModal = (device: Device) => {
-    setIsEditing(true);
-    setSelectedDevice(device);
-    setForm({
-      device_uid: device.device_uid || '',
-      device_name: device.device_name || '',
-      inspection_site_id: device.inspection_site_id ? String(device.inspection_site_id) : '',
-      status: device.status || 'ACTIVE',
-      firmware_version: device.firmware_version || '1.0.0'
-    });
-    setShowModal(true);
-  };
-
-  const handleSaveDevice = async () => {
-    if (!form.device_uid.trim()) {
-      setToastMessage('Device UID is required'); setToastColor('danger'); setShowToast(true); return;
-    }
-    try {
-      const payload = {
-        device_uid: form.device_uid.trim().toUpperCase(),
-        device_name: form.device_name ? form.device_name.trim().toUpperCase() : null,
-        inspection_site_id: form.inspection_site_id ? Number(form.inspection_site_id) : null,
-        status: form.status,
-        firmware_version: form.firmware_version ? form.firmware_version.trim() : '1.0.0',
-      };
-      const query = isEditing && selectedDevice
-        ? supabase.from('devices').update(payload).eq('id', selectedDevice.id)
-        : supabase.from('devices').insert([{ ...payload, installed_at: new Date().toISOString() }]);
-      const { error } = await query;
-      if (error) throw error;
-      setToastMessage('Device saved successfully!'); setToastColor('success'); setShowToast(true); setShowModal(false); refresh();
-    } catch (err: any) {
-      setToastMessage('Failed to save device: ' + (err.message || 'Unknown error')); setToastColor('danger'); setShowToast(true);
-    }
-  };
 
   const filteredDevices = devices.filter(d => {
     if (statusFilter !== 'all' && (d.status || '').toUpperCase() !== statusFilter.toUpperCase()) {
@@ -148,9 +90,6 @@ export default function Devices() {
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
           <IonTitle style={{ fontWeight: 'bold' }}>REGISTERED BLE & IOT SENSORS</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={openCreateModal}>
-              <IonIcon icon={addOutline} slot="start" /> REGISTER DEVICE
-            </IonButton>
             <IonButton onClick={() => triggerSync(refresh)}>
               <IonIcon icon={refreshOutline} />
             </IonButton>
@@ -161,7 +100,7 @@ export default function Devices() {
           <IonSearchbar
             placeholder="SEARCH SENSOR UID, NAME, SITE..."
             value={searchTerm}
-            onIonInput={(e) => setSearchTerm(e.detail.value || '')}
+            onIonInput={(e: SearchbarCustomEvent) => setSearchTerm(e.detail.value || '')}
             animated
           />
         </IonToolbar>
@@ -170,7 +109,7 @@ export default function Devices() {
           <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
             <IonSelect
               value={statusFilter}
-              onIonChange={(e) => setStatusFilter(e.detail.value)}
+              onIonChange={(e: SelectCustomEvent) => setStatusFilter(e.detail.value || 'all')}
               interface="popover"
               style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
             >
@@ -291,50 +230,11 @@ export default function Devices() {
                       )}
                     </div>
                   </IonLabel>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px' }}>
-                    <IonButton
-                      size="small"
-                      fill="solid"
-                      color="primary"
-                      onClick={() => openEditModal(d)}
-                    >
-                      <IonIcon icon={createOutline} slot="start" /> Assign / Edit
-                    </IonButton>
-                    <IonButton
-                      size="small"
-                      fill="outline"
-                      color="secondary"
-                      onClick={() => history.push(`/sensor-data`)}
-                    >
-                      <IonIcon icon={barChartOutline} slot="start" /> Telemetry
-                    </IonButton>
-                  </div>
                 </IonItem>
               );
             })}
           </IonList>
         )}
-
-        {/* Device Registration & Site Assignment Modal */}
-        <DeviceModal
-          isOpen={showModal}
-          onDismiss={() => setShowModal(false)}
-          isEditing={isEditing}
-          form={form}
-          setForm={setForm}
-          sites={sites}
-          onSave={handleSaveDevice}
-        />
-
-        <IonToast
-          isOpen={showToast}
-          onDidDismiss={() => setShowToast(false)}
-          message={toastMessage}
-          duration={3500}
-          color={toastColor}
-          position="bottom"
-        />
 
         <IonToast
           isOpen={syncToast.isOpen}
