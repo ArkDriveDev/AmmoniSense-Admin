@@ -361,29 +361,34 @@ export default function SensorData() {
               <SpatialPolygonMap
                 centerLat={activeSiteObj?.current_latitude ?? 8.3697}
                 centerLng={activeSiteObj?.current_longitude ?? 124.8640}
+                siteName={activeSiteObj?.site_name || 'All MENRO Inspection Sites'}
                 sites={sites.map(s => ({
                   id: s.id,
                   site_name: s.site_name,
-                  latitude: s.current_latitude || s.latitude || 8.3697,
-                  longitude: s.current_longitude || s.longitude || 124.8640,
+                  latitude: s.current_latitude || 8.3697,
+                  longitude: s.current_longitude || 124.8640,
                   site_type: s.site_type,
-                  latest_ammonia: s.latest_ammonia,
                   area_size_hectares: s.area_size_hectares,
                 }))}
                 readings={mapMarkers}
-                height="420px"
+                height="400px"
               />
             </IonCardContent>
           </IonCard>
         )}
 
-        {/* Sensor Logs Section Header */}
+        {/* Section Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', color: '#1a365d' }}>
-            Inspection Sensor Logs ({filteredLogs.length})
+            Logged Inspection Tags ({filteredTags.length})
           </h3>
-          {(siteFilter !== 'all' || deviceFilter !== 'all') && (
-            <IonButton size="small" fill="clear" color="danger" onClick={() => { setSiteFilter('all'); setDeviceFilter('all'); setSearchTerm(''); }}>
+          {(siteFilter !== 'all' || deviceFilter !== 'all' || statusFilter !== 'all') && (
+            <IonButton
+              size="small"
+              fill="clear"
+              color="danger"
+              onClick={() => { setSiteFilter('all'); setDeviceFilter('all'); setStatusFilter('all'); setSearchTerm(''); }}
+            >
               Clear Filters
             </IonButton>
           )}
@@ -391,30 +396,39 @@ export default function SensorData() {
 
         {loading ? (
           <LoadingSpinner />
-        ) : filteredLogs.length === 0 ? (
+        ) : filteredTags.length === 0 ? (
           <EmptyState
-            title="NO SENSOR DATA FOUND"
-            message={searchTerm || deviceFilter !== 'all' || siteFilter !== 'all' ? 'TRY ADJUSTING YOUR FILTERS' : 'WAITING FOR SENSOR DATA FROM DEVICES'}
+            title="NO INSPECTION TAGS FOUND"
+            message={searchTerm || siteFilter !== 'all' ? 'TRY ADJUSTING YOUR FILTERS' : 'WAITING FOR INSPECTION TAGS FROM MOBILE APP'}
           />
         ) : (
           <IonGrid style={{ padding: 0 }}>
             <IonRow>
-              {filteredLogs.map((l) => {
-                const isDanger = l.ammonia > 50 || l.status === 'critical' || l.status === 'SEVERE';
-                const isWarning = (l.ammonia > 25 && l.ammonia <= 50) || l.status === 'warning' || l.status === 'MODERATE';
+              {filteredTags.map((t) => {
+                const badgeColor = getStatusBadgeColor(t.status, t.ammonia);
 
                 return (
-                  <IonCol key={l.id} size="12" size-md="6" size-lg="4">
+                  <IonCol key={t.tag_id} size="12" size-md="6" size-lg="4">
                     <IonCard style={{ height: '100%', margin: 0, borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                       <IonCardContent style={{ padding: '16px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                          <IonBadge color={isDanger ? 'danger' : isWarning ? 'warning' : 'success'} style={{ fontSize: '13px', padding: '6px 10px' }}>
-                            NH₃: {l.ammonia?.toFixed(1) || '0'} PPM
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                          <div>
+                            <h4 style={{ margin: '0 0 2px 0', fontSize: '16px', fontWeight: 'bold', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <IonIcon icon={pricetagOutline} style={{ color: '#0891b2' }} />
+                              {t.tag_name}
+                            </h4>
+                            <span style={{ fontSize: '12px', color: '#64748b' }}>
+                              {t.site_name ? `${t.site_name} (${t.site_code})` : 'Unassigned Site'}
+                            </span>
+                          </div>
+
+                          <IonBadge color={badgeColor} style={{ fontSize: '13px', padding: '6px 10px' }}>
+                            NH₃: {t.ammonia?.toFixed(1) || '0'} PPM
                           </IonBadge>
                         </div>
 
-                        {/* Photo thumbnail */}
-                        {l.photo_url ? (
+                        {/* Photo Thumbnail */}
+                        {(t.photo_url || t.photo_thumbnail_url) && (
                           <div
                             style={{
                               position: 'relative',
@@ -427,7 +441,7 @@ export default function SensorData() {
                               backgroundColor: '#0f172a'
                             }}
                             onClick={() => {
-                              setSelectedPhoto(l);
+                              setSelectedPhoto(t);
                               setShowPhotoModal(true);
                             }}
                           >
