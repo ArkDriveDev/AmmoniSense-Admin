@@ -101,8 +101,42 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       height: '100vh',
       overflow: 'hidden',
       position: 'relative',
+      backgroundColor: '#f8fafc'
+    }}>
+      {/* Mobile Drawer Backdrop */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.6)',
+            zIndex: 9998,
+            backdropFilter: 'blur(2px)',
+            transition: 'opacity 0.25s ease'
+          }}
+        />
+      )}
 
-        <IonContent>
+      {/* Sidebar Panel (Collapsible on Desktop, Drawer on Mobile) */}
+      <aside
+        style={{
+          position: isMobile ? 'fixed' : 'relative',
+          top: 0,
+          left: 0,
+          bottom: 0,
+          height: '100%',
+          width: isMobile ? '280px' : (sidebarOpen ? '260px' : '0px'),
+          minWidth: isMobile ? (sidebarOpen ? '280px' : '0px') : (sidebarOpen ? '260px' : '0px'),
+          maxWidth: isMobile ? '280px' : (sidebarOpen ? '260px' : '0px'),
+          backgroundColor: '#ffffff',
+          borderRight: !isMobile && sidebarOpen ? '1px solid #e2e8f0' : 'none',
+          boxShadow: isMobile && sidebarOpen ? '6px 0 25px rgba(0,0,0,0.2)' : 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 9999,
+          transform: isMobile ? (sidebarOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
+          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
           <div style={{ 
             padding: '16px', 
             textAlign: 'center',
