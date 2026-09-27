@@ -243,5 +243,40 @@ export function useDashboardData() {
         .from('inspection_tags')
         .select('device_uid')
         .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25')
+        .limit(1000);
+
+      // 7. Fetch site summary for site comparison chart
+      const { data: siteSummaryData } = await supabase
+        .from('inspection_site_summary')
+        .select('site_name, avg_ammonia, tag_count')
+        .order('avg_ammonia', { ascending: false })
+        .limit(6);
+
+      // 8. Fetch schedule status distribution
+      const { data: scheduleStatusData } = await supabase
+        .from('inspection_schedules')
+        .select('status');
+
+      // Process data for charts
+      const processedData = processChartData(
+        ammoniaData || [],
+        severityData || [],
+        alertTrendData || [],
+        deviceStatusData || [],
+        topDevices || [],
+        siteSummaryData || [],
+        scheduleStatusData || []
+      );
+
+      setChartData(processedData);
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
   return { stats, chartData, loading, refresh: fetchDashboardData };
 }
