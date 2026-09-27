@@ -8,26 +8,20 @@ import {
   IonItem,
   IonLabel,
   IonButton,
-  IonInput,
-  IonModal,
   IonButtons,
   IonSelect,
   IonSelectOption,
   IonIcon,
-  IonToast,
   IonSearchbar,
   IonBadge,
-  IonTextarea,
-  IonToggle
+  IonToast,
+  SearchbarCustomEvent,
+  SelectCustomEvent
 } from '@ionic/react';
 
 import { useState } from 'react';
-import { supabase } from '../services/supabase';
 import {
   businessOutline,
-  addOutline,
-  createOutline,
-  trashOutline,
   locationOutline,
   arrowUpOutline,
   arrowDownOutline,
@@ -38,8 +32,6 @@ import {
   refreshOutline
 } from 'ionicons/icons';
 
-import DeleteAlert from '../components/DeleteAlert';
-import ConfirmAlert from '../components/ConfirmAlert';
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useInspectionSites, InspectionSiteWithSummary } from '../hooks/useInspectionSites';
@@ -58,14 +50,6 @@ const SITE_TYPES = [
 export default function AdminInspectionSites() {
   const { sites, loading, fetchInspectionSites } = useInspectionSites();
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
-  const [showModal, setShowModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
-  const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
-  const [selectedSite, setSelectedSite] = useState<InspectionSiteWithSummary | null>(null);
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState('');
-  const [toastColor, setToastColor] = useState('success');
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('site_name');
@@ -74,18 +58,6 @@ export default function AdminInspectionSites() {
   // Map modal state
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapTarget, setMapTarget] = useState<InspectionSiteWithSummary | null>(null);
-
-  const [form, setForm] = useState({
-    site_code: '',
-    site_name: '',
-    site_type: 'Piggery',
-    address: '',
-    current_latitude: '8.3697',
-    current_longitude: '124.8640',
-    area_size_hectares: '1.0',
-    is_active: true,
-    notes: ''
-  });
 
   const filteredSites = sites.filter(s => {
     if (typeFilter !== 'all' && s.site_type?.toLowerCase() !== typeFilter.toLowerCase()) {
@@ -107,149 +79,6 @@ export default function AdminInspectionSites() {
     return 0;
   });
 
-  const handleCreate = async () => {
-    if (!form.site_code || !form.site_name) {
-      setToastMessage('Please fill in Site Code and Site Name');
-      setToastColor('danger');
-      setShowToast(true);
-      return;
-    }
-
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const createdBy = userData.user?.id || null;
-
-      const payload = {
-        site_code: form.site_code.trim().toUpperCase(),
-        site_name: form.site_name.trim().toUpperCase(),
-        site_type: form.site_type,
-        address: form.address ? form.address.trim().toUpperCase() : null,
-        current_latitude: form.current_latitude ? parseFloat(form.current_latitude) : null,
-        current_longitude: form.current_longitude ? parseFloat(form.current_longitude) : null,
-        area_size_hectares: form.area_size_hectares ? parseFloat(form.area_size_hectares) : null,
-        is_active: form.is_active,
-        notes: form.notes ? form.notes.trim().toUpperCase() : null,
-        created_by: createdBy,
-      };
-
-      const { error } = await supabase.from('inspection_sites').insert([payload]);
-      if (error) throw error;
-
-      setToastMessage('Inspection site registered successfully!');
-      setToastColor('success');
-      setShowToast(true);
-      setShowModal(false);
-      resetForm();
-      fetchInspectionSites();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      console.error('Error creating inspection site:', err);
-      setToastMessage('Error creating Inspection Site: ' + message);
-      setToastColor('danger');
-      setShowToast(true);
-    }
-  };
-
-  const handleUpdate = async () => {
-    if (!selectedSite || !form.site_name) return;
-
-    try {
-      const { data: userData } = await supabase.auth.getUser();
-      const updatedBy = userData.user?.id || null;
-
-      const payload = {
-        site_code: form.site_code.trim().toUpperCase(),
-        site_name: form.site_name.trim().toUpperCase(),
-        site_type: form.site_type,
-        address: form.address ? form.address.trim().toUpperCase() : null,
-        current_latitude: form.current_latitude ? parseFloat(form.current_latitude) : null,
-        current_longitude: form.current_longitude ? parseFloat(form.current_longitude) : null,
-        area_size_hectares: form.area_size_hectares ? parseFloat(form.area_size_hectares) : null,
-        is_active: form.is_active,
-        notes: form.notes ? form.notes.trim().toUpperCase() : null,
-        updated_by: updatedBy,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase
-        .from('inspection_sites')
-        .update(payload)
-        .eq('id', selectedSite.id);
-
-      if (error) throw error;
-
-      setToastMessage('Inspection site updated successfully!');
-      setToastColor('success');
-      setShowToast(true);
-      setShowUpdateConfirm(false);
-      setShowEditModal(false);
-      setSelectedSite(null);
-      resetForm();
-      fetchInspectionSites();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      setToastMessage('Error updating Inspection Site: ' + message);
-      setToastColor('danger');
-      setShowToast(true);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!selectedSite) return;
-
-    try {
-      const { error } = await supabase.from('inspection_sites').delete().eq('id', selectedSite.id);
-      if (error) throw error;
-
-      setToastMessage('Inspection site deleted successfully!');
-      setToastColor('success');
-      setShowToast(true);
-      setShowDeleteAlert(false);
-      setSelectedSite(null);
-      fetchInspectionSites();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      setToastMessage('Error deleting Inspection Site: ' + message);
-      setToastColor('danger');
-      setShowToast(true);
-    }
-  };
-
-  const openEditModal = (site: InspectionSiteWithSummary) => {
-    setSelectedSite(site);
-    setForm({
-      site_code: (site.site_code || '').toUpperCase(),
-      site_name: (site.site_name || '').toUpperCase(),
-      site_type: site.site_type || 'Piggery',
-      address: (site.address || '').toUpperCase(),
-      current_latitude: site.current_latitude?.toString() || '8.3697',
-      current_longitude: site.current_longitude?.toString() || '124.8640',
-      area_size_hectares: site.area_size_hectares?.toString() || '1.0',
-      is_active: site.is_active ?? true,
-      notes: (site.notes || '').toUpperCase()
-    });
-    setShowEditModal(true);
-  };
-
-  const resetForm = () => {
-    setForm({
-      site_code: '',
-      site_name: '',
-      site_type: 'Piggery',
-      address: '',
-      current_latitude: '8.3697',
-      current_longitude: '124.8640',
-      area_size_hectares: '1.0',
-      is_active: true,
-      notes: ''
-    });
-  };
-
-  const openDeleteAlert = (site: InspectionSiteWithSummary) => {
-    setSelectedSite(site);
-    setShowDeleteAlert(true);
-  };
-
   const handleSort = (field: string) => {
     if (sortBy === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -265,9 +94,6 @@ export default function AdminInspectionSites() {
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
           <IonTitle style={{ fontWeight: 'bold' }}>INSPECTION SITES DIRECTORY</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={() => { resetForm(); setShowModal(true); }}>
-              <IonIcon icon={addOutline} slot="start" /> ADD INSPECTION SITE
-            </IonButton>
             <IonButton onClick={() => triggerSync(fetchInspectionSites)}>
               <IonIcon icon={refreshOutline} />
             </IonButton>
@@ -278,7 +104,7 @@ export default function AdminInspectionSites() {
           <IonSearchbar
             placeholder="SEARCH SITES BY NAME, CODE, OR LOCATION..."
             value={searchTerm}
-            onIonInput={(e) => setSearchTerm(e.detail.value || '')}
+            onIonInput={(e: SearchbarCustomEvent) => setSearchTerm(e.detail.value || '')}
             animated
           />
         </IonToolbar>
@@ -287,7 +113,7 @@ export default function AdminInspectionSites() {
           <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
             <IonSelect
               value={typeFilter}
-              onIonChange={(e) => setTypeFilter(e.detail.value)}
+              onIonChange={(e: SelectCustomEvent) => setTypeFilter(e.detail.value || 'all')}
               interface="popover"
               style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
             >
@@ -348,7 +174,7 @@ export default function AdminInspectionSites() {
         ) : filteredSites.length === 0 ? (
           <EmptyState
             title="NO INSPECTION SITES FOUND"
-            message={searchTerm || typeFilter !== 'all' ? 'TRY A DIFFERENT FILTER OR SEARCH TERM' : 'CLICK ADD INSPECTION SITE TO REGISTER A SITE'}
+            message={searchTerm || typeFilter !== 'all' ? 'TRY A DIFFERENT FILTER OR SEARCH TERM' : 'NO SITES REGISTERED YET'}
           />
         ) : (
           <IonList style={{ background: 'transparent' }}>
@@ -431,26 +257,18 @@ export default function AdminInspectionSites() {
                     </div>
                   </IonLabel>
 
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
-                    <div style={{ display: 'flex', gap: '4px', marginTop: '4px', justifyContent: 'flex-end' }}>
-                      <IonButton
-                        size="small"
-                        fill="outline"
-                        color="secondary"
-                        onClick={() => {
-                          setMapTarget(site);
-                          setShowMapModal(true);
-                        }}
-                      >
-                        <IonIcon icon={locationOutline} slot="start" /> Map
-                      </IonButton>
-                      <IonButton size="small" fill="clear" color="primary" onClick={() => openEditModal(site)}>
-                        <IonIcon icon={createOutline} />
-                      </IonButton>
-                      <IonButton size="small" fill="clear" color="danger" onClick={() => openDeleteAlert(site)}>
-                        <IonIcon icon={trashOutline} />
-                      </IonButton>
-                    </div>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                    <IonButton
+                      size="small"
+                      fill="outline"
+                      color="secondary"
+                      onClick={() => {
+                        setMapTarget(site);
+                        setShowMapModal(true);
+                      }}
+                    >
+                      <IonIcon icon={locationOutline} slot="start" /> Map
+                    </IonButton>
                   </div>
                 </IonItem>
               );
@@ -458,237 +276,20 @@ export default function AdminInspectionSites() {
           </IonList>
         )}
 
-        {/* Create Modal */}
-        <IonModal isOpen={showModal} onDidDismiss={() => setShowModal(false)}>
-          <IonHeader>
-            <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-              <IonTitle>REGISTER INSPECTION SITE</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={() => setShowModal(false)}>CLOSE</IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="ion-padding">
-            <IonInput
-              label="SITE CODE / UNIQUE IDENTIFIER"
-              labelPlacement="floating"
-              placeholder="E.G. SITE-SANJOSE-001"
-              value={form.site_code}
-              autocapitalize="characters"
-              onIonInput={e => setForm({ ...form, site_code: (e.detail.value || '').toUpperCase() })}
-              style={{ textTransform: 'uppercase', marginBottom: '14px' }}
-            />
-            <IonInput
-              label="INSPECTION SITE NAME"
-              labelPlacement="floating"
-              placeholder="E.G. SAN JOSE AGRI-PIGGERY COMPLEX"
-              value={form.site_name}
-              autocapitalize="characters"
-              onIonInput={e => setForm({ ...form, site_name: (e.detail.value || '').toUpperCase() })}
-              style={{ textTransform: 'uppercase', marginBottom: '14px' }}
-            />
-            <IonSelect
-              label="SITE TYPE"
-              labelPlacement="floating"
-              value={form.site_type}
-              onIonChange={e => setForm({ ...form, site_type: e.detail.value })}
-              style={{ marginBottom: '14px' }}
-            >
-              {SITE_TYPES.map(t => (
-                <IonSelectOption key={t} value={t}>{t}</IonSelectOption>
-              ))}
-            </IonSelect>
-            <IonInput
-              label="ADDRESS / BARANGAY LOCATION"
-              labelPlacement="floating"
-              placeholder="E.G. PUROK 3, BRGY. SAN JOSE, MANOLO FORTICH"
-              value={form.address}
-              autocapitalize="characters"
-              onIonInput={e => setForm({ ...form, address: (e.detail.value || '').toUpperCase() })}
-              style={{ textTransform: 'uppercase', marginBottom: '14px' }}
-            />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
-              <IonInput
-                label="LATITUDE"
-                labelPlacement="floating"
-                type="number"
-                placeholder="8.3697"
-                value={form.current_latitude}
-                onIonInput={e => setForm({ ...form, current_latitude: e.detail.value || '' })}
-              />
-              <IonInput
-                label="LONGITUDE"
-                labelPlacement="floating"
-                type="number"
-                placeholder="124.8640"
-                value={form.current_longitude}
-                onIonInput={e => setForm({ ...form, current_longitude: e.detail.value || '' })}
-              />
-            </div>
-            <IonInput
-              label="FACILITY AREA SIZE (HECTARES)"
-              labelPlacement="floating"
-              type="number"
-              placeholder="E.G. 2.5"
-              value={form.area_size_hectares}
-              onIonInput={e => setForm({ ...form, area_size_hectares: e.detail.value || '' })}
-              style={{ marginBottom: '14px' }}
-            />
-            <IonTextarea
-              label="OBSERVATION NOTES"
-              labelPlacement="floating"
-              placeholder="ADDITIONAL ENVIRONMENTAL NOTES, FACILITY DETAILS, OR INSPECTION PRIORITIES..."
-              value={form.notes}
-              autocapitalize="characters"
-              onIonInput={e => setForm({ ...form, notes: (e.detail.value || '').toUpperCase() })}
-              rows={3}
-              style={{ textTransform: 'uppercase', marginBottom: '16px' }}
-            />
-            <IonItem lines="none" style={{ '--background': '#f8fafc', borderRadius: '8px', marginBottom: '16px' }}>
-              <IonLabel>Active Facility Status</IonLabel>
-              <IonToggle
-                checked={form.is_active}
-                onIonChange={e => setForm({ ...form, is_active: e.detail.checked })}
-              />
-            </IonItem>
-            <IonButton expand="block" onClick={handleCreate} style={{ '--background': '#1a365d' }}>
-              REGISTER INSPECTION SITE
-            </IonButton>
-          </IonContent>
-        </IonModal>
-
-        {/* Edit Modal */}
-        <IonModal isOpen={showEditModal} onDidDismiss={() => setShowEditModal(false)}>
-          <IonHeader>
-            <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-              <IonTitle>EDIT INSPECTION SITE</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={() => setShowEditModal(false)}>CLOSE</IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-          <IonContent className="ion-padding">
-            <IonInput
-              label="SITE CODE / UNIQUE IDENTIFIER"
-              labelPlacement="floating"
-              placeholder="E.G. SITE-SANJOSE-001"
-              value={form.site_code}
-              autocapitalize="characters"
-              onIonInput={e => setForm({ ...form, site_code: (e.detail.value || '').toUpperCase() })}
-              style={{ textTransform: 'uppercase', marginBottom: '14px' }}
-            />
-            <IonInput
-              label="INSPECTION SITE NAME"
-              labelPlacement="floating"
-              placeholder="E.G. SAN JOSE AGRI-PIGGERY COMPLEX"
-              value={form.site_name}
-              autocapitalize="characters"
-              onIonInput={e => setForm({ ...form, site_name: (e.detail.value || '').toUpperCase() })}
-              style={{ textTransform: 'uppercase', marginBottom: '14px' }}
-            />
-            <IonSelect
-              label="SITE TYPE"
-              labelPlacement="floating"
-              value={form.site_type}
-              onIonChange={e => setForm({ ...form, site_type: e.detail.value })}
-              style={{ marginBottom: '14px' }}
-            >
-              {SITE_TYPES.map(t => (
-                <IonSelectOption key={t} value={t}>{t}</IonSelectOption>
-              ))}
-            </IonSelect>
-            <IonInput
-              label="ADDRESS / BARANGAY LOCATION"
-              labelPlacement="floating"
-              placeholder="E.G. PUROK 3, BRGY. SAN JOSE"
-              value={form.address}
-              autocapitalize="characters"
-              onIonInput={e => setForm({ ...form, address: (e.detail.value || '').toUpperCase() })}
-              style={{ textTransform: 'uppercase', marginBottom: '14px' }}
-            />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
-              <IonInput
-                label="LATITUDE"
-                labelPlacement="floating"
-                type="number"
-                value={form.current_latitude}
-                onIonInput={e => setForm({ ...form, current_latitude: e.detail.value || '' })}
-              />
-              <IonInput
-                label="LONGITUDE"
-                labelPlacement="floating"
-                type="number"
-                value={form.current_longitude}
-                onIonInput={e => setForm({ ...form, current_longitude: e.detail.value || '' })}
-              />
-            </div>
-            <IonInput
-              label="FACILITY AREA SIZE (HECTARES)"
-              labelPlacement="floating"
-              type="number"
-              value={form.area_size_hectares}
-              onIonInput={e => setForm({ ...form, area_size_hectares: e.detail.value || '' })}
-              style={{ marginBottom: '14px' }}
-            />
-            <IonTextarea
-              label="OBSERVATION NOTES"
-              labelPlacement="floating"
-              value={form.notes}
-              autocapitalize="characters"
-              onIonInput={e => setForm({ ...form, notes: (e.detail.value || '').toUpperCase() })}
-              rows={3}
-              style={{ textTransform: 'uppercase', marginBottom: '16px' }}
-            />
-            <IonItem lines="none" style={{ '--background': '#f8fafc', borderRadius: '8px', marginBottom: '16px' }}>
-              <IonLabel>Active Facility Status</IonLabel>
-              <IonToggle
-                checked={form.is_active}
-                onIonChange={e => setForm({ ...form, is_active: e.detail.checked })}
-              />
-            </IonItem>
-            <IonButton expand="block" onClick={() => setShowUpdateConfirm(true)} style={{ '--background': '#1a365d' }}>
-              UPDATE INSPECTION SITE
-            </IonButton>
-          </IonContent>
-        </IonModal>
-
-        {/* Map Modal for Site Spatial Inspection */}
+        {/* Map Viewer Modal */}
         {mapTarget && (
           <MapViewerModal
             isOpen={showMapModal}
-            onDismiss={() => setShowMapModal(false)}
+            onDismiss={() => {
+              setShowMapModal(false);
+              setMapTarget(null);
+            }}
             title={`${mapTarget.site_name} Location`}
             siteName={mapTarget.site_name}
             latitude={mapTarget.current_latitude || 8.3697}
             longitude={mapTarget.current_longitude || 124.8640}
           />
         )}
-
-        <ConfirmAlert
-          isOpen={showUpdateConfirm}
-          onClose={() => setShowUpdateConfirm(false)}
-          onConfirm={handleUpdate}
-          title="UPDATE INSPECTION SITE?"
-          message={`Are you sure you want to update "${selectedSite?.site_name}"?`}
-        />
-
-        <DeleteAlert
-          isOpen={showDeleteAlert}
-          onClose={() => setShowDeleteAlert(false)}
-          onConfirm={handleDelete}
-          title="DELETE INSPECTION SITE?"
-          message={`Are you sure you want to delete "${selectedSite?.site_name}"? This will also remove any related schedules and tags.`}
-          requireTypeConfirm={false}
-        />
-
-        <IonToast
-          isOpen={showToast}
-          onDidDismiss={() => setShowToast(false)}
-          message={toastMessage}
-          duration={4000}
-          color={toastColor}
-          position="bottom"
-        />
 
         <IonToast
           isOpen={syncToast.isOpen}
