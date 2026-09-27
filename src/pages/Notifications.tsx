@@ -64,23 +64,46 @@ export default function Notifications() {
             id: t.tag_id,
             tag_name: t.tag_name,
             device_uid: t.device_uid,
+            site_name: t.site_name,
+            site_code: t.site_code,
+            schedule_name: t.schedule_name,
+            ammonia: t.ammonia,
+            severity: isCritical ? 'CRITICAL' : isHigh ? 'HIGH' : 'WARNING',
+            created_at: t.created_at,
+            photo_url: t.photo_thumbnail_url || t.photo_url,
             is_read: false
           };
         });
         setAlerts(formatted);
-        return;
-      }
-
-      // 2. Fallback query on legacy alerts table if present
-      const { data: legacyData, error: legacyErr } = await supabase
-        .from('alerts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (!legacyErr && legacyData) {
-        setAlerts(legacyData);
       } else {
-        setAlerts([]);
+        // Fallback to direct inspection_tags query
+        const { data: rawTags } = await supabase
+          .from('inspection_tags')
+          .select('*')
+          .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        if (rawTags) {
+          const formatted: AlertItem[] = rawTags.map((t: InspectionTag) => {
+            const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (t.ammonia || 0) > 50;
+            const isHigh = (t.status || '').toUpperCase() === 'HIGH' || ((t.ammonia || 0) > 35 && (t.ammonia || 0) <= 50);
+            return {
+              id: t.id,
+              tag_name: t.tag_name,
+              device_uid: t.device_uid || null,
+              site_name: null,
+              site_code: null,
+              schedule_name: null,
+              ammonia: t.ammonia ?? null,
+              severity: isCritical ? 'CRITICAL' : isHigh ? 'HIGH' : 'WARNING',
+              created_at: t.created_at || new Date().toISOString(),
+              photo_url: t.photo_thumbnail_url || t.photo_url || null,
+              is_read: false
+            };
+          });
+          setAlerts(formatted);
+        } else {
       }
     } catch (err) {
       console.error('Unexpected error fetching notifications:', err);
