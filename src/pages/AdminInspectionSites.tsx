@@ -593,3 +593,38 @@ export default function AdminInspectionSites() {
               onIonChange={e => setForm({ ...form, site_type: e.detail.value })}
               style={{ marginBottom: '14px' }}
             >
+              {SITE_TYPES.map(t => (
+                <IonSelectOption key={t} value={t}>{t}</IonSelectOption>
+              ))}
+            </IonSelect>
+            <IonInput
+              label="ADDRESS / BARANGAY LOCATION"
+              labelPlacement="floating"
+              placeholder="E.G. PUROK 3, BRGY. SAN JOSE"
+              value={form.address}
+              autocapitalize="characters"
+              onIonInput={e => setForm({ ...form, address: (e.detail.value || '').toUpperCase() })}
+              style={{ textTransform: 'uppercase', marginBottom: '14px' }}
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+              <IonInput
+                label="LATITUDE"
+                labelPlacement="floating"
+                type="number"
+                value={form.current_latitude}
+                onIonInput={e => setForm({ ...form, current_latitude: e.detail.value || '' })}
+              />
+              <IonInput
+                label="LONGITUDE"
+                labelPlacement="floating"
+                type="number"
+                value={form.current_longitude}
+                onIonInput={e => setForm({ ...form, current_longitude: e.detail.value || '' })}
+              />
+            </div>
+            <IonInput
+              label="FACILITY AREA SIZE (HECTARES)"
+              labelPlacement="floating"
+              type="number"
+              value={form.area_size_hectares}
+              onIonInput={e => setForm({ ...form, area_size_hectares: e.detail.value || '' })}
