@@ -138,3 +138,37 @@ export default function InspectionSchedules() {
 
   const handleDelete = async () => {
     if (!selectedSchedule) return;
+    try {
+      await deleteSchedule(selectedSchedule.schedule_id);
+      setToastMessage('Inspection schedule deleted successfully!');
+      setToastColor('success');
+      setShowToast(true);
+      setShowDeleteAlert(false);
+      setSelectedSchedule(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setToastMessage('Failed to delete schedule: ' + message);
+      setToastColor('danger');
+      setShowToast(true);
+    }
+  };
+
+  const resetForm = () => {
+    setForm({
+      inspection_site_id: '',
+      schedule_name: '',
+      scheduled_date: new Date().toISOString().split('T')[0],
+      scheduled_time: '09:00:00',
+      notes: ''
+    });
+  };
+
+  const getStatusColor = (status?: string) => {
+    switch (status?.toUpperCase()) {
+      case 'COMPLETED': return 'success';
+      case 'IN_PROGRESS': return 'warning';
+      case 'SCHEDULED': return 'primary';
+      case 'CANCELLED': return 'medium';
+      default: return 'medium';
+    }
+  };
