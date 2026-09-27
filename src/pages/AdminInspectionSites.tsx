@@ -488,3 +488,38 @@ export default function AdminInspectionSites() {
               style={{ textTransform: 'uppercase', marginBottom: '14px' }}
             />
             <IonSelect
+              label="SITE TYPE"
+              labelPlacement="floating"
+              value={form.site_type}
+              onIonChange={e => setForm({ ...form, site_type: e.detail.value })}
+              style={{ marginBottom: '14px' }}
+            >
+              {SITE_TYPES.map(t => (
+                <IonSelectOption key={t} value={t}>{t}</IonSelectOption>
+              ))}
+            </IonSelect>
+            <IonInput
+              label="ADDRESS / BARANGAY LOCATION"
+              labelPlacement="floating"
+              placeholder="E.G. PUROK 3, BRGY. SAN JOSE, MANOLO FORTICH"
+              value={form.address}
+              autocapitalize="characters"
+              onIonInput={e => setForm({ ...form, address: (e.detail.value || '').toUpperCase() })}
+              style={{ textTransform: 'uppercase', marginBottom: '14px' }}
+            />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+              <IonInput
+                label="LATITUDE"
+                labelPlacement="floating"
+                type="number"
+                placeholder="8.3697"
+                value={form.current_latitude}
+                onIonInput={e => setForm({ ...form, current_latitude: e.detail.value || '' })}
+              />
+              <IonInput
+                label="LONGITUDE"
+                labelPlacement="floating"
+                type="number"
+                placeholder="124.8640"
+                value={form.current_longitude}
+                onIonInput={e => setForm({ ...form, current_longitude: e.detail.value || '' })}
