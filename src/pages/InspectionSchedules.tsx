@@ -453,3 +453,8 @@ export default function InspectionSchedules() {
           duration={syncToast.duration}
           color={syncToast.color}
           position="bottom"
+        />
+      </IonContent>
+    </IonPage>
+  );
+}
