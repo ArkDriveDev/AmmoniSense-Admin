@@ -101,11 +101,13 @@ export default function Dashboard() {
       result = result.filter((s) => s.site_type.toLowerCase() === selectedType.toLowerCase());
     }
     if (selectedStatus !== 'all') {
+      result = result.filter((s) => s.alert_status.toLowerCase() === selectedStatus.toLowerCase());
+    }
 
     result.sort((a, b) => {
       if (sortBy === 'site_name') return a.site_name.localeCompare(b.site_name);
       if (sortBy === 'alert_level') {
-        const score = { critical: 3, warning: 2, normal: 1 };
+        const score: Record<string, number> = { critical: 4, high: 3, warning: 2, normal: 1 };
         return (score[b.alert_status] || 0) - (score[a.alert_status] || 0);
       }
       return (b.last_reading_at ? new Date(b.last_reading_at).getTime() : 0) - (a.last_reading_at ? new Date(a.last_reading_at).getTime() : 0);
@@ -124,7 +126,7 @@ export default function Dashboard() {
         <IonContent className="ion-padding">
           <div style={{ textAlign: 'center', marginTop: '100px' }}>
             <IonSpinner name="crescent" color="primary" />
-            <p style={{ color: '#64748b' }}>Loading Site Analytics...</p>
+            <p style={{ color: '#64748b' }}>Loading Inspection Site Analytics...</p>
           </div>
         </IonContent>
       </IonPage>
@@ -135,15 +137,15 @@ export default function Dashboard() {
     <IonPage>
       <IonHeader>
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-          <IonTitle style={{ fontWeight: 'bold' }}>MENRO ADMIN DASHBOARD • PER SITE ANALYTICS</IonTitle>
-          <IonButton slot="end" fill="clear" onClick={() => refresh()} style={{ '--color': '#ffffff' }}>
+          <IonTitle style={{ fontWeight: 'bold' }}>MENRO ADMIN DASHBOARD • INSPECTION SITE ANALYTICS</IonTitle>
+          <IonButton slot="end" fill="clear" onClick={() => triggerSync(async () => { await refresh(); await fetchMapReadings(); })} style={{ '--color': '#ffffff' }}>
             <IonIcon icon={refreshOutline} slot="icon-only" />
           </IonButton>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f8fafc' }}>
-        <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
+        <IonRefresher slot="fixed" onIonRefresh={(e) => { handleRefresh(e); triggerSync(async () => { await refresh(); await fetchMapReadings(); }); }}>
           <IonRefresherContent />
         </IonRefresher>
 
@@ -151,16 +153,40 @@ export default function Dashboard() {
           {/* Top Stats Overview */}
           <IonRow>
             <IonCol size="6" size-md="3">
-              <StatsCard title="Total Sites" value={globalStats.totalSites} icon={businessOutline} color="primary" subtitle="Active locations" />
+              <StatsCard
+                title="Inspection Sites"
+                value={globalStats.totalSites}
+                icon={businessOutline}
+                color="primary"
+                subtitle="Monitored Facilities"
+              />
             </IonCol>
             <IonCol size="6" size-md="3">
-              <StatsCard title="Active Devices" value={globalStats.activeDevices} icon={hardwareChipOutline} color="secondary" subtitle="Online nodes" />
+              <StatsCard
+                title="Schedules Planned"
+                value={globalStats.totalSchedules}
+                icon={calendarOutline}
+                color="secondary"
+                subtitle="Field Audits"
+              />
             </IonCol>
             <IonCol size="6" size-md="3">
-              <StatsCard title="Sites with Alerts" value={globalStats.sitesWithAlerts} icon={warningOutline} color={globalStats.sitesWithAlerts > 0 ? 'warning' : 'success'} subtitle={globalStats.sitesWithAlerts > 0 ? 'Action needed' : 'All clear'} />
+              <StatsCard
+                title="Active Devices"
+                value={globalStats.activeDevices}
+                icon={hardwareChipOutline}
+                color="success"
+                subtitle="Online Sensors"
+              />
             </IonCol>
             <IonCol size="6" size-md="3">
-              <StatsCard title="Critical Alerts" value={globalStats.criticalAlerts} icon={alertCircleOutline} color={globalStats.criticalAlerts > 0 ? 'danger' : 'success'} subtitle={globalStats.criticalAlerts > 0 ? 'Immediate action!' : 'Normal levels'} />
+              <StatsCard
+                title="Critical Alerts"
+                value={globalStats.criticalAlerts}
+                icon={alertCircleOutline}
+                color={globalStats.criticalAlerts > 0 ? 'danger' : 'success'}
+                subtitle={globalStats.criticalAlerts > 0 ? 'Immediate action!' : 'Normal levels'}
+              />
             </IonCol>
           </IonRow>
 
