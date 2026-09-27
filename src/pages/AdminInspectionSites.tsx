@@ -523,3 +523,38 @@ export default function AdminInspectionSites() {
                 placeholder="124.8640"
                 value={form.current_longitude}
                 onIonInput={e => setForm({ ...form, current_longitude: e.detail.value || '' })}
+              />
+            </div>
+            <IonInput
+              label="FACILITY AREA SIZE (HECTARES)"
+              labelPlacement="floating"
+              type="number"
+              placeholder="E.G. 2.5"
+              value={form.area_size_hectares}
+              onIonInput={e => setForm({ ...form, area_size_hectares: e.detail.value || '' })}
+              style={{ marginBottom: '14px' }}
+            />
+            <IonTextarea
+              label="OBSERVATION NOTES"
+              labelPlacement="floating"
+              placeholder="ADDITIONAL ENVIRONMENTAL NOTES, FACILITY DETAILS, OR INSPECTION PRIORITIES..."
+              value={form.notes}
+              autocapitalize="characters"
+              onIonInput={e => setForm({ ...form, notes: (e.detail.value || '').toUpperCase() })}
+              rows={3}
+              style={{ textTransform: 'uppercase', marginBottom: '16px' }}
+            />
+            <IonItem lines="none" style={{ '--background': '#f8fafc', borderRadius: '8px', marginBottom: '16px' }}>
+              <IonLabel>Active Facility Status</IonLabel>
+              <IonToggle
+                checked={form.is_active}
+                onIonChange={e => setForm({ ...form, is_active: e.detail.checked })}
+              />
+            </IonItem>
+            <IonButton expand="block" onClick={handleCreate} style={{ '--background': '#1a365d' }}>
+              REGISTER INSPECTION SITE
+            </IonButton>
+          </IonContent>
+        </IonModal>
+
+        {/* Edit Modal */}
