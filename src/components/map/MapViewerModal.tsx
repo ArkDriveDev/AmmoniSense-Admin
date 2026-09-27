@@ -29,7 +29,7 @@ export const MapViewerModal: React.FC<MapViewerModalProps> = ({
   title = 'Spatial Polygon Map',
   latitude,
   longitude,
-  siteName = 'Monitoring Site',
+  siteName = 'Inspection Site',
   readings = [],
 }) => {
   const currentLat = latitude || MANOLO_FORTICH_DEFAULTS.lat;
