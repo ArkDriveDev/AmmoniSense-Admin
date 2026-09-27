@@ -33,3 +33,29 @@ export function useSyncFeedback() {
       message: initiatingMsg,
       color: 'primary',
       duration: 1500
+    });
+
+    try {
+      await action();
+      setSyncToast({
+        isOpen: true,
+        message: 'Data synchronized successfully!',
+        color: 'success',
+        duration: 3000
+      });
+      return true;
+    } catch (err: any) {
+      setSyncToast({
+        isOpen: true,
+        message: 'Sync failed: ' + (err?.message || 'Server error'),
+        color: 'warning',
+        duration: 4000
+      });
+      return false;
+    }
+  }, []);
+
+  return { syncToast, triggerSync, dismissSyncToast };
+}
+
+export default useSyncFeedback;
