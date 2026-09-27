@@ -418,3 +418,38 @@ export default function InspectionSchedules() {
               placeholder="Focus on lagoon perimeter, check exhaust vents, inspect biofilters..."
               value={form.notes}
               onIonInput={e => setForm({ ...form, notes: e.detail.value || '' })}
+              rows={3}
+              style={{ marginBottom: '18px' }}
+            />
+
+            <IonButton expand="block" onClick={handleCreate} style={{ '--background': '#1a365d' }}>
+              CREATE INSPECTION SCHEDULE
+            </IonButton>
+          </IonContent>
+        </IonModal>
+
+        <DeleteAlert
+          isOpen={showDeleteAlert}
+          onClose={() => setShowDeleteAlert(false)}
+          onConfirm={handleDelete}
+          title="DELETE INSPECTION SCHEDULE?"
+          message={`Are you sure you want to delete "${selectedSchedule?.schedule_name}"?`}
+          requireTypeConfirm={false}
+        />
+
+        <IonToast
+          isOpen={showToast}
+          onDidDismiss={() => setShowToast(false)}
+          message={toastMessage}
+          duration={4000}
+          color={toastColor}
+          position="bottom"
+        />
+
+        <IonToast
+          isOpen={syncToast.isOpen}
+          onDidDismiss={dismissSyncToast}
+          message={syncToast.message}
+          duration={syncToast.duration}
+          color={syncToast.color}
+          position="bottom"
