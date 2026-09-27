@@ -137,3 +137,5 @@ export function useInspectionSchedules() {
     deleteSchedule,
   };
 }
+
+export default useInspectionSchedules;
