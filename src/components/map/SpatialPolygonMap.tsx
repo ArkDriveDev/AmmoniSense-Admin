@@ -721,10 +721,42 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
             <span>🐷</span>
             <span>Piggery</span>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>🌱</span>
+            <span>Agricultural</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>🏭</span>
+            <span>Industrial</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>💧</span>
+            <span>Waterway</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <span>🏢</span>
+            <span>General</span>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></span>
-          <span>Warning Reading (25–50 ppm)</span>
+
+        <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
+
+        {/* Ammonia Levels */}
+        <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Ammonia Levels</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '10.5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#22c55e' }}></span>
+            <span><b>0 – 5 PPM</b>: Normal (Safe)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#eab308' }}></span>
+            <span><b>5 – 10 PPM</b>: Warning (Moderate)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#f97316' }}></span>
+            <span><b>10 – 20 PPM</b>: High (Action Req.)</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#dc2626' }}></span>
