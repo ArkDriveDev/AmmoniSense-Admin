@@ -383,3 +383,38 @@ export default function InspectionSchedules() {
                   {s.site_name} ({s.site_code})
                 </IonSelectOption>
               ))}
+            </IonSelect>
+
+            <IonInput
+              label="SCHEDULE NAME / PURPOSE"
+              labelPlacement="floating"
+              placeholder="E.G. ROUTINE QUARTERLY ODOR & NH3 AUDIT"
+              value={form.schedule_name}
+              onIonInput={e => setForm({ ...form, schedule_name: e.detail.value || '' })}
+              style={{ marginBottom: '14px' }}
+            />
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '14px' }}>
+              <IonInput
+                label="SCHEDULED DATE"
+                labelPlacement="floating"
+                type="date"
+                value={form.scheduled_date}
+                onIonInput={e => setForm({ ...form, scheduled_date: e.detail.value || '' })}
+              />
+
+              <IonInput
+                label="SCHEDULED TIME"
+                labelPlacement="floating"
+                type="time"
+                value={form.scheduled_time}
+                onIonInput={e => setForm({ ...form, scheduled_time: e.detail.value || '' })}
+              />
+            </div>
+
+            <IonTextarea
+              label="SPECIAL INSTRUCTIONS / NOTES"
+              labelPlacement="floating"
+              placeholder="Focus on lagoon perimeter, check exhaust vents, inspect biofilters..."
+              value={form.notes}
+              onIonInput={e => setForm({ ...form, notes: e.detail.value || '' })}
