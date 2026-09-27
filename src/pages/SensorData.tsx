@@ -4,13 +4,7 @@ import {
   IonHeader,
   IonToolbar,
   IonTitle,
-  IonList,
-  IonItem,
-  IonLabel,
   IonBadge,
-  IonSpinner,
-  IonRefresher,
-  IonRefresherContent,
   IonButton,
   IonButtons,
   IonIcon,
@@ -24,79 +18,66 @@ import {
   IonGrid,
   IonRow,
   IonCol,
-  IonChip,
-  IonModal
+  IonModal,
+  IonRefresher,
+  IonRefresherContent,
+  IonToast
 } from '@ionic/react';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../services/supabase';
-import { refreshOutline, mapOutline, eyeOutline, locationOutline, hardwareChipOutline, imageOutline, calendarOutline } from 'ionicons/icons';
+import {
+  refreshOutline,
+  mapOutline,
+  eyeOutline,
+  locationOutline,
+  hardwareChipOutline,
+  imageOutline,
+  calendarOutline,
+  pricetagOutline,
+  batteryChargingOutline,
+  thermometerOutline
+} from 'ionicons/icons';
+
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import SpatialPolygonMap, { SensorReadingMarker } from '../components/map/SpatialPolygonMap';
+import { InspectionTagDetails, InspectionSite } from '../types/schema';
+import useSyncFeedback from '../hooks/useSyncFeedback';
 
 export default function SensorData() {
-  const [logs, setLogs] = useState<any[]>([]);
-  const [filteredLogs, setFilteredLogs] = useState<any[]>([]);
-  const [sites, setSites] = useState<any[]>([]);
-  const [devices, setDevices] = useState<any[]>([]);
+  const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
+  const [tags, setTags] = useState<InspectionTagDetails[]>([]);
+  const [filteredTags, setFilteredTags] = useState<InspectionTagDetails[]>([]);
+  const [sites, setSites] = useState<InspectionSite[]>([]);
+  const [devices, setDevices] = useState<{ device_uid: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [realtimeEnabled, setRealtimeEnabled] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [siteFilter, setSiteFilter] = useState<string>('all');
   const [deviceFilter, setDeviceFilter] = useState('all');
-  const [siteFilter, setSiteFilter] = useState<string | number>('all');
   const [showMap, setShowMap] = useState(true);
 
-  const [selectedPhoto, setSelectedPhoto] = useState<any | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<InspectionTagDetails | null>(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
 
-  useEffect(() => {
-    fetchSites();
-    fetchDevices();
-    fetchLogs();
-    
-    if (realtimeEnabled) {
-      const subscription = supabase
-        .channel('sensor_data_channel')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'sensor_data'
-          },
-          (payload) => {
-            setLogs(prev => [payload.new, ...prev]);
-          }
-        )
-        .subscribe();
-
-      return () => {
-        subscription.unsubscribe();
-      };
-    }
-  }, [realtimeEnabled]);
-
-  useEffect(() => {
-    filterLogs();
-  }, [logs, searchTerm, deviceFilter, siteFilter]);
-
-  const fetchSites = async () => {
+  const fetchSites = useCallback(async () => {
     try {
-      const { data } = await supabase.from('monitoring_sites').select('*').order('site_name');
+      const { data } = await supabase.from('inspection_sites').select('*').order('site_name');
       setSites(data || []);
     } catch (err) {
-      console.error('Error fetching monitoring sites:', err);
+      console.error('Error fetching inspection sites:', err);
     }
-  };
+  }, []);
 
-  const fetchDevices = async () => {
+  const fetchDevices = useCallback(async () => {
     try {
       const { data } = await supabase
         .from('devices')
-        .select('device_uid, site_id')
+        .select('device_uid')
         .order('device_uid');
-      setDevices(data || []);
+      if (data && data.length > 0) {
     } catch (err) {
       console.error('Error fetching devices:', err);
     }
