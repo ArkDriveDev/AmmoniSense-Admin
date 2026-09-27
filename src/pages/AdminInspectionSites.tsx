@@ -698,3 +698,7 @@ export default function AdminInspectionSites() {
           color={syncToast.color}
           position="bottom"
         />
+      </IonContent>
+    </IonPage>
+  );
+}
