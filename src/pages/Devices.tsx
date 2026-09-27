@@ -296,14 +296,18 @@ export default function Devices() {
                     <IonButton
                       size="small"
                       fill="solid"
+                      color="primary"
+                      onClick={() => openEditModal(d)}
+                    >
+                      <IonIcon icon={createOutline} slot="start" /> Assign / Edit
+                    </IonButton>
+                    <IonButton
+                      size="small"
                       fill="outline"
                       color="secondary"
-                      onClick={() => {
-                        setMapTargetDevice(d);
-                        setShowMapModal(true);
-                      }}
+                      onClick={() => history.push(`/sensor-data`)}
                     >
-                      <IonIcon icon={locationOutline} slot="start" /> View Map
+                      <IonIcon icon={barChartOutline} slot="start" /> Telemetry
                     </IonButton>
                   </div>
                 </IonItem>
@@ -312,105 +316,32 @@ export default function Devices() {
           </IonList>
         )}
 
-        <IonModal isOpen={showModal}>
-          <IonHeader>
-            <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-              <IonTitle>CREATE NEW DEVICE</IonTitle>
-              <IonButtons slot="end">
-                <IonButton onClick={() => setShowModal(false)}>CLOSE</IonButton>
-              </IonButtons>
-            </IonToolbar>
-          </IonHeader>
-
-          <IonContent className="ion-padding">
-            <IonInput
-              label="DEVICE UID"
-              labelPlacement="floating"
-              placeholder="E.G. ESP32-001"
-              value={form.device_uid}
-              onIonChange={(e) => setForm({ ...form, device_uid: e.detail.value?.toUpperCase() || '' })}
-              style={{ marginBottom: '16px' }}
-            />
-
-            <IonInput
-              label="FIRMWARE VERSION"
-              labelPlacement="floating"
-              placeholder="E.G. 1.0.0"
-              value={form.firmware_version}
-              onIonChange={(e) => setForm({ ...form, firmware_version: e.detail.value || '' })}
-              style={{ marginBottom: '16px' }}
-            />
-
-            <IonSelect
-              label="ASSIGN MONITORING SITE"
-              labelPlacement="floating"
-              placeholder="CHOOSE A SITE"
-              value={form.site_id}
-              onIonChange={(e) => setForm({ ...form, site_id: e.detail.value })}
-              style={{ marginBottom: '16px' }}
-            >
-              {sites.map((s) => (
-                <IonSelectOption key={s.id} value={s.id}>
-                  {s.site_name} ({s.site_code})
-                </IonSelectOption>
-              ))}
-            </IonSelect>
-
-            <IonSelect
-              label="STATUS"
-              labelPlacement="floating"
-              placeholder="CHOOSE STATUS"
-              value={form.status}
-              onIonChange={(e) => setForm({ ...form, status: e.detail.value })}
-              style={{ marginBottom: '16px' }}
-            >
-              <IonSelectOption value="ACTIVE">ACTIVE</IonSelectOption>
-              <IonSelectOption value="INACTIVE">INACTIVE</IonSelectOption>
-              <IonSelectOption value="OFFLINE">OFFLINE</IonSelectOption>
-              <IonSelectOption value="MAINTENANCE">MAINTENANCE</IonSelectOption>
-            </IonSelect>
-
-            <IonButton expand="block" onClick={handleCreateDevice} style={{ marginTop: '16px', '--background': '#1a365d' }}>
-              CREATE DEVICE
-            </IonButton>
-          </IonContent>
-        </IonModal>
-
-        {/* Map Location Inspection Modal */}
-        {mapTargetDevice && (
-          <MapViewerModal
-            isOpen={showMapModal}
-            onDismiss={() => setShowMapModal(false)}
-            title={`Device ${mapTargetDevice.device_uid} Spatial Map`}
-            siteName={mapTargetDevice.monitoring_sites?.site_name || 'Assigned Site'}
-            latitude={mapTargetDevice.monitoring_sites?.current_latitude || 8.3697}
-            longitude={mapTargetDevice.monitoring_sites?.current_longitude || 124.8640}
-          />
-        )}
-
-        <ConfirmAlert
-          isOpen={showUpdateConfirm}
-          onClose={() => setShowUpdateConfirm(false)}
-          onConfirm={handleEditDevice}
-          title="UPDATE DEVICE?"
-          message={`Update "${selectedDevice?.device_uid}"?`}
-        />
-
-        <DeleteAlert
-          isOpen={showDeleteAlert}
-          onClose={() => setShowDeleteAlert(false)}
-          onConfirm={handleDeleteDevice}
-          title="DELETE DEVICE?"
-          message={`Delete "${selectedDevice?.device_uid}"?`}
-          requireTypeConfirm={false}
+        {/* Device Registration & Site Assignment Modal */}
+        <DeviceModal
+          isOpen={showModal}
+          onDismiss={() => setShowModal(false)}
+          isEditing={isEditing}
+          form={form}
+          setForm={setForm}
+          sites={sites}
+          onSave={handleSaveDevice}
         />
 
         <IonToast
           isOpen={showToast}
           onDidDismiss={() => setShowToast(false)}
           message={toastMessage}
-          duration={5000}
+          duration={3500}
           color={toastColor}
+          position="bottom"
+        />
+
+        <IonToast
+          isOpen={syncToast.isOpen}
+          onDidDismiss={dismissSyncToast}
+          message={syncToast.message}
+          duration={syncToast.duration}
+          color={syncToast.color}
           position="bottom"
         />
       </IonContent>
