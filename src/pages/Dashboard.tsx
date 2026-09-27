@@ -197,8 +197,8 @@ export default function Dashboard() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <IonIcon icon={mapOutline} style={{ fontSize: '22px', color: '#1a365d' }} />
                   <div>
-                    <strong style={{ color: '#1a365d', fontSize: '14px' }}>Live Environmental Polygon Coverage Map</strong>
-                    <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>Interactive spatial overview with odor zone polygons across Manolo Fortich</span>
+                    <strong style={{ color: '#1a365d', fontSize: '14px' }}>Live Environmental Odor & Plume Spatial Map</strong>
+                    <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>Spatial overview with dynamic odor buffer perimeters across Manolo Fortich</span>
                   </div>
                 </div>
                 <IonButton size="small" fill="outline" color="primary" onClick={() => setShowGlobalMap(!showGlobalMap)}>
@@ -215,7 +215,6 @@ export default function Dashboard() {
                       latitude: s.latitude,
                       longitude: s.longitude,
                       site_type: s.site_type,
-                      owner_name: s.owner_name,
                       latest_ammonia: s.latest_ammonia,
                       alert_status: s.alert_status,
                       area_size_hectares: s.area_size_hectares
@@ -236,7 +235,12 @@ export default function Dashboard() {
                   <IonGrid style={{ padding: 0 }}>
                     <IonRow className="ion-align-items-center">
                       <IonCol size="12" size-md="4">
-                        <IonSearchbar value={searchTerm} onIonInput={(e) => setSearchTerm(e.detail.value || '')} placeholder="Search site name, owner, address..." style={{ padding: 0, '--background': '#f8fafc' }} />
+                        <IonSearchbar
+                          value={searchTerm}
+                          onIonInput={(e) => setSearchTerm(e.detail.value || '')}
+                          placeholder="Search site name, code, address..."
+                          style={{ padding: 0, '--background': '#f8fafc' }}
+                        />
                       </IonCol>
                       <IonCol size="6" size-sm="4" size-md="2.5">
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f8fafc', padding: '4px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
@@ -244,8 +248,9 @@ export default function Dashboard() {
                           <IonSelect value={selectedType} onIonChange={(e) => setSelectedType(e.detail.value)} interface="popover" style={{ width: '100%', fontSize: '13px' }}>
                             <IonSelectOption value="all">Type: All Sites</IonSelectOption>
                             <IonSelectOption value="piggery">Piggery</IonSelectOption>
-                            <IonSelectOption value="ambient">Ambient</IonSelectOption>
+                            <IonSelectOption value="poultry">Poultry</IonSelectOption>
                             <IonSelectOption value="industrial">Industrial</IonSelectOption>
+                            <IonSelectOption value="ambient">Ambient</IonSelectOption>
                           </IonSelect>
                         </div>
                       </IonCol>
@@ -254,9 +259,10 @@ export default function Dashboard() {
                           <IonIcon icon={alertCircleOutline} style={{ color: '#64748b' }} />
                           <IonSelect value={selectedStatus} onIonChange={(e) => setSelectedStatus(e.detail.value)} interface="popover" style={{ width: '100%', fontSize: '13px' }}>
                             <IonSelectOption value="all">Status: All Levels</IonSelectOption>
-                            <IonSelectOption value="normal">Status: Normal</IonSelectOption>
-                            <IonSelectOption value="warning">Status: Warning</IonSelectOption>
-                            <IonSelectOption value="critical">Status: Critical</IonSelectOption>
+                            <IonSelectOption value="normal">Normal (&lt;=25 PPM)</IonSelectOption>
+                            <IonSelectOption value="warning">Warning (25-35 PPM)</IonSelectOption>
+                            <IonSelectOption value="high">High (35-50 PPM)</IonSelectOption>
+                            <IonSelectOption value="critical">Critical (&gt;50 PPM)</IonSelectOption>
                           </IonSelect>
                         </div>
                       </IonCol>
@@ -266,7 +272,7 @@ export default function Dashboard() {
                           <IonSelect value={sortBy} onIonChange={(e) => setSortBy(e.detail.value)} interface="popover" style={{ width: '100%', fontSize: '13px' }}>
                             <IonSelectOption value="last_reading">Sort: Latest Reading</IonSelectOption>
                             <IonSelectOption value="site_name">Sort: Site Name (A-Z)</IonSelectOption>
-                            <IonSelectOption value="alert_level">Sort: Alert Level</IonSelectOption>
+                            <IonSelectOption value="alert_level">Sort: Alert Severity</IonSelectOption>
                           </IonSelect>
                         </div>
                       </IonCol>
@@ -277,19 +283,19 @@ export default function Dashboard() {
             </IonCol>
           </IonRow>
 
-          {/* Monitoring Site Analytics List */}
+          {/* Inspection Site Analytics List */}
           <IonRow>
             <IonCol size="12">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1a365d', margin: 0 }}>
-                  Monitoring Sites Analytics ({filteredAndSortedSites.length})
+                  Inspection Sites Analytics ({filteredAndSortedSites.length})
                 </h3>
               </div>
 
               {filteredAndSortedSites.length === 0 ? (
                 <IonCard style={{ borderRadius: '12px', margin: 0, padding: '32px', textAlign: 'center' }}>
                   <IonIcon icon={searchOutline} style={{ fontSize: '42px', color: '#94a3b8' }} />
-                  <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#334155' }}>No Monitoring Sites Found</h3>
+                  <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#334155' }}>No Inspection Sites Found</h3>
                 </IonCard>
               ) : (
                 filteredAndSortedSites.map((site: SiteAnalyticsData) => (
@@ -299,6 +305,15 @@ export default function Dashboard() {
             </IonCol>
           </IonRow>
         </IonGrid>
+
+        <IonToast
+          isOpen={syncToast.isOpen}
+          onDidDismiss={dismissSyncToast}
+          message={syncToast.message}
+          duration={syncToast.duration}
+          color={syncToast.color}
+          position="bottom"
+        />
       </IonContent>
     </IonPage>
   );
