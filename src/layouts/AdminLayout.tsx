@@ -197,52 +197,65 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               style={{
                 borderRadius: '8px',
                 margin: '2px 0',
+                borderLeft: isActive('/dashboard') ? '4px solid #1a365d' : 'none',
+                fontWeight: isActive('/dashboard') ? 'bold' : 'normal'
+              }}
             >
               <IonIcon icon={homeOutline} slot="start" />
-              <IonLabel>DASHBOARD</IonLabel>
+              <IonLabel style={{ fontSize: '13px' }}>DASHBOARD</IonLabel>
             </IonItem>
 
             <IonItem 
               button 
-              onClick={() => history.push('/livestock')}
-              color={isActive('/livestock') ? 'primary' : undefined}
-              style={isActive('/livestock') ? { 
-                borderLeft: '4px solid #1a365d',
-                fontWeight: 'bold'
-              } : {}}
+              lines="none"
+              onClick={() => handleNavigate('/inspection-sites')}
+              color={isActive('/inspection-sites') || isActive('/livestock') ? 'primary' : undefined}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: isActive('/inspection-sites') || isActive('/livestock') ? '4px solid #1a365d' : 'none',
+                fontWeight: isActive('/inspection-sites') || isActive('/livestock') ? 'bold' : 'normal'
+              }}
             >
               <IonIcon icon={businessOutline} slot="start" />
-              <IonLabel>MONITORING SITES</IonLabel>
+              <IonLabel style={{ fontSize: '13px' }}>INSPECTION SITES</IonLabel>
             </IonItem>
 
             <IonItem 
               button 
-              onClick={() => history.push('/devices')}
-              color={isActive('/devices') ? 'primary' : undefined}
-              style={isActive('/devices') ? { 
-                borderLeft: '4px solid #1a365d',
-                fontWeight: 'bold'
-              } : {}}
+              lines="none"
+              onClick={() => handleNavigate('/inspection-schedules')}
+              color={isActive('/inspection-schedules') ? 'primary' : undefined}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: isActive('/inspection-schedules') ? '4px solid #1a365d' : 'none',
+                fontWeight: isActive('/inspection-schedules') ? 'bold' : 'normal'
+              }}
             >
-              <IonIcon icon={hardwareChipOutline} slot="start" />
-              <IonLabel>IOT DEVICES</IonLabel>
+              <IonIcon icon={calendarOutline} slot="start" />
+              <IonLabel style={{ fontSize: '13px' }}>INSPECTION SCHEDULES</IonLabel>
             </IonItem>
 
             <IonItem 
               button 
-              onClick={() => history.push('/sensor-data')}
+              lines="none"
+              onClick={() => handleNavigate('/sensor-data')}
               color={isActive('/sensor-data') ? 'primary' : undefined}
-              style={isActive('/sensor-data') ? { 
-                borderLeft: '4px solid #1a365d',
-                fontWeight: 'bold'
-              } : {}}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: isActive('/sensor-data') ? '4px solid #1a365d' : 'none',
+                fontWeight: isActive('/sensor-data') ? 'bold' : 'normal'
+              }}
             >
               <IonIcon icon={barChartOutline} slot="start" />
-              <IonLabel>SENSOR DATA & MAPS</IonLabel>
+              <IonLabel style={{ fontSize: '13px' }}>TAGS & TELEMETRY</IonLabel>
             </IonItem>
 
             <IonItem 
               button 
+              lines="none"
               onClick={logout}
               style={{ marginTop: '16px' }}
             >
