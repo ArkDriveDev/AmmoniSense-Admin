@@ -19,3 +19,11 @@ ion-select {
 ion-label {
   text-transform: uppercase;
 }
+
+/* Leaflet custom tag markers */
+.custom-reading-tag-marker,
+.site-facility-pin,
+.custom-site-pin {
+  background: transparent !important;
+  border: none !important;
+}
