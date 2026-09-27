@@ -259,6 +259,8 @@ export function useSiteAnalytics() {
             status: t.status || 'NORMAL',
             created_at: t.created_at || new Date().toISOString(),
             photo_url: t.photo_url || null,
+            photo_thumbnail_url: t.photo_thumbnail_url || null,
+            notes: t.notes || null,
           })),
         };
       });
@@ -269,14 +271,16 @@ export function useSiteAnalytics() {
       setSites(processedSites);
       setGlobalStats({
         totalSites: processedSites.length,
-        activeDevices: allDevices.filter((d: any) => d.status === 'ACTIVE').length,
-        sitesWithAlerts: processedSites.filter((s) => s.alert_status === 'warning' || s.alert_status === 'critical').length,
+        activeDevices: allDevices.filter((d: Device) => d.status === 'ACTIVE').length,
+        sitesWithAlerts: processedSites.filter((s) => s.alert_status === 'warning' || s.alert_status === 'high' || s.alert_status === 'critical').length,
         criticalAlerts: processedSites.filter((s) => s.alert_status === 'critical').length,
+        totalSchedules,
       });
 
-    } catch (err: any) {
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load site analytics.';
       console.error('Error fetching site analytics:', err);
-      setError(err.message || 'Failed to load site analytics.');
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -288,3 +292,5 @@ export function useSiteAnalytics() {
 
   return { sites, globalStats, loading, error, refresh: fetchSiteAnalytics };
 }
+
+export default useSiteAnalytics;
