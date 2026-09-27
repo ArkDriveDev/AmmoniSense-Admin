@@ -137,6 +137,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           zIndex: 9999,
           transform: isMobile ? (sidebarOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
           transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+          overflow: 'hidden',
+          visibility: (!isMobile && !sidebarOpen) ? 'hidden' : 'visible',
+          opacity: (!isMobile && !sidebarOpen) ? 0 : 1,
+        }}
+      >
+        {/* Sidebar Header */}
+        <div style={{
+          height: '56px',
+          minHeight: '56px',
+          backgroundColor: '#1a365d',
+          color: '#ffffff',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 16px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>
+          <span style={{ fontSize: '15px', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+            MENRO ADMIN
+          </span>
+        </div>
+
+        {/* Sidebar Body */}
+        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+          {/* User Profile */}
           <div style={{ 
             padding: '16px', 
             textAlign: 'center',
@@ -144,8 +168,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             marginBottom: '8px'
           }}>
             <IonAvatar style={{ 
-              width: '60px', 
-              height: '60px', 
+              width: '56px', 
+              height: '56px', 
               margin: '0 auto 8px auto',
               backgroundColor: '#1a365d',
               display: 'flex',
@@ -153,25 +177,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               justifyContent: 'center'
             }}>
               <IonIcon icon={personCircleOutline} style={{ 
-                fontSize: '44px', 
+                fontSize: '40px', 
                 color: 'white' 
               }} />
             </IonAvatar>
             <IonText>
-              <h3 style={{ margin: '4px 0', fontWeight: 'bold', color: '#1a365d' }}>{userName}</h3>
+              <h3 style={{ margin: '4px 0 2px 0', fontWeight: 'bold', color: '#1a365d', fontSize: '15px' }}>{userName}</h3>
               <p style={{ fontSize: '12px', color: '#64748b', margin: '0' }}>{userEmail}</p>
             </IonText>
           </div>
 
-          <IonList style={{ padding: '0' }}>
+          {/* Navigation Items */}
+          <IonList style={{ padding: '0 8px', background: 'transparent' }}>
             <IonItem 
               button 
-              onClick={() => history.push('/dashboard')}
+              lines="none"
+              onClick={() => handleNavigate('/dashboard')}
               color={isActive('/dashboard') ? 'primary' : undefined}
-              style={isActive('/dashboard') ? { 
-                borderLeft: '4px solid #1a365d',
-                fontWeight: 'bold'
-              } : {}}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
             >
               <IonIcon icon={homeOutline} slot="start" />
               <IonLabel>DASHBOARD</IonLabel>
