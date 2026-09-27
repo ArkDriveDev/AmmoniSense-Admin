@@ -255,12 +255,15 @@ export default function SensorData() {
     if (s === 'CRITICAL' || (ammonia !== null && ammonia > 50)) return 'danger';
     if (s === 'HIGH' || (ammonia !== null && ammonia > 35)) return 'warning';
     if (s === 'WARNING' || (ammonia !== null && ammonia > 25)) return 'warning';
+    return 'success';
+  };
+
   return (
     <IonPage>
       <IonHeader>
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-          <IonTitle style={{ fontWeight: 'bold', fontSize: '18px' }}>
-            MENRO SENSOR DATA & MAP INSPECTOR
+          <IonTitle style={{ fontWeight: 'bold' }}>
+            INSPECTION TAGS & TELEMETRY
           </IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={() => setShowMap(!showMap)}>
@@ -268,9 +271,9 @@ export default function SensorData() {
               {showMap ? 'HIDE MAP' : 'SHOW MAP'}
             </IonButton>
             <IonButton onClick={() => setRealtimeEnabled(!realtimeEnabled)}>
-              {realtimeEnabled ? 'LIVE' : 'PAUSED'}
+              {realtimeEnabled ? 'LIVE SYNC' : 'PAUSED'}
             </IonButton>
-            <IonButton onClick={fetchLogs}>
+            <IonButton onClick={() => triggerSync(fetchTags)}>
               <IonIcon icon={refreshOutline} />
             </IonButton>
           </IonButtons>
@@ -278,45 +281,61 @@ export default function SensorData() {
 
         <IonToolbar style={{ '--background': '#f8fafc' }}>
           <IonSearchbar
-            placeholder="SEARCH SENSOR DATA OR DEVICE..."
+            placeholder="SEARCH TAGS, SITES, DEVICES, SCHEDULES..."
             value={searchTerm}
-            onIonChange={(e) => setSearchTerm(e.detail.value || '')}
+            onIonInput={(e) => setSearchTerm(e.detail.value || '')}
             animated
           />
         </IonToolbar>
 
-        {/* Filter Bar */}
+        {/* Filter Controls */}
         <IonToolbar style={{ '--background': '#ffffff' }}>
           <IonGrid style={{ padding: '0 8px' }}>
             <IonRow>
-              <IonCol size="12" size-md="6">
+              <IonCol size="12" size-md="4">
                 <IonSelect
                   value={siteFilter}
                   placeholder="FILTER BY SITE"
                   onIonChange={(e) => setSiteFilter(e.detail.value)}
                   interface="popover"
                 >
-                  <IonSelectOption value="all">ALL MONITORING SITES</IonSelectOption>
+                  <IonSelectOption value="all">ALL INSPECTION SITES</IonSelectOption>
                   {sites.map((s) => (
-                    <IonSelectOption key={s.id} value={s.id}>
+                    <IonSelectOption key={s.id} value={s.id.toString()}>
                       {s.site_name}
                     </IonSelectOption>
                   ))}
                 </IonSelect>
               </IonCol>
-              <IonCol size="12" size-md="6">
+
+              <IonCol size="6" size-md="4">
                 <IonSelect
                   value={deviceFilter}
                   placeholder="FILTER BY DEVICE"
                   onIonChange={(e) => setDeviceFilter(e.detail.value)}
                   interface="popover"
                 >
-                  <IonSelectOption value="all">ALL SENSOR DEVICES</IonSelectOption>
+                  <IonSelectOption value="all">ALL DEVICES</IonSelectOption>
                   {devices.map((d) => (
                     <IonSelectOption key={d.device_uid} value={d.device_uid}>
                       {d.device_uid}
                     </IonSelectOption>
                   ))}
+                </IonSelect>
+              </IonCol>
+
+              <IonCol size="6" size-md="4">
+                <IonSelect
+                  value={statusFilter}
+                  placeholder="STATUS"
+                  onIonChange={(e) => setStatusFilter(e.detail.value)}
+                  interface="popover"
+                >
+                  <IonSelectOption value="all">ALL STATUSES</IonSelectOption>
+                  <IonSelectOption value="NORMAL">NORMAL (&lt;=25 PPM)</IonSelectOption>
+                  <IonSelectOption value="WARNING">WARNING (25-35 PPM)</IonSelectOption>
+                  <IonSelectOption value="HIGH">HIGH (35-50 PPM)</IonSelectOption>
+                  <IonSelectOption value="CRITICAL">CRITICAL (&gt;50 PPM)</IonSelectOption>
                 </IonSelect>
               </IonCol>
             </IonRow>
@@ -329,20 +348,19 @@ export default function SensorData() {
           <IonRefresherContent />
         </IonRefresher>
 
-        {/* Spatial Polygon Map Overlay */}
+        {/* Spatial Map Display */}
         {showMap && (
           <IonCard style={{ margin: '0 0 20px 0', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
             <IonCardHeader style={{ padding: '14px 16px 8px 16px', background: '#ffffff', borderBottom: '1px solid #f1f5f9' }}>
               <IonCardTitle style={{ fontSize: '16px', fontWeight: 'bold', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <IonIcon icon={mapOutline} style={{ color: '#2d7d46' }} />
-                Spatial Polygon Map & Reading Overlays ({mapMarkers.length} Mapped Pins)
+                Spatial Inspection Map & Tag Pins ({mapMarkers.length} Mapped Locations)
               </IonCardTitle>
             </IonCardHeader>
             <IonCardContent style={{ padding: '12px 16px 16px 16px', background: '#ffffff' }}>
               <SpatialPolygonMap
-                centerLat={activeSiteObj?.current_latitude ?? (activeSiteObj?.latitude ?? 8.3697)}
-                centerLng={activeSiteObj?.current_longitude ?? (activeSiteObj?.longitude ?? 124.8640)}
-                siteName={activeSiteObj?.site_name || 'All MENRO Monitoring Sites'}
+                centerLat={activeSiteObj?.current_latitude ?? 8.3697}
+                centerLng={activeSiteObj?.current_longitude ?? 124.8640}
                 sites={sites.map(s => ({
                   id: s.id,
                   site_name: s.site_name,
