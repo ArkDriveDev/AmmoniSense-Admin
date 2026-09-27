@@ -757,10 +757,23 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
             <span><b>10 – 20 PPM</b>: High (Action Req.)</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#ef4444' }}></span>
+            <span><b>&gt; 20 PPM</b>: Critical (Hazardous)</span>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#dc2626' }}></span>
-          <span>Critical Reading (&gt; 50 ppm)</span>
+
+        <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
+
+        {/* Layers & Tags */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '10.5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid #8b5cf6', backgroundColor: '#8b5cf6', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px' }}>📷</span>
+            <span>Photo Tag Marker</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ width: '10px', height: '10px', borderRadius: '2px', border: '1.5px dashed #ea580c', backgroundColor: 'rgba(249,115,22,0.3)' }}></span>
+            <span>Odor Dispersion Zone</span>
+          </div>
         </div>
       </div>
     </div>
