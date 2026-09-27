@@ -156,18 +156,30 @@ export function useDashboardData() {
 
     // 6. Top Sites by Ammonia Level
     const siteLabels = siteSummaryData.map((s) => s.site_name || 'Site');
+    const siteAmmonia = siteSummaryData.map((s) => s.avg_ammonia || 0);
 
-    const sortedOwners = Object.entries(ownerCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5);
-
-    const clientsLivestock = {
-      labels: sortedOwners.map(([name]) => name),
+    const clientsLivestock: ChartDataGroup = {
+      labels: siteLabels.length > 0 ? siteLabels : ['No Sites'],
       datasets: [{
-        label: 'Monitoring Sites',
-        data: sortedOwners.map(([, count]) => count),
+        label: 'Avg Ammonia (PPM)',
+        data: siteAmmonia.length > 0 ? siteAmmonia : [0],
         backgroundColor: '#2d7d46',
         borderColor: '#2d7d46',
+        borderWidth: 1,
+      }],
+    };
+
+    // 7. Schedule Status Distribution
+    const scheduled = scheduleStatusData?.filter((s) => (s.status || '').toUpperCase() === 'SCHEDULED').length || 0;
+    const inProgress = scheduleStatusData?.filter((s) => (s.status || '').toUpperCase() === 'IN_PROGRESS').length || 0;
+    const completed = scheduleStatusData?.filter((s) => (s.status || '').toUpperCase() === 'COMPLETED').length || 0;
+    const cancelled = scheduleStatusData?.filter((s) => (s.status || '').toUpperCase() === 'CANCELLED').length || 0;
+
+    const scheduleStatus: ChartDataGroup = {
+      labels: ['SCHEDULED', 'IN PROGRESS', 'COMPLETED', 'CANCELLED'],
+      datasets: [{
+        data: [scheduled, inProgress, completed, cancelled],
+        backgroundColor: ['#3b82f6', '#f59e0b', '#10b981', '#64748b'],
         borderWidth: 1,
       }],
     };
@@ -178,9 +190,23 @@ export function useDashboardData() {
       alertTrend,
       deviceStatus,
       topAlertingDevices,
-      clientsLivestock
+      clientsLivestock,
+      scheduleStatus,
     };
   };
 
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    try {
+      // 1. Get stats from official schema tables: inspection_sites, inspection_schedules, devices, inspection_tags
+      const [sitesRes, schedulesRes, devicesRes, tagsRes, alertsRes] = await Promise.all([
+        supabase.from('inspection_sites').select('id', { count: 'exact', head: true }),
+        supabase.from('inspection_schedules').select('id', { count: 'exact', head: true }),
+        supabase.from('devices').select('id', { count: 'exact', head: true }),
+        supabase.from('inspection_tags').select('id', { count: 'exact', head: true }),
+        supabase.from('inspection_tags').select('id', { count: 'exact', head: true }).or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25'),
+      ]);
+
+      setStats({
   return { stats, chartData, loading, refresh: fetchDashboardData };
 }
