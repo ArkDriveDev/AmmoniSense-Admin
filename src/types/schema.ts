@@ -68,3 +68,38 @@ export interface InspectionTag {
   created_at?: string;
   created_by?: string | null;
 }
+
+// 4. Table: devices
+export type DeviceStatus = 'ACTIVE' | 'INACTIVE' | 'OFFLINE' | 'MAINTENANCE';
+
+export interface Device {
+  id: number;
+  device_uid: string;
+  device_name?: string | null;
+  status?: DeviceStatus | string | null;
+  inspection_site_id?: number | null;
+  firmware_version?: string | null;
+  battery_level?: number | null;
+  last_ping_at?: string | null;
+  installed_at?: string | null;
+  auto_registered?: boolean;
+  first_seen_at?: string | null;
+  last_seen_at?: string | null;
+  connection_count?: number | null;
+  last_connected_by?: string | null;
+  offline_temp_id?: string | null;
+  created_at?: string;
+  created_by?: string | null;
+  // Relational join convenience
+  inspection_sites?: {
+    id: number;
+    site_name: string;
+    site_code: string;
+  } | null;
+}
+
+// 5. Table: inspection_photos
+export interface InspectionPhoto {
+  id: number;
+  sensor_data_id?: number | null;
+  inspection_site_id?: number | null;
