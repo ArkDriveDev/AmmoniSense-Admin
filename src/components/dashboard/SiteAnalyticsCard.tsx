@@ -48,9 +48,12 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
     }
   };
 
-  const getStatusDetails = (status: 'normal' | 'warning' | 'critical', ammonia: number | null) => {
+  const getStatusDetails = (status: 'normal' | 'warning' | 'high' | 'critical', ammonia: number | null) => {
     if (status === 'critical' || (ammonia !== null && ammonia > 50)) {
       return { label: 'Critical', bg: '#fef2f2', border: '#fecaca', text: '#dc2626' };
+    }
+    if (status === 'high' || (ammonia !== null && ammonia > 35)) {
+      return { label: 'High', bg: '#fff7ed', border: '#fed7aa', text: '#ea580c' };
     }
     if (status === 'warning' || (ammonia !== null && ammonia > 25)) {
       return { label: 'Warning', bg: '#fffbeb', border: '#fde68a', text: '#d97706' };
@@ -116,31 +119,25 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
         {/* Summary Metrics Row */}
         <IonGrid style={{ padding: '14px 0 0 0', margin: 0 }}>
           <IonRow className="ion-align-items-center">
-            <IonCol size="6" size-sm="4" size-md="2.4">
+            <IonCol size="6" size-sm="6" size-md="3">
               <div style={{ padding: '6px 10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', display: 'block' }}>Ammonia (NH₃)</span>
                 <span style={{ fontSize: '17px', fontWeight: '800', color: statusDetails.text }}>{site.latest_ammonia !== null ? `${site.latest_ammonia.toFixed(1)} ppm` : 'N/A'}</span>
               </div>
             </IonCol>
-            <IonCol size="6" size-sm="4" size-md="2.4">
+            <IonCol size="6" size-sm="6" size-md="3">
               <div style={{ padding: '6px 10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', display: 'block' }}>Temp / Humidity</span>
                 <span style={{ fontSize: '14px', fontWeight: '700', color: '#334155' }}>{site.latest_temperature !== null ? `${site.latest_temperature.toFixed(1)}°C` : '--'} | {site.latest_humidity !== null ? `${site.latest_humidity.toFixed(0)}%` : '--'}</span>
               </div>
             </IonCol>
-            <IonCol size="6" size-sm="4" size-md="2.4">
-              <div style={{ padding: '6px 10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', display: 'block' }}>Device Health</span>
-                <span style={{ fontSize: '13px', fontWeight: '700', color: site.device_status === 'Online' ? '#16a34a' : '#dc2626' }}>{site.device_status} ({site.devices.length} dev)</span>
-              </div>
-            </IonCol>
-            <IonCol size="6" size-sm="4" size-md="2.4">
+            <IonCol size="6" size-sm="6" size-md="3">
               <div style={{ padding: '6px 10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', display: 'block' }}>7-Day Activity</span>
                 <span style={{ fontSize: '14px', fontWeight: '700', color: '#1a365d' }}>{site.reading_count_7days} readings</span>
               </div>
             </IonCol>
-            <IonCol size="12" size-sm="4" size-md="2.4">
+            <IonCol size="12" size-sm="6" size-md="3">
               <div style={{ padding: '6px 10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                 <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', display: 'block' }}>Location / Last Seen</span>
                 <span style={{ fontSize: '12px', fontWeight: '700', color: '#334155', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -178,7 +175,7 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
                 <div style={{ backgroundColor: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <div>
                     <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '700', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <IonIcon icon={locationOutline} style={{ color: '#059669' }} /> Monitoring Site Metadata
+                      <IonIcon icon={locationOutline} style={{ color: '#059669' }} /> Inspection Site Metadata
                     </h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '12px', color: '#334155' }}>
                       <div><strong style={{ color: '#64748b' }}>Site Code:</strong> {site.site_code || `SITE-${site.id}`}</div>
@@ -189,7 +186,7 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
                     </div>
                   </div>
                   <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
-                    <IonButton size="small" color="primary" fill="solid" onClick={() => history.push('/livestock')}>
+                    <IonButton size="small" color="primary" fill="solid" onClick={() => history.push('/inspection-sites')}>
                       View Site Details <IonIcon icon={openOutline} slot="end" />
                     </IonButton>
                   </div>
@@ -204,7 +201,7 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
                   <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '700', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <IonIcon icon={mapOutline} style={{ color: '#d97706' }} /> Odor Zones & Community Buffer Polygons
                   </h4>
-                  <SiteOdorMap latitude={site.latitude} longitude={site.longitude} siteName={site.site_name} ammonia={site.latest_ammonia} areaHectares={site.area_size_hectares} height="280px" />
+                  <SiteOdorMap latitude={site.latitude} longitude={site.longitude} siteName={site.site_name} siteType={site.site_type} ammonia={site.latest_ammonia} areaHectares={site.area_size_hectares} height="280px" />
                 </div>
               </IonCol>
 
