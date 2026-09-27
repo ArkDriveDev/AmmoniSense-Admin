@@ -138,3 +138,19 @@ export function getSiteMapPinMeta(siteType?: string): SiteMapPinMeta {
     fillColor: '#EBF3FA',
     label: siteType || 'Inspection Site',
   };
+}
+
+export const getAmmoniaColor = (ammonia: number, status?: string): string => {
+  const s = (status || '').toLowerCase();
+  if (s === 'critical' || ammonia > 20) return '#ef4444'; // Critical Red (>20 PPM)
+  if (s === 'high' || ammonia > 10) return '#f97316'; // High Orange (10-20 PPM)
+  if (s === 'warning' || ammonia > 5) return '#eab308'; // Warning Yellow (5-10 PPM)
+  return '#22c55e'; // Normal Green (0-5 PPM)
+};
+
+export const getAmmoniaSeverityLabel = (ammonia: number): string => {
+  if (ammonia > 20) return 'Critical';
+  if (ammonia > 10) return 'High';
+  if (ammonia > 5) return 'Warning';
+  return 'Normal';
+};
