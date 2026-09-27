@@ -256,11 +256,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <IonItem 
               button 
               lines="none"
-              onClick={logout}
-              style={{ marginTop: '16px' }}
+              onClick={() => handleNavigate('/devices')}
+              color={isActive('/devices') ? 'primary' : undefined}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: isActive('/devices') ? '4px solid #1a365d' : 'none',
+                fontWeight: isActive('/devices') ? 'bold' : 'normal'
+              }}
             >
-              <IonIcon icon={logOutOutline} slot="start" />
-              <IonLabel color="danger">LOGOUT</IonLabel>
+              <IonIcon icon={hardwareChipOutline} slot="start" />
+              <IonLabel style={{ fontSize: '13px' }}>BLE DEVICES</IonLabel>
+            </IonItem>
+
+            <IonItem 
+              button 
+              lines="none"
+              onClick={() => handleNavigate('/notifications')}
+              color={isActive('/notifications') ? 'primary' : undefined}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: isActive('/notifications') ? '4px solid #1a365d' : 'none',
+                fontWeight: isActive('/notifications') ? 'bold' : 'normal'
+              }}
+            >
+              <IonIcon icon={notificationsOutline} slot="start" />
+              <IonLabel style={{ fontSize: '13px' }}>ALERTS</IonLabel>
+            </IonItem>
+
+            <IonItem 
+              button 
+              lines="none"
+              onClick={logout}
+              style={{ marginTop: '16px', borderRadius: '8px' }}
+            >
+              <IonIcon icon={logOutOutline} slot="start" color="danger" />
+              <IonLabel color="danger" style={{ fontSize: '13px', fontWeight: 'bold' }}>LOGOUT</IonLabel>
             </IonItem>
           </IonList>
         </IonContent>
