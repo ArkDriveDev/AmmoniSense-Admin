@@ -43,12 +43,16 @@ export function useDashboardData() {
     alertTrendData: { created_at?: string; status?: string | null; ammonia?: number | null }[],
     deviceStatusData: { status?: string | null }[],
     topDevices: { device_uid?: string | null }[],
+    siteSummaryData: { site_name?: string | null; avg_ammonia?: number | null; tag_count?: number }[],
+    scheduleStatusData: { status?: string | null }[]
+  ): DashboardCharts => {
+    // 1. Ammonia Trend
     const grouped: Record<string, number[]> = {};
-    
+
     if (ammoniaData && ammoniaData.length > 0) {
       ammoniaData.forEach((item) => {
         if (item.ammonia !== null && item.ammonia !== undefined) {
-          const date = new Date(item.created_at || item.submitted_at || Date.now());
+          const date = new Date(item.created_at || Date.now());
           const dateKey = date.toISOString().split('T')[0];
           if (!grouped[dateKey]) grouped[dateKey] = [];
           grouped[dateKey].push(item.ammonia);
@@ -63,10 +67,10 @@ export function useDashboardData() {
       return Math.round(avg * 10) / 10;
     });
 
-    const ammoniaTrend = {
+    const ammoniaTrend: ChartDataGroup = {
       labels: labels.length > 0 ? labels : ['No Data'],
       datasets: [{
-        label: 'Average Ammonia (ppm)',
+        label: 'Average Ammonia (PPM)',
         data: values.length > 0 ? values : [0],
         borderColor: '#1a365d',
         backgroundColor: 'rgba(26, 54, 93, 0.2)',
@@ -75,31 +79,34 @@ export function useDashboardData() {
       }],
     };
 
-    // Alert Severity
-    const severe = severityData?.filter((d) => d.status === 'critical' || d.ammonia > 50).length || 0;
-    const moderate = severityData?.filter((d) => (d.status === 'warning' || (d.ammonia > 25 && d.ammonia <= 50))).length || 0;
-    const low = severityData?.filter((d) => d.status === 'normal' || d.ammonia <= 25).length || 0;
+    // 2. Alert Severity
+    const critical = severityData?.filter((d) => (d.status || '').toUpperCase() === 'CRITICAL' || (d.ammonia || 0) > 50).length || 0;
+    const high = severityData?.filter((d) => (d.status || '').toUpperCase() === 'HIGH' || ((d.ammonia || 0) > 35 && (d.ammonia || 0) <= 50)).length || 0;
+    const warning = severityData?.filter((d) => (d.status || '').toUpperCase() === 'WARNING' || ((d.ammonia || 0) > 25 && (d.ammonia || 0) <= 35)).length || 0;
+    const normal = severityData?.filter((d) => (d.status || '').toUpperCase() === 'NORMAL' || (d.ammonia !== null && d.ammonia !== undefined && d.ammonia <= 25)).length || 0;
 
-    const alertSeverity = {
-      labels: ['CRITICAL (>50 ppm)', 'WARNING (25-50 ppm)', 'NORMAL (<25 ppm)'],
+    const alertSeverity: ChartDataGroup = {
+      labels: ['CRITICAL (>50 PPM)', 'HIGH (35-50 PPM)', 'WARNING (25-35 PPM)', 'NORMAL (<=25 PPM)'],
       datasets: [{
-        data: [severe, moderate, low],
-        backgroundColor: ['#dc2626', '#f59e0b', '#2d7d46'],
-        borderColor: ['#dc2626', '#f59e0b', '#2d7d46'],
+        data: [critical, high, warning, normal],
+        backgroundColor: ['#dc2626', '#ea580c', '#f59e0b', '#2d7d46'],
+        borderColor: ['#dc2626', '#ea580c', '#f59e0b', '#2d7d46'],
         borderWidth: 1,
       }],
     };
 
-    // Alert Trend
+    // 3. Alert Trend by Day of Week
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const counts = days.map(() => 0);
 
     alertTrendData?.forEach((item) => {
-      const day = new Date(item.created_at).getDay();
-      counts[day] += 1;
+      if (item.created_at) {
+        const day = new Date(item.created_at).getDay();
+        counts[day] += 1;
+      }
     });
 
-    const alertTrend = {
+    const alertTrend: ChartDataGroup = {
       labels: days,
       datasets: [{
         label: 'Alerts Logged',
@@ -110,13 +117,13 @@ export function useDashboardData() {
       }],
     };
 
-    // Device Status
-    const active = deviceStatusData?.filter((d) => d.status === 'ACTIVE').length || 0;
-    const inactive = deviceStatusData?.filter((d) => d.status === 'INACTIVE' || d.status === 'OFFLINE').length || 0;
-    const maintenance = deviceStatusData?.filter((d) => d.status === 'MAINTENANCE' || !d.status).length || 0;
+    // 4. Device Status
+    const active = deviceStatusData?.filter((d) => (d.status || '').toUpperCase() === 'ACTIVE').length || 0;
+    const inactive = deviceStatusData?.filter((d) => ['INACTIVE', 'OFFLINE'].includes((d.status || '').toUpperCase())).length || 0;
+    const maintenance = deviceStatusData?.filter((d) => (d.status || '').toUpperCase() === 'MAINTENANCE' || !d.status).length || 0;
 
-    const deviceStatus = {
-      labels: ['ACTIVE', 'INACTIVE/OFFLINE', 'MAINTENANCE'],
+    const deviceStatus: ChartDataGroup = {
+      labels: ['ACTIVE', 'INACTIVE / OFFLINE', 'MAINTENANCE'],
       datasets: [{
         data: [active, inactive, maintenance],
         backgroundColor: ['#2d7d46', '#dc2626', '#f59e0b'],
@@ -125,7 +132,7 @@ export function useDashboardData() {
       }],
     };
 
-    // Top Alerting Devices
+    // 5. Top Alerting Devices
     const deviceCounts: Record<string, number> = {};
     topDevices?.forEach((item) => {
       const uid = item.device_uid || 'Unknown';
@@ -136,10 +143,10 @@ export function useDashboardData() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
 
-    const topAlertingDevices = {
+    const topAlertingDevices: ChartDataGroup = {
       labels: sortedDevices.map(([uid]) => uid),
       datasets: [{
-        label: 'High Ammonia Alerts',
+        label: 'High Ammonia Readings',
         data: sortedDevices.map(([, count]) => count),
         backgroundColor: '#1a365d',
         borderColor: '#1a365d',
@@ -147,12 +154,8 @@ export function useDashboardData() {
       }],
     };
 
-    // Site Owners with Most Sites
-    const ownerCounts: Record<string, number> = {};
-    clientSites?.forEach((item: any) => {
-      const name = item.site_owners?.owner_name || 'Unassigned';
-      ownerCounts[name] = (ownerCounts[name] || 0) + 1;
-    });
+    // 6. Top Sites by Ammonia Level
+    const siteLabels = siteSummaryData.map((s) => s.site_name || 'Site');
 
     const sortedOwners = Object.entries(ownerCounts)
       .sort((a, b) => b[1] - a[1])
