@@ -103,3 +103,37 @@ ORDER BY
 -- 3. VIEW: public.inspection_site_summary
 CREATE VIEW public.inspection_site_summary AS
 SELECT
+  ins.id AS inspection_site_id,
+  ins.site_name,
+  ins.site_code,
+  ins.site_type,
+  COUNT(DISTINCT s.id) AS schedule_count,
+  COUNT(DISTINCT t.id) AS tag_count,
+  COUNT(DISTINCT t.photo_url) AS photo_count,
+  ROUND(AVG(sd.ammonia)::numeric, 2) AS avg_ammonia,
+  COUNT(
+    CASE
+      WHEN sd.ammonia > 20::double precision THEN 1
+      ELSE NULL::integer
+    END
+  ) AS critical_readings,
+  MAX(sd.created_at) AS last_inspection_at
+FROM
+  inspection_sites ins
+  LEFT JOIN inspection_schedules s ON s.inspection_site_id = ins.id
+  LEFT JOIN inspection_tags t ON t.inspection_site_id = ins.id
+  LEFT JOIN sensor_data sd ON sd.id = t.sensor_data_id
+WHERE
+  ins.is_active = true
+GROUP BY
+  ins.id,
+  ins.site_name,
+  ins.site_code,
+  ins.site_type
+ORDER BY
+  ins.site_name;
+
+-- Permissions
+GRANT SELECT ON public.inspection_tag_details TO anon, authenticated, service_role;
+GRANT SELECT ON public.inspection_schedule_summary TO anon, authenticated, service_role;
+GRANT SELECT ON public.inspection_site_summary TO anon, authenticated, service_role;
