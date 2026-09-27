@@ -68,3 +68,38 @@ SELECT
   ins.site_name,
   ins.site_code,
   COUNT(t.id) AS tag_count,
+  COUNT(t.photo_url) AS photo_count,
+  ROUND(AVG(sd.ammonia)::numeric, 2) AS avg_ammonia,
+  ROUND(MAX(sd.ammonia)::numeric, 2) AS max_ammonia,
+  COUNT(
+    CASE
+      WHEN sd.ammonia > 20::double precision THEN 1
+      ELSE NULL::integer
+    END
+  ) AS critical_readings,
+  s.created_by,
+  p.full_name AS created_by_name
+FROM
+  inspection_schedules s
+  JOIN inspection_sites ins ON ins.id = s.inspection_site_id
+  LEFT JOIN inspection_tags t ON t.inspection_schedule_id = s.id
+  LEFT JOIN sensor_data sd ON sd.id = t.sensor_data_id
+  LEFT JOIN profiles p ON p.id = s.created_by
+GROUP BY
+  s.id,
+  s.schedule_name,
+  s.scheduled_date,
+  s.status,
+  s.started_at,
+  s.completed_at,
+  ins.id,
+  ins.site_name,
+  ins.site_code,
+  s.created_by,
+  p.full_name
+ORDER BY
+  s.scheduled_date DESC;
+
+-- 3. VIEW: public.inspection_site_summary
+CREATE VIEW public.inspection_site_summary AS
+SELECT
