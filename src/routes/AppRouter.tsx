@@ -142,6 +142,10 @@ export default function AppRouter() {
       <Route exact path="/inspection-tags">
         <Redirect to="/sensor-data" />
       </Route>
+
+      <Route exact path="/admin/tags">
+        <Redirect to="/sensor-data" />
+      </Route>
     </Switch>
   );
 }

@@ -241,12 +241,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               button 
               lines="none"
               onClick={() => handleNavigate('/sensor-data')}
-              color={isActive('/sensor-data') ? 'primary' : undefined}
+              color={isActive('/sensor-data') || isActive('/inspection-tags') || isActive('/admin/tags') ? 'primary' : undefined}
               style={{
                 borderRadius: '8px',
                 margin: '2px 0',
-                borderLeft: isActive('/sensor-data') ? '4px solid #1a365d' : 'none',
-                fontWeight: isActive('/sensor-data') ? 'bold' : 'normal'
+                borderLeft: (isActive('/sensor-data') || isActive('/inspection-tags') || isActive('/admin/tags')) ? '4px solid #1a365d' : 'none',
+                fontWeight: (isActive('/sensor-data') || isActive('/inspection-tags') || isActive('/admin/tags')) ? 'bold' : 'normal'
               }}
             >
               <IonIcon icon={barChartOutline} slot="start" />
