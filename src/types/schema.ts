@@ -47,6 +47,19 @@ export interface InspectionSchedule {
 // 3. Table: inspection_tags
 export type TagStatus = 'NORMAL' | 'WARNING' | 'HIGH' | 'CRITICAL';
 
+export type ViolationCategory =
+  | 'IMPROPER_WASTE_DISPOSAL'
+  | 'ILLEGAL_DUMPING'
+  | 'OPEN_BURNING'
+  | 'FOUL_ODOR'
+  | 'STAGNANT_WATER'
+  | 'WATER_POLLUTION'
+  | 'MANURE_PILING'
+  | 'NOISE'
+  | 'WASTEWATER_DISCHARGE'
+  | 'NO_PERMIT'
+  | 'OTHERS';
+
 export interface InspectionTag {
   id: number;
   tag_name: string;
@@ -64,6 +77,7 @@ export interface InspectionTag {
   photo_thumbnail_url?: string | null;
   inspection_photo_id?: number | null;
   notes?: string | null;
+  violation_category?: ViolationCategory | string | null;
   offline_temp_id?: string | null;
   created_at?: string;
   created_by?: string | null;
@@ -176,6 +190,7 @@ export interface InspectionTagDetails {
   photo_thumbnail_storage_path?: string | null;
   created_at: string;
   notes: string | null;
+  violation_category?: ViolationCategory | string | null;
   offline_temp_id?: string | null;
   created_by: string | null;
   ammonia: number | null;
