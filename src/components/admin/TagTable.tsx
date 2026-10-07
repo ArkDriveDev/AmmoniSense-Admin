@@ -1,6 +1,7 @@
 import React from 'react';
 import { InspectionTagDetails } from '../../types/schema';
 import TagCard from './TagCard';
+import { getViolationCategoryLabel, getViolationCategoryLaw } from '../../constants/violationCategories';
 
 interface TagTableProps {
   tags: InspectionTagDetails[];
@@ -69,6 +70,7 @@ export const TagTable: React.FC<TagTableProps> = ({
               <th style={{ minWidth: '45px', textAlign: 'right' }}>Bat (%)</th>
               <th style={{ minWidth: '70px' }}>Device</th>
               <th style={{ minWidth: '65px', textAlign: 'center' }}>Status</th>
+              <th style={{ minWidth: '110px' }}>Violation Category</th>
               <th style={{ minWidth: '85px' }}>Date/Time</th>
               <th>Notes</th>
             </tr>
@@ -76,7 +78,7 @@ export const TagTable: React.FC<TagTableProps> = ({
           <tbody>
             {tags.length === 0 ? (
               <tr>
-                <td colSpan={12} style={{ textAlign: 'center', padding: '16px', color: '#64748b' }}>
+                <td colSpan={13} style={{ textAlign: 'center', padding: '16px', color: '#64748b' }}>
                   No inspection tags matching the specified criteria.
                 </td>
               </tr>
@@ -86,6 +88,8 @@ export const TagTable: React.FC<TagTableProps> = ({
                 const tempVal = tag.temperature !== null && tag.temperature !== undefined ? Number(tag.temperature) : null;
                 const humVal = tag.humidity !== null && tag.humidity !== undefined ? Number(tag.humidity) : null;
                 const batVal = tag.battery !== null && tag.battery !== undefined ? Number(tag.battery) : null;
+                const categoryLabel = getViolationCategoryLabel(tag.violation_category);
+                const categoryLaw = getViolationCategoryLaw(tag.violation_category);
 
                 const dateStr = tag.created_at
                   ? new Date(tag.created_at).toLocaleDateString(undefined, {
@@ -124,6 +128,20 @@ export const TagTable: React.FC<TagTableProps> = ({
                       <span className="print-badge">
                         {tag.status || 'NORMAL'}
                       </span>
+                    </td>
+                    <td>
+                      {categoryLabel ? (
+                        <div>
+                          <span style={{ fontWeight: 600 }}>{categoryLabel}</span>
+                          {categoryLaw && (
+                            <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>
+                              [{categoryLaw}]
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span style={{ color: '#94a3b8' }}>None</span>
+                      )}
                     </td>
                     <td>{dateStr}</td>
                     <td>{tag.notes || '-'}</td>

@@ -104,6 +104,7 @@ export default function AdminTags() {
           photo_thumbnail_storage_path: null,
           created_at: t.created_at,
           notes: t.notes,
+          violation_category: t.violation_category || null,
           offline_temp_id: t.offline_temp_id,
           created_by: t.created_by,
           ammonia: t.ammonia,
@@ -133,6 +134,7 @@ export default function AdminTags() {
           reading_latitude?: number;
         })[]).map((t) => ({
           ...t,
+          violation_category: t.violation_category || null,
           latitude: t.tag_latitude ?? t.reading_latitude ?? t.latitude,
           longitude: t.tag_longitude ?? t.reading_longitude ?? t.longitude,
           schedule_id: t.inspection_schedule_id ?? t.schedule_id
