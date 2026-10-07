@@ -36,6 +36,11 @@ import { InspectionTagDetails, InspectionSite, InspectionScheduleSummary } from 
 import useSyncFeedback from '../../hooks/useSyncFeedback';
 import { useInspectionSites } from '../../hooks/useInspectionSites';
 import { useInspectionSchedules } from '../../hooks/useInspectionSchedules';
+import {
+  VIOLATION_CATEGORIES,
+  getViolationCategoryLabel,
+  getViolationCategoryLaw
+} from '../../constants/violationCategories';
 
 export default function AdminTags() {
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
@@ -51,6 +56,7 @@ export default function AdminTags() {
   const [siteFilter, setSiteFilter] = useState<string>('all');
   const [scheduleFilter, setScheduleFilter] = useState<string>('all');
   const [ammoniaFilter, setAmmoniaFilter] = useState<string>('all');
+  const [violationFilter, setViolationFilter] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
@@ -214,6 +220,17 @@ export default function AdminTags() {
       });
     }
 
+    // Filter by violation category
+    if (violationFilter !== 'all') {
+      if (violationFilter === 'NONE') {
+        result = result.filter((t) => !t.violation_category);
+      } else if (violationFilter === 'HAS_VIOLATION') {
+        result = result.filter((t) => !!t.violation_category);
+      } else {
+        result = result.filter((t) => t.violation_category === violationFilter);
+      }
+    }
+
     // Filter by date range (from startDate to endDate)
     if (startDate) {
       const start = new Date(startDate);
@@ -235,7 +252,7 @@ export default function AdminTags() {
       });
     }
 
-    // Search bar filter (by tag name, site name, schedule name, or date)
+    // Search bar filter (by tag name, site name, schedule name, violation, or date)
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim();
       result = result.filter((t) => {
@@ -250,18 +267,36 @@ export default function AdminTags() {
         const notesMatch = t.notes?.toLowerCase().includes(term);
         const statusMatch = t.status?.toLowerCase().includes(term);
 
+        // Violation category search
+        const violationLabel = getViolationCategoryLabel(t.violation_category).toLowerCase();
+        const violationCode = (t.violation_category || '').toLowerCase();
+        const violationLaw = getViolationCategoryLaw(t.violation_category).toLowerCase();
+        const violationMatch =
+          violationLabel.includes(term) ||
+          violationCode.includes(term) ||
+          violationLaw.includes(term);
+
         // Date search
         const createdStr = t.created_at ? new Date(t.created_at).toLocaleDateString().toLowerCase() : '';
         const scheduledStr = t.scheduled_date ? new Date(t.scheduled_date).toLocaleDateString().toLowerCase() : '';
         const rawDate = t.created_at ? t.created_at.toLowerCase() : '';
         const dateMatch = createdStr.includes(term) || scheduledStr.includes(term) || rawDate.includes(term);
 
-        return nameMatch || siteMatch || schedMatch || devMatch || notesMatch || statusMatch || dateMatch;
+        return (
+          nameMatch ||
+          siteMatch ||
+          schedMatch ||
+          devMatch ||
+          notesMatch ||
+          statusMatch ||
+          violationMatch ||
+          dateMatch
+        );
       });
     }
 
     return result;
-  }, [tags, siteFilter, scheduleFilter, ammoniaFilter, startDate, endDate, searchTerm]);
+  }, [tags, siteFilter, scheduleFilter, ammoniaFilter, violationFilter, startDate, endDate, searchTerm]);
 
   // Stats calculation
   const stats = useMemo(() => {
@@ -285,6 +320,7 @@ export default function AdminTags() {
     siteFilter !== 'all' ||
     scheduleFilter !== 'all' ||
     ammoniaFilter !== 'all' ||
+    violationFilter !== 'all' ||
     startDate !== '' ||
     endDate !== '';
 
@@ -293,6 +329,7 @@ export default function AdminTags() {
     setSiteFilter('all');
     setScheduleFilter('all');
     setAmmoniaFilter('all');
+    setViolationFilter('all');
     setStartDate('');
     setEndDate('');
   };
@@ -309,10 +346,20 @@ export default function AdminTags() {
       parts.push(`Schedule: ${sc ? sc.schedule_name : scheduleFilter}`);
     }
     if (ammoniaFilter !== 'all') parts.push(`Ammonia Level: ${ammoniaFilter}`);
+    if (violationFilter !== 'all') {
+      if (violationFilter === 'NONE') {
+        parts.push('Violation: No Violation (Clean)');
+      } else if (violationFilter === 'HAS_VIOLATION') {
+        parts.push('Violation: Any Violation Tagged');
+      } else {
+        const opt = VIOLATION_CATEGORIES.find((v) => v.value === violationFilter);
+        parts.push(`Violation: ${opt ? `${opt.label} (${opt.lawReference})` : violationFilter}`);
+      }
+    }
     if (startDate) parts.push(`From: ${startDate}`);
     if (endDate) parts.push(`To: ${endDate}`);
     return parts.length > 0 ? parts.join(', ') : 'All Sites & Schedules (No Filter)';
-  }, [searchTerm, siteFilter, scheduleFilter, ammoniaFilter, startDate, endDate, sites, schedules]);
+  }, [searchTerm, siteFilter, scheduleFilter, ammoniaFilter, violationFilter, startDate, endDate, sites, schedules]);
 
   const handlePrint = () => {
     window.print();
@@ -455,6 +502,33 @@ export default function AdminTags() {
                 <IonSelectOption value="WARNING">WARNING (25 - 35 PPM)</IonSelectOption>
                 <IonSelectOption value="HIGH">HIGH (35 - 50 PPM)</IonSelectOption>
                 <IonSelectOption value="CRITICAL">CRITICAL (&gt; 50 PPM)</IonSelectOption>
+              </IonSelect>
+            </div>
+
+            {/* Filter by Violation Category */}
+            <div style={{ display: 'flex', alignItems: 'center', minWidth: '180px', flex: '1 1 auto' }}>
+              <IonSelect
+                value={violationFilter}
+                onIonChange={(e: SelectCustomEvent) => setViolationFilter(e.detail.value || 'all')}
+                interface="popover"
+                placeholder="Violation Category"
+                style={{
+                  width: '100%',
+                  fontSize: '13px',
+                  backgroundColor: '#f1f5f9',
+                  borderRadius: '8px',
+                  padding: '4px 12px',
+                  color: '#1e293b'
+                }}
+              >
+                <IonSelectOption value="all">ALL VIOLATIONS</IonSelectOption>
+                <IonSelectOption value="HAS_VIOLATION">ANY VIOLATION (FLAGGED)</IonSelectOption>
+                <IonSelectOption value="NONE">NO VIOLATION (CLEAN)</IonSelectOption>
+                {VIOLATION_CATEGORIES.map((cat) => (
+                  <IonSelectOption key={cat.value} value={cat.value}>
+                    {cat.label} ({cat.lawReference})
+                  </IonSelectOption>
+                ))}
               </IonSelect>
             </div>
 
