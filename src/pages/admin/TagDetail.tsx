@@ -19,10 +19,12 @@ import {
   personOutline,
   closeOutline,
   imageOutline,
-  shieldCheckmarkOutline
+  shieldCheckmarkOutline,
+  alertCircleOutline
 } from 'ionicons/icons';
 import { InspectionTagDetails } from '../../types/schema';
 import { getAmmoniaBadgeStyle } from '../../components/admin/TagCard';
+import { getViolationCategoryLabel, getViolationCategoryLaw } from '../../constants/violationCategories';
 
 interface TagDetailProps {
   tag: InspectionTagDetails;
@@ -131,6 +133,27 @@ export const TagDetail: React.FC<TagDetailProps> = ({ tag, onClose }) => {
                   <IonIcon icon={timeOutline} />
                   {formattedDate}
                 </span>
+
+                {tag.violation_category && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      fontSize: '12px',
+                      fontWeight: 700,
+                      backgroundColor: '#fee2e2',
+                      color: '#991b1b',
+                      border: '1px solid #f87171',
+                      padding: '3px 10px',
+                      borderRadius: '6px'
+                    }}
+                  >
+                    <IonIcon icon={alertCircleOutline} style={{ color: '#dc2626', fontSize: '15px' }} />
+                    Violation: {getViolationCategoryLabel(tag.violation_category)}
+                    {getViolationCategoryLaw(tag.violation_category) && ` (${getViolationCategoryLaw(tag.violation_category)})`}
+                  </span>
+                )}
               </div>
             </div>
 
@@ -431,6 +454,18 @@ export const TagDetail: React.FC<TagDetailProps> = ({ tag, onClose }) => {
               </span>
               <b style={{ color: '#0f172a', display: 'block', marginTop: '2px' }}>
                 {tag.created_by_name || 'Inspector / Mobile User'}
+              </b>
+            </div>
+
+            <div>
+              <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                <IonIcon icon={alertCircleOutline} style={{ color: tag.violation_category ? '#dc2626' : '#64748b' }} />
+                Violation Category
+              </span>
+              <b style={{ color: tag.violation_category ? '#b91c1c' : '#0f172a', display: 'block', marginTop: '2px' }}>
+                {tag.violation_category
+                  ? `${getViolationCategoryLabel(tag.violation_category)}${getViolationCategoryLaw(tag.violation_category) ? ` [${getViolationCategoryLaw(tag.violation_category)}]` : ''}`
+                  : 'No Violation Tagged (Compliant)'}
               </b>
             </div>
 

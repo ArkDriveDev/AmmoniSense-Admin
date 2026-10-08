@@ -10,9 +10,11 @@ import {
   businessOutline,
   timeOutline,
   documentTextOutline,
-  imageOutline
+  imageOutline,
+  alertCircleOutline
 } from 'ionicons/icons';
 import { InspectionTagDetails } from '../../types/schema';
+import { getViolationCategoryLabel, getViolationCategoryLaw } from '../../constants/violationCategories';
 
 interface TagCardProps {
   tag: InspectionTagDetails;
@@ -197,6 +199,31 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, onClick }) => {
                     >
                       <IonIcon icon={businessOutline} style={{ color: '#059669', fontSize: '13px' }} />
                       <b>{tag.site_name}</b> {tag.site_code ? `(${tag.site_code})` : ''}
+                    </span>
+                  )}
+
+                  {tag.violation_category && (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        backgroundColor: '#fee2e2',
+                        color: '#991b1b',
+                        border: '1px solid #fecaca',
+                        padding: '2px 8px',
+                        borderRadius: '6px'
+                      }}
+                    >
+                      <IonIcon icon={alertCircleOutline} style={{ color: '#dc2626', fontSize: '13px' }} />
+                      <span>{getViolationCategoryLabel(tag.violation_category)}</span>
+                      {getViolationCategoryLaw(tag.violation_category) && (
+                        <span style={{ fontSize: '10px', color: '#b91c1c' }}>
+                          [{getViolationCategoryLaw(tag.violation_category)}]
+                        </span>
+                      )}
                     </span>
                   )}
                 </div>
