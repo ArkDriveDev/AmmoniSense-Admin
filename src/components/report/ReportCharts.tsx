@@ -33,13 +33,14 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({ violations, readings
     }],
   };
 
-  // NH3 per tag
+  // NH3 per tag (only tags with recorded sensor readings)
+  const nh3Readings = readings.filter((r) => r.ammonia !== null);
   const nh3ChartData = {
-    labels: readings.map((r) => r.tag_name),
+    labels: nh3Readings.map((r) => r.tag_name),
     datasets: [{
       label: 'NH₃ (ppm)',
-      data: readings.map((r) => r.ammonia ?? 0),
-      backgroundColor: readings.map((r) => (r.nh3Status === 'CRITICAL' ? 'rgba(220,38,38,0.75)' : r.nh3Status === 'WARNING' ? 'rgba(234,179,8,0.75)' : 'rgba(22,163,74,0.75)')),
+      data: nh3Readings.map((r) => r.ammonia ?? 0),
+      backgroundColor: nh3Readings.map((r) => (r.nh3Status === 'CRITICAL' ? 'rgba(220,38,38,0.75)' : r.nh3Status === 'WARNING' ? 'rgba(234,179,8,0.75)' : 'rgba(22,163,74,0.75)')),
       borderWidth: 1,
     }],
   };
@@ -73,8 +74,8 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({ violations, readings
           )}
         </div>
         <div style={chartBox}>
-          {readings.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: 12 }}>No reading data for chart</div>
+          {nh3Readings.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: 12 }}>No NH₃ sensor readings recorded</div>
           ) : (
             <div style={{ height: 190 }}><Bar data={nh3ChartData} options={commonOptions('NH₃ Reading per Tag (ppm)')} /></div>
           )}

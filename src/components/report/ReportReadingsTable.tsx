@@ -7,6 +7,8 @@ interface ReportReadingsTableProps {
 }
 
 export const ReportReadingsTable: React.FC<ReportReadingsTableProps> = ({ readings }) => {
+  const sensorReadings = readings.filter((r) => r.ammonia !== null);
+
   const thStyle: React.CSSProperties = {
     padding: '8px 10px',
     background: '#1a365d',
@@ -26,11 +28,11 @@ export const ReportReadingsTable: React.FC<ReportReadingsTableProps> = ({ readin
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: '#1a365d', textTransform: 'uppercase', marginBottom: 8 }}>
-        Ammonia (NH₃) Readings ({readings.length})
+        Ammonia (NH₃) Readings ({sensorReadings.length})
       </div>
-      {readings.length === 0 ? (
+      {sensorReadings.length === 0 ? (
         <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: 6, padding: '12px', textAlign: 'center', fontSize: 12, color: '#64748b' }}>
-          No sensor readings found for this schedule.
+          No NH₃ sensor readings recorded for this schedule.
         </div>
       ) : (
         <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #cbd5e1', borderRadius: 6, overflow: 'hidden' }}>
@@ -43,7 +45,7 @@ export const ReportReadingsTable: React.FC<ReportReadingsTableProps> = ({ readin
             </tr>
           </thead>
           <tbody>
-            {readings.map((r, i) => {
+            {sensorReadings.map((r, i) => {
               const badge = getNH3BadgeStyle(r.nh3Status);
               const formattedTime = r.reading_at ? new Date(r.reading_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—';
               return (

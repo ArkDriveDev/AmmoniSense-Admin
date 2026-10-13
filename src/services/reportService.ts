@@ -52,15 +52,31 @@ export async function fetchInspectionReportData(scheduleId: number): Promise<Ins
     if (inspProfile?.full_name) inspectorName = inspProfile.full_name;
   }
 
-  // 4. Tags from read-only view
-  const { data: tagsData, error: tagsErr } = await supabase
-    .from('inspection_tag_details')
-    .select('*')
+  // 4. Tags: query inspection_tags directly so violation_category is captured even with no ppm
+  let tags: InspectionTagDetails[] = [];
+  const { data: tagRows, error: tagErr } = await supabase
+    .from('inspection_tags')
+    .select('*, sensor_data(id, ammonia, status, created_at)')
     .eq('inspection_schedule_id', scheduleId)
     .order('created_at', { ascending: true });
 
-  if (tagsErr) throw tagsErr;
-  const tags: InspectionTagDetails[] = tagsData ?? [];
+  if (!tagErr && tagRows && tagRows.length > 0) {
+    tags = tagRows.map((t: any) => {
+      const s = Array.isArray(t.sensor_data) ? t.sensor_data[0] : t.sensor_data;
+      return {
+        tag_id: t.id, tag_name: t.tag_name,
+        inspection_site_id: t.inspection_site_id, inspection_schedule_id: t.inspection_schedule_id,
+        sensor_data_id: t.sensor_data_id, tag_latitude: t.latitude, tag_longitude: t.longitude,
+        photo_url: t.photo_url, photo_thumbnail_url: t.photo_thumbnail_url, created_at: t.created_at,
+        notes: t.notes, violation_category: t.violation_category ?? null, created_by: t.created_by,
+        ammonia: s?.ammonia ?? null, status: s?.status ?? (t.violation_category ? 'NON-COMPLIANT' : 'NORMAL'),
+        reading_at: s?.created_at ?? null,
+      } as InspectionTagDetails;
+    });
+  } else {
+    const { data: viewRows } = await supabase.from('inspection_tag_details').select('*').eq('inspection_schedule_id', scheduleId).order('created_at', { ascending: true });
+    tags = (viewRows as InspectionTagDetails[]) ?? [];
+  }
   if (inspectorName === 'Inspector' && tags[0]?.created_by_name) {
     inspectorName = tags[0].created_by_name;
   }
