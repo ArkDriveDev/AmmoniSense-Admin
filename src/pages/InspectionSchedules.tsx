@@ -22,6 +22,7 @@ import {
 } from '@ionic/react';
 
 import { useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import {
   calendarOutline,
   refreshOutline,
@@ -42,6 +43,7 @@ export default function InspectionSchedules() {
   const { schedules, loading, refresh } = useInspectionSchedules();
   const { sites } = useInspectionSites();
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
+  const history = useHistory();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -195,6 +197,19 @@ export default function InspectionSchedules() {
                               {s.critical_readings} Critical
                             </span>
                           )}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4, display: 'flex', justifyContent: 'flex-end' }}>
+                          <IonButton
+                            fill="solid"
+                            color="primary"
+                            size="small"
+                            style={{ '--border-radius': '8px', fontSize: 12, fontWeight: 700 }}
+                            onClick={() => history.push(`/admin/reports/${s.schedule_id}`)}
+                          >
+                            📄 Generate Report
+                          </IonButton>
                         </div>
                       </IonCardContent>
                     </IonCard>
