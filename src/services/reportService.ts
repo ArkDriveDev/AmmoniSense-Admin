@@ -66,10 +66,12 @@ export async function fetchInspectionReportData(scheduleId: number): Promise<Ins
   }
 
   // 5. Violations, Readings & Stats
-  const violations: ReportViolation[] = tags.filter((t) => !!t.violation_category).map((t) => ({
+  const violations: ReportViolation[] = tags.filter((t) => !!t.violation_category && t.violation_category.trim() !== '').map((t) => ({
     tag_id: t.tag_id,
     tag_name: t.tag_name,
     violation_category: t.violation_category as string,
+    severity: t.status ?? null,
+    status: t.status ?? null,
     latitude: t.tag_latitude ?? t.reading_latitude ?? null,
     longitude: t.tag_longitude ?? t.reading_longitude ?? null,
     notes: t.notes,

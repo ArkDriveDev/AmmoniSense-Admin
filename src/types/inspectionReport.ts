@@ -1,4 +1,4 @@
-import { InspectionTagDetails } from './schema';
+import { InspectionTagDetails, ViolationCategory } from './schema';
 
 export type NH3Status = 'SAFE' | 'WARNING' | 'CRITICAL';
 
@@ -23,7 +23,9 @@ export interface ReportSite {
 export interface ReportViolation {
   tag_id: number;
   tag_name: string;
-  violation_category: string;
+  violation_category: ViolationCategory | string;
+  severity?: string | null;
+  status?: string | null;
   latitude: number | null;
   longitude: number | null;
   notes: string | null;

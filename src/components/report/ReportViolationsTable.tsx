@@ -1,6 +1,6 @@
 import React from 'react';
 import { ReportViolation } from '../../types/inspectionReport';
-import { getViolationCategoryLabel } from '../../constants/violationCategories';
+import { getViolationCategoryLabel, getViolationCategoryLaw } from '../../constants/violationCategories';
 
 interface ReportViolationsTableProps {
   violations: ReportViolation[];
@@ -48,9 +48,16 @@ export const ReportViolationsTable: React.FC<ReportViolationsTableProps> = ({ vi
               <tr key={i} style={{ background: i % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
                 <td style={tdStyle}><strong>{v.tag_name}</strong></td>
                 <td style={tdStyle}>
-                  <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: 4, fontWeight: 600, fontSize: 10 }}>
-                    {getViolationCategoryLabel(v.violation_category)}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: 4, fontWeight: 700, fontSize: 10 }}>
+                      {getViolationCategoryLabel(v.violation_category)}
+                    </span>
+                    {getViolationCategoryLaw(v.violation_category) && (
+                      <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 600, fontSize: 9 }}>
+                        {getViolationCategoryLaw(v.violation_category)}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td style={tdStyle}>
                   {v.latitude && v.longitude ? `${v.latitude.toFixed(4)}, ${v.longitude.toFixed(4)}` : 'N/A'}
