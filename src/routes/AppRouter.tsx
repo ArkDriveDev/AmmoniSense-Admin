@@ -10,6 +10,7 @@ import InspectionSchedules from '../pages/InspectionSchedules';
 import SensorData from '../pages/SensorData';
 import Devices from '../pages/Devices';
 import Notifications from '../pages/Notifications';
+import InspectionReport from '../pages/admin/InspectionReport';
 
 import ProtectedRoute from '../components/ProtectedRoute';
 import AdminLayout from '../layouts/AdminLayout';
@@ -130,6 +131,16 @@ export default function AppRouter() {
             <AdminLayout>
               <Notifications />
             </AdminLayout>
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        exact
+        path="/admin/reports/:scheduleId"
+        render={() => (
+          <ProtectedRoute>
+            <InspectionReport />
           </ProtectedRoute>
         )}
       />
