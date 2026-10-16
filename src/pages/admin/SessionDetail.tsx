@@ -22,6 +22,7 @@ import { useTagSession } from '../../hooks/useTagSession';
 import { getPoultryTypeLabel, getChickenTypeLabel, getSiteTypeLabel } from '../../constants/siteConstants';
 import SessionCharts from '../../components/session/SessionCharts';
 import SessionReadingsTable from '../../components/session/SessionReadingsTable';
+import { exportReportToPdf } from '../../utils/reportPdf';
 
 interface SessionDetailProps {
   tagId?: number | null;
@@ -46,6 +47,14 @@ export const SessionDetail: React.FC<SessionDetailProps> = ({
 
   const reportRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
+
+  const handleExportPdf = () => {
+    if (!reportRef.current || !data) return;
+    const tagPart = (data.tag?.tag_name || `Tag-${effectiveTagId || 'Capture'}`).replace(/[^a-zA-Z0-9_-]/g, '_');
+    const sitePart = (data.site?.site_code || 'SITE').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const fileName = `AmmoniSense-SessionReport-${tagPart}-${sitePart}.pdf`;
+    exportReportToPdf(reportRef.current, fileName, () => setExporting(true), () => setExporting(false));
+  };
 
   const handleBack = () => {
     if (onClose) {
@@ -129,14 +138,69 @@ export const SessionDetail: React.FC<SessionDetailProps> = ({
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <IonButton fill="outline" color="dark" size="small" onClick={() => window.print()}>
+            <IonIcon icon={printOutline} slot="start" />
+            Print
+          </IonButton>
+          <IonButton
+            fill="solid"
+            style={{ '--background': '#1a365d', fontWeight: 700 }}
+            size="small"
+            onClick={handleExportPdf}
+            disabled={exporting}
+          >
+            <IonIcon icon={documentTextOutline} slot="start" />
+            {exporting ? 'Generating Report...' : 'Generate Session Report'}
+          </IonButton>
           <IonButton fill="outline" color="medium" size="small" onClick={() => refresh()}>
             <IonIcon icon={refreshOutline} slot="icon-only" />
           </IonButton>
         </div>
       </div>
 
-      <div ref={reportRef} style={{ maxWidth: '960px', margin: '0 auto' }}>
+      <div
+        ref={reportRef}
+        style={{
+          maxWidth: '960px',
+          margin: '0 auto',
+          background: '#ffffff',
+          padding: '24px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          border: '1px solid #e2e8f0',
+        }}
+      >
+        {/* Printable Official Header */}
+        <div
+          style={{
+            borderBottom: '2px solid #1a365d',
+            paddingBottom: '14px',
+            marginBottom: '18px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}
+        >
+          <div>
+            <div style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', color: '#1a365d', textTransform: 'uppercase' }}>
+              Municipal Environment and Natural Resources Office &bull; MENRO Manolo Fortich
+            </div>
+            <h2 style={{ margin: '4px 0 2px 0', fontSize: '20px', fontWeight: 800, color: '#0f172a' }}>
+              AmmoniSense 5-Minute Session Capture Report
+            </h2>
+            <div style={{ fontSize: '11px', color: '#64748b' }}>
+              Official High-Frequency Air Quality &amp; Ammonia (NH₃) Field Telemetry Assessment
+            </div>
+          </div>
+          <div style={{ textAlign: 'right', fontSize: '11px', color: '#475569' }}>
+            <div><strong>Tag:</strong> {tagName}</div>
+            <div><strong>Site:</strong> {siteName} ({siteCode})</div>
+            <div><strong>Generated:</strong> {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          </div>
+        </div>
         {/* Tag and Site Header Card */}
         <div
           style={{
@@ -284,6 +348,13 @@ export const SessionDetail: React.FC<SessionDetailProps> = ({
         {/* Full Readings Table */}
         <SessionReadingsTable readings={readings} />
       </div>
+
+      <style>{`
+        @media print {
+          .no-print { display: none !important; }
+          body { background: #ffffff !important; }
+        }
+      `}</style>
     </div>
   );
 };
