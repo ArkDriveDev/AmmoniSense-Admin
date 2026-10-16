@@ -7,6 +7,8 @@ export interface SiteAnalyticsData {
   site_name: string;
   site_code?: string;
   site_type: string;
+  poultry_type?: string | null;
+  chicken_type?: string | null;
   address: string;
   latitude: number;
   longitude: number;
@@ -213,13 +215,14 @@ export function useSiteAnalytics() {
           site_name: siteNameStr,
           site_code: site.site_code,
           site_type: siteType,
+          poultry_type: site.poultry_type || null,
+          chicken_type: site.chicken_type || null,
           address: site.address || 'Address not specified',
           latitude: Number(site.current_latitude) || 8.3697,
           longitude: Number(site.current_longitude) || 124.8640,
           area_size_hectares: Number(site.area_size_hectares) || 1.0,
           site_photo_url: site.site_photo_url || site.site_photo_thumbnail || null,
           is_active: site.is_active ?? true,
-          notes: site.notes || null,
 
           schedule_count: sum?.schedule_count || 0,
           tag_count: sum?.tag_count || siteTags.length,
