@@ -29,7 +29,9 @@ import {
   pricetagOutline,
   imageOutline,
   warningOutline,
-  refreshOutline
+  refreshOutline,
+  addOutline,
+  createOutline,
 } from 'ionicons/icons';
 
 import EmptyState from '../components/EmptyState';
@@ -37,6 +39,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useInspectionSites, InspectionSiteWithSummary } from '../hooks/useInspectionSites';
 import MapViewerModal from '../components/map/MapViewerModal';
 import useSyncFeedback from '../hooks/useSyncFeedback';
+import SiteModal from '../components/admin/SiteModal';
 
 const SITE_TYPES = [
   'Piggery',
@@ -58,6 +61,20 @@ export default function AdminInspectionSites() {
   // Map modal state
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapTarget, setMapTarget] = useState<InspectionSiteWithSummary | null>(null);
+
+  // Add/Edit Site modal state
+  const [showSiteModal, setShowSiteModal] = useState(false);
+  const [selectedSiteForEdit, setSelectedSiteForEdit] = useState<InspectionSiteWithSummary | null>(null);
+
+  const handleOpenAddSite = () => {
+    setSelectedSiteForEdit(null);
+    setShowSiteModal(true);
+  };
+
+  const handleOpenEditSite = (site: InspectionSiteWithSummary) => {
+    setSelectedSiteForEdit(site);
+    setShowSiteModal(true);
+  };
 
   const filteredSites = sites.filter(s => {
     if (typeFilter !== 'all' && s.site_type?.toLowerCase() !== typeFilter.toLowerCase()) {
@@ -94,6 +111,15 @@ export default function AdminInspectionSites() {
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
           <IonTitle style={{ fontWeight: 'bold' }}>INSPECTION SITES DIRECTORY</IonTitle>
           <IonButtons slot="end">
+            <IonButton
+              fill="solid"
+              color="light"
+              onClick={handleOpenAddSite}
+              style={{ fontWeight: 700, fontSize: '12px', marginRight: '6px', color: '#1a365d' }}
+            >
+              <IonIcon icon={addOutline} slot="start" />
+              ADD SITE
+            </IonButton>
             <IonButton onClick={() => triggerSync(fetchInspectionSites)}>
               <IonIcon icon={refreshOutline} />
             </IonButton>
@@ -257,7 +283,15 @@ export default function AdminInspectionSites() {
                     </div>
                   </IonLabel>
 
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '6px' }}>
+                    <IonButton
+                      size="small"
+                      fill="outline"
+                      color="primary"
+                      onClick={() => handleOpenEditSite(site)}
+                    >
+                      <IonIcon icon={createOutline} slot="start" /> Edit
+                    </IonButton>
                     <IonButton
                       size="small"
                       fill="outline"
@@ -275,6 +309,19 @@ export default function AdminInspectionSites() {
             })}
           </IonList>
         )}
+
+        {/* Site Add / Edit Modal */}
+        <SiteModal
+          isOpen={showSiteModal}
+          onClose={() => {
+            setShowSiteModal(false);
+            setSelectedSiteForEdit(null);
+          }}
+          site={selectedSiteForEdit}
+          onSaved={() => {
+            fetchInspectionSites();
+          }}
+        />
 
         {/* Map Viewer Modal */}
         {mapTarget && (
