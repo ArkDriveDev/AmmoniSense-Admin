@@ -11,6 +11,7 @@ import SensorData from '../pages/SensorData';
 import Devices from '../pages/Devices';
 import Notifications from '../pages/Notifications';
 import InspectionReport from '../pages/admin/InspectionReport';
+import SessionDetail from '../pages/admin/SessionDetail';
 
 import ProtectedRoute from '../components/ProtectedRoute';
 import AdminLayout from '../layouts/AdminLayout';
@@ -141,6 +142,16 @@ export default function AppRouter() {
         render={() => (
           <ProtectedRoute>
             <InspectionReport />
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        exact
+        path="/admin/sessions/:tagId"
+        render={() => (
+          <ProtectedRoute>
+            <SessionDetail />
           </ProtectedRoute>
         )}
       />
