@@ -26,6 +26,7 @@ import { useHistory } from 'react-router-dom';
 import { Line } from 'react-chartjs-2';
 import { SiteAnalyticsData } from '../../hooks/useSiteAnalytics';
 import SiteOdorMap from '../map/SiteOdorMap';
+import { getPoultryTypeLabel, getChickenTypeLabel } from '../../constants/siteConstants';
 
 interface SiteAnalyticsCardProps {
   site: SiteAnalyticsData;
@@ -183,6 +184,8 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
                       <div><strong style={{ color: '#64748b' }}>GPS Coordinates:</strong> {site.latitude.toFixed(4)}° N, {site.longitude.toFixed(4)}° E</div>
                       <div><strong style={{ color: '#64748b' }}>Area Size:</strong> {site.area_size_hectares} Hectare(s)</div>
                       <div><strong style={{ color: '#64748b' }}>Site Type:</strong> {site.site_type}</div>
+                      {site.poultry_type && <div><strong style={{ color: '#64748b' }}>Poultry Type:</strong> {getPoultryTypeLabel(site.poultry_type)}</div>}
+                      {site.chicken_type && <div><strong style={{ color: '#64748b' }}>Chicken Type:</strong> {getChickenTypeLabel(site.chicken_type)}</div>}
                     </div>
                   </div>
                   <div style={{ marginTop: '16px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end' }}>
