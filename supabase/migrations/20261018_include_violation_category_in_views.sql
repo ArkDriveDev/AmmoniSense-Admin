@@ -48,7 +48,13 @@ SELECT
   p.full_name AS created_by_name
 FROM
   inspection_tags t
-  LEFT JOIN sensor_data sd ON sd.id = t.sensor_data_id
+  LEFT JOIN LATERAL (
+    SELECT *
+    FROM sensor_data sd
+    WHERE sd.id = t.sensor_data_id OR sd.inspection_tag_id = t.id
+    ORDER BY sd.created_at DESC
+    LIMIT 1
+  ) sd ON true
   LEFT JOIN devices d ON d.device_uid = sd.device_uid
   LEFT JOIN inspection_schedules s ON s.id = t.inspection_schedule_id
   LEFT JOIN inspection_sites ins ON ins.id = t.inspection_site_id
@@ -90,7 +96,13 @@ FROM
   inspection_schedules s
   JOIN inspection_sites ins ON ins.id = s.inspection_site_id
   LEFT JOIN inspection_tags t ON t.inspection_schedule_id = s.id
-  LEFT JOIN sensor_data sd ON sd.id = t.sensor_data_id
+  LEFT JOIN LATERAL (
+    SELECT *
+    FROM sensor_data sd
+    WHERE sd.id = t.sensor_data_id OR sd.inspection_tag_id = t.id
+    ORDER BY sd.created_at DESC
+    LIMIT 1
+  ) sd ON true
   LEFT JOIN profiles p ON p.id = s.created_by
 GROUP BY
   s.id,
@@ -135,7 +147,13 @@ FROM
   inspection_sites ins
   LEFT JOIN inspection_schedules s ON s.inspection_site_id = ins.id
   LEFT JOIN inspection_tags t ON t.inspection_site_id = ins.id
-  LEFT JOIN sensor_data sd ON sd.id = t.sensor_data_id
+  LEFT JOIN LATERAL (
+    SELECT *
+    FROM sensor_data sd
+    WHERE sd.id = t.sensor_data_id OR sd.inspection_tag_id = t.id
+    ORDER BY sd.created_at DESC
+    LIMIT 1
+  ) sd ON true
 WHERE
   ins.is_active = true
 GROUP BY

@@ -52,55 +52,132 @@ export async function fetchInspectionReportData(scheduleId: number): Promise<Ins
     if (inspProfile?.full_name) inspectorName = inspProfile.full_name;
   }
 
-  // 4. Tags: query inspection_tags directly so violation_category is captured even with no ppm
+  // 4. Tags: query inspection_tags directly without ambiguous embedded joins
   let tags: InspectionTagDetails[] = [];
   const { data: tagRows, error: tagErr } = await supabase
     .from('inspection_tags')
-    .select('*, sensor_data(id, ammonia, status, created_at)')
+    .select('*')
     .eq('inspection_schedule_id', scheduleId)
     .order('created_at', { ascending: true });
 
   if (!tagErr && tagRows && tagRows.length > 0) {
+    // Collect all tag IDs and linked sensor_data_ids
+    const tagIds = tagRows.map((t: any) => t.id).filter(Boolean);
+    const sDataIds = tagRows.map((t: any) => t.sensor_data_id).filter(Boolean);
+
+    // Fetch matching sensor readings by inspection_tag_id OR sensor_data.id
+    let sensorDataList: any[] = [];
+    const orClauses: string[] = [];
+    if (tagIds.length > 0) orClauses.push(`inspection_tag_id.in.(${tagIds.join(',')})`);
+    if (sDataIds.length > 0) orClauses.push(`id.in.(${sDataIds.join(',')})`);
+
+    if (orClauses.length > 0) {
+      try {
+        const { data: sRows, error: sErr } = await supabase
+          .from('sensor_data')
+          .select('*')
+          .or(orClauses.join(','))
+          .order('created_at', { ascending: false });
+
+        if (!sErr && sRows) {
+          sensorDataList = sRows;
+        }
+      } catch (err) {
+        console.warn('Could not fetch sensor_data for tags:', err);
+      }
+    }
+
     tags = tagRows.map((t: any) => {
-      const s = Array.isArray(t.sensor_data) ? t.sensor_data[0] : t.sensor_data;
+      // Find matching sensor_data: priority to exact sensor_data_id, then latest by inspection_tag_id
+      const matching = sensorDataList.filter((sd) => sd.id === t.sensor_data_id || sd.inspection_tag_id === t.id);
+      const s = matching.find((sd) => sd.id === t.sensor_data_id) || matching[0];
+
       return {
-        tag_id: t.id, tag_name: t.tag_name,
-        inspection_site_id: t.inspection_site_id, inspection_schedule_id: t.inspection_schedule_id,
-        sensor_data_id: t.sensor_data_id, tag_latitude: t.latitude, tag_longitude: t.longitude,
-        photo_url: t.photo_url, photo_thumbnail_url: t.photo_thumbnail_url, created_at: t.created_at,
-        notes: t.notes, violation_category: t.violation_category ?? null, created_by: t.created_by,
-        ammonia: s?.ammonia ?? null, status: s?.status ?? (t.violation_category ? 'NON-COMPLIANT' : 'NORMAL'),
-        reading_at: s?.created_at ?? null,
+        tag_id: t.id,
+        tag_name: t.tag_name,
+        inspection_site_id: t.inspection_site_id,
+        inspection_schedule_id: t.inspection_schedule_id,
+        sensor_data_id: t.sensor_data_id || s?.id || null,
+        session_id: t.session_id || s?.session_id || null,
+        tag_latitude: t.latitude,
+        tag_longitude: t.longitude,
+        photo_url: t.photo_url,
+        photo_thumbnail_url: t.photo_thumbnail_url,
+        photo_storage_path: t.photo_storage_path,
+        photo_thumbnail_storage_path: t.photo_thumbnail_storage_path,
+        created_at: t.created_at,
+        notes: t.notes,
+        violation_category: t.violation_category ?? null,
+        created_by: t.created_by,
+        ammonia: s?.ammonia !== null && s?.ammonia !== undefined ? Number(s.ammonia) : null,
+        temperature: s?.temperature !== null && s?.temperature !== undefined ? Number(s.temperature) : null,
+        humidity: s?.humidity !== null && s?.humidity !== undefined ? Number(s.humidity) : null,
+        battery: s?.battery !== null && s?.battery !== undefined ? Number(s.battery) : null,
+        status: s?.status ?? (t.violation_category ? 'NON-COMPLIANT' : 'NORMAL'),
+        reading_latitude: s?.latitude ?? null,
+        reading_longitude: s?.longitude ?? null,
+        reading_at: s?.created_at ?? s?.submitted_at ?? null,
+        device_uid: s?.device_uid ?? null,
       } as InspectionTagDetails;
     });
   } else {
-    const { data: viewRows } = await supabase.from('inspection_tag_details').select('*').eq('inspection_schedule_id', scheduleId).order('created_at', { ascending: true });
+    const { data: viewRows } = await supabase
+      .from('inspection_tag_details')
+      .select('*')
+      .eq('inspection_schedule_id', scheduleId)
+      .order('created_at', { ascending: true });
     tags = (viewRows as InspectionTagDetails[]) ?? [];
   }
+
   if (inspectorName === 'Inspector' && tags[0]?.created_by_name) {
     inspectorName = tags[0].created_by_name;
   }
 
   // 5. Violations, Readings & Stats
-  const violations: ReportViolation[] = tags.filter((t) => !!t.violation_category && t.violation_category.trim() !== '').map((t) => ({
-    tag_id: t.tag_id,
-    tag_name: t.tag_name,
-    violation_category: t.violation_category as string,
-    severity: t.status ?? null,
-    status: t.status ?? null,
-    latitude: t.tag_latitude ?? t.reading_latitude ?? null,
-    longitude: t.tag_longitude ?? t.reading_longitude ?? null,
-    notes: t.notes,
-    photo_thumbnail_url: t.photo_thumbnail_url,
-  }));
+  // A tag is a violation if it has an explicit violation_category OR an ammonia exceedance (>25 PPM / Critical / High)
+  const violations: ReportViolation[] = tags
+    .filter((t) => {
+      const hasExplicitViolation = !!t.violation_category && t.violation_category.trim() !== '';
+      const nh3 = t.ammonia !== null && t.ammonia !== undefined ? Number(t.ammonia) : null;
+      const isExceedance = (nh3 !== null && nh3 > 25) || ['CRITICAL', 'HIGH', 'WARNING', 'NON-COMPLIANT'].includes((t.status || '').toUpperCase());
+      return hasExplicitViolation || isExceedance;
+    })
+    .map((t) => {
+      const hasExplicitViolation = !!t.violation_category && t.violation_category.trim() !== '';
+      const nh3 = t.ammonia !== null && t.ammonia !== undefined ? Number(t.ammonia) : null;
 
-  const readings: ReportReading[] = tags.map((t) => ({
-    tag_id: t.tag_id,
-    tag_name: t.tag_name,
-    ammonia: t.ammonia,
-    nh3Status: getNH3Status(t.ammonia),
-    reading_at: t.reading_at ?? t.created_at,
-  })).sort((a, b) => (a.reading_at && b.reading_at ? new Date(a.reading_at).getTime() - new Date(b.reading_at).getTime() : 0));
+      // Default category if not set on tag but triggered by sensor ammonia reading
+      const category: string = hasExplicitViolation
+        ? (t.violation_category as string)
+        : 'FOUL_ODOR';
+
+      const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (nh3 !== null && nh3 > 50) || ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes(category);
+      const isHigh = (t.status || '').toUpperCase() === 'HIGH' || (nh3 !== null && nh3 > 35) || ['FOUL_ODOR', 'IMPROPER_WASTE_DISPOSAL', 'MANURE_PILING'].includes(category);
+      const severity = isCritical ? 'CRITICAL' : isHigh ? 'HIGH' : 'WARNING';
+
+      return {
+        tag_id: t.tag_id,
+        tag_name: t.tag_name,
+        violation_category: category,
+        severity: t.status || severity,
+        status: t.status || severity,
+        latitude: t.tag_latitude ?? t.reading_latitude ?? null,
+        longitude: t.tag_longitude ?? t.reading_longitude ?? null,
+        notes: t.notes || (nh3 !== null && !hasExplicitViolation ? `Sensor Exceedance Detected: ${nh3.toFixed(1)} PPM` : null),
+        photo_thumbnail_url: t.photo_thumbnail_url || t.photo_url || null,
+      };
+    });
+
+  const readings: ReportReading[] = tags
+    .filter((t) => t.ammonia !== null && t.ammonia !== undefined)
+    .map((t) => ({
+      tag_id: t.tag_id,
+      tag_name: t.tag_name,
+      ammonia: t.ammonia,
+      nh3Status: getNH3Status(t.ammonia),
+      reading_at: t.reading_at ?? t.created_at,
+    }))
+    .sort((a, b) => (a.reading_at && b.reading_at ? new Date(a.reading_at).getTime() - new Date(b.reading_at).getTime() : 0));
 
   const validPpm = readings.filter((r) => r.ammonia !== null).map((r) => r.ammonia as number);
   const criticalCount = readings.filter((r) => r.nh3Status === 'CRITICAL').length;

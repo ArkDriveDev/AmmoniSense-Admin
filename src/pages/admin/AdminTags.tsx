@@ -142,13 +142,29 @@ export default function AdminTags() {
 
         setTags(mapped);
       } else {
+        // If view in remote DB has not yet been migrated to include violation_category, fetch it directly
+        const violationMap = new Map<number, string | null>();
+        if (data && data.length > 0 && !('violation_category' in data[0])) {
+          try {
+            const { data: vTags } = await supabase
+              .from('inspection_tags')
+              .select('id, violation_category')
+              .in('id', data.map((d: any) => d.tag_id));
+            if (vTags) {
+              vTags.forEach((vt: any) => violationMap.set(vt.id, vt.violation_category));
+            }
+          } catch (err) {
+            console.warn('Could not fetch fallback violation_category:', err);
+          }
+        }
+
         const normalized: InspectionTagDetails[] = ((data || []) as (InspectionTagDetails & {
           tag_latitude?: number;
           reading_latitude?: number;
         })[]).map((t) => ({
           ...t,
           session_id: t.session_id || null,
-          violation_category: t.violation_category || null,
+          violation_category: t.violation_category || violationMap.get(t.tag_id) || null,
           latitude: t.tag_latitude ?? t.reading_latitude ?? t.latitude,
           longitude: t.tag_longitude ?? t.reading_longitude ?? t.longitude,
           schedule_id: t.inspection_schedule_id ?? t.schedule_id
