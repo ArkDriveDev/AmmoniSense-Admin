@@ -51,7 +51,7 @@ export const TagDetail: React.FC<TagDetailProps> = ({ tag, onClose }) => {
   const batVal = tag.battery !== null && tag.battery !== undefined ? Number(tag.battery) : null;
   const latVal = tag.latitude ?? tag.tag_latitude ?? tag.reading_latitude;
   const lngVal = tag.longitude ?? tag.tag_longitude ?? tag.reading_longitude;
-  const badge = getAmmoniaBadgeStyle(ammoniaVal, tag.status);
+  const badge = getAmmoniaBadgeStyle(ammoniaVal, tag.status, tag.violation_category);
 
   const formattedDate = tag.created_at
     ? new Date(tag.created_at).toLocaleString(undefined, {

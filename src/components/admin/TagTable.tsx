@@ -126,7 +126,7 @@ export const TagTable: React.FC<TagTableProps> = ({
                     <td>{tag.device_name || tag.device_uid || '--'}</td>
                     <td style={{ textAlign: 'center' }}>
                       <span className="print-badge">
-                        {tag.status || 'NORMAL'}
+                        {tag.status || (tag.violation_category ? 'NON-COMPLIANT' : 'NORMAL')}
                       </span>
                     </td>
                     <td>

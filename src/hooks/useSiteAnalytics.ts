@@ -173,12 +173,35 @@ export function useSiteAnalytics() {
         let alertStatus: 'normal' | 'warning' | 'high' | 'critical' = 'normal';
         const nh3 = latestTag?.ammonia;
         const tagStatusUpper = (latestTag?.status || '').toUpperCase();
+        const latestViolation = (latestTag?.violation_category || '').trim().toUpperCase();
+        const hasRecentCriticalViolation = tags7Days.some(t =>
+          ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes((t.violation_category || '').toUpperCase())
+        );
+        const hasRecentHighViolation = tags7Days.some(t =>
+          ['FOUL_ODOR', 'IMPROPER_WASTE_DISPOSAL', 'MANURE_PILING'].includes((t.violation_category || '').toUpperCase())
+        );
+        const hasRecentAnyViolation = tags7Days.some(t => !!t.violation_category);
 
-        if (tagStatusUpper === 'CRITICAL' || (nh3 !== null && nh3 !== undefined && nh3 > 50)) {
+        if (
+          tagStatusUpper === 'CRITICAL' ||
+          (nh3 !== null && nh3 !== undefined && nh3 > 50) ||
+          ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes(latestViolation) ||
+          hasRecentCriticalViolation
+        ) {
           alertStatus = 'critical';
-        } else if (tagStatusUpper === 'HIGH' || (nh3 !== null && nh3 !== undefined && nh3 > 35)) {
+        } else if (
+          tagStatusUpper === 'HIGH' ||
+          (nh3 !== null && nh3 !== undefined && nh3 > 35) ||
+          ['FOUL_ODOR', 'IMPROPER_WASTE_DISPOSAL', 'MANURE_PILING'].includes(latestViolation) ||
+          hasRecentHighViolation
+        ) {
           alertStatus = 'high';
-        } else if (tagStatusUpper === 'WARNING' || (nh3 !== null && nh3 !== undefined && nh3 > 25)) {
+        } else if (
+          tagStatusUpper === 'WARNING' ||
+          (nh3 !== null && nh3 !== undefined && nh3 > 25) ||
+          latestViolation !== '' ||
+          hasRecentAnyViolation
+        ) {
           alertStatus = 'warning';
         }
 
@@ -228,7 +251,7 @@ export function useSiteAnalytics() {
           tag_count: sum?.tag_count || siteTags.length,
           photo_count: sum?.photo_count || 0,
           avg_ammonia: sum?.avg_ammonia ?? (latestTag?.ammonia ?? null),
-          critical_readings: sum?.critical_readings || siteTags.filter(t => (t.ammonia || 0) > 50).length,
+          critical_readings: sum?.critical_readings || siteTags.filter(t => (t.ammonia || 0) > 25 || !!t.violation_category).length,
           last_inspection_at: sum?.last_inspection_at || latestTag?.created_at || null,
 
           latest_ammonia: latestTag?.ammonia ?? null,
@@ -259,7 +282,8 @@ export function useSiteAnalytics() {
             temperature: t.temperature || 0,
             humidity: t.humidity || 0,
             battery: t.battery || 0,
-            status: t.status || 'NORMAL',
+            status: t.status || (t.violation_category ? 'NON-COMPLIANT' : 'NORMAL'),
+            violation_category: t.violation_category || null,
             created_at: t.created_at || new Date().toISOString(),
             photo_url: t.photo_url || null,
             photo_thumbnail_url: t.photo_thumbnail_url || null,

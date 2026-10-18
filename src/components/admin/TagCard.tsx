@@ -28,37 +28,45 @@ interface TagCardProps {
  * Orange: HIGH (35 - 50 PPM)
  * Red: CRITICAL (> 50 PPM)
  */
-export const getAmmoniaBadgeStyle = (ammonia: number | null | undefined, status: string | null | undefined) => {
+export const getAmmoniaBadgeStyle = (
+  ammonia: number | null | undefined,
+  status: string | null | undefined,
+  violationCategory?: string | null
+) => {
   const ppm = Number(ammonia) || 0;
   const s = (status || '').toUpperCase();
+  const v = (violationCategory || '').trim().toUpperCase();
 
-  if (s === 'CRITICAL' || ppm > 50) {
+  const isCriticalViolation = ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes(v);
+  const isHighViolation = ['FOUL_ODOR', 'IMPROPER_WASTE_DISPOSAL', 'MANURE_PILING'].includes(v);
+
+  if (s === 'CRITICAL' || ppm > 50 || isCriticalViolation) {
     return {
       bg: '#fee2e2',
       color: '#dc2626',
       border: '#f87171',
       badgeColor: 'danger' as const,
-      label: 'CRITICAL',
+      label: s === 'CRITICAL' || ppm > 50 ? 'CRITICAL' : 'VIOLATION',
       dotColor: '#ef4444'
     };
   }
-  if (s === 'HIGH' || ppm > 35) {
+  if (s === 'HIGH' || ppm > 35 || isHighViolation) {
     return {
       bg: '#ffedd5',
       color: '#ea580c',
       border: '#fb923c',
       badgeColor: 'warning' as const,
-      label: 'HIGH',
+      label: s === 'HIGH' || ppm > 35 ? 'HIGH' : 'VIOLATION',
       dotColor: '#f97316'
     };
   }
-  if (s === 'WARNING' || ppm > 25) {
+  if (s === 'WARNING' || ppm > 25 || v !== '') {
     return {
       bg: '#fef9c3',
       color: '#ca8a04',
       border: '#facc15',
       badgeColor: 'warning' as const,
-      label: 'WARNING',
+      label: v !== '' ? 'NON-COMPLIANT' : 'WARNING',
       dotColor: '#eab308'
     };
   }
@@ -80,7 +88,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, onClick }) => {
   const batVal = tag.battery !== null && tag.battery !== undefined ? Number(tag.battery) : null;
   const latVal = tag.latitude ?? tag.tag_latitude ?? tag.reading_latitude;
   const lngVal = tag.longitude ?? tag.tag_longitude ?? tag.reading_longitude;
-  const badge = getAmmoniaBadgeStyle(ammoniaVal, tag.status);
+  const badge = getAmmoniaBadgeStyle(ammoniaVal, tag.status, tag.violation_category);
 
   const formattedDate = tag.created_at
     ? new Date(tag.created_at).toLocaleString(undefined, {

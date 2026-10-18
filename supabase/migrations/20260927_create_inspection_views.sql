@@ -28,6 +28,7 @@ SELECT
   t.photo_thumbnail_storage_path,
   t.created_at,
   t.notes,
+  t.violation_category,
   t.offline_temp_id,
   t.created_by,
   sd.ammonia,

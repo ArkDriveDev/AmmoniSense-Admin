@@ -176,6 +176,7 @@ export interface InspectionScheduleSummary {
   avg_ammonia: number | null;
   max_ammonia: number | null;
   critical_readings: number;
+  violation_count?: number;
   created_by: string | null;
   created_by_name: string | null;
 }
@@ -193,6 +194,7 @@ export interface InspectionSiteSummary {
   photo_count: number;
   avg_ammonia: number | null;
   critical_readings: number;
+  violation_count?: number;
   last_inspection_at: string | null;
 }
 

@@ -23,6 +23,8 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { InspectionTagDetails, InspectionTag } from '../types/schema';
 import useSyncFeedback from '../hooks/useSyncFeedback';
 
+import { getViolationCategoryLabel, getViolationCategoryLaw } from '../constants/violationCategories';
+
 export interface AlertItem {
   id: number;
   tag_name: string;
@@ -31,6 +33,7 @@ export interface AlertItem {
   site_code: string | null;
   schedule_name: string | null;
   ammonia: number | null;
+  violation_category?: string | null;
   severity: 'CRITICAL' | 'HIGH' | 'WARNING';
   created_at: string;
   photo_url: string | null;
@@ -48,18 +51,22 @@ export default function Notifications() {
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Query inspection_tag_details view or inspection_tags for warning/critical ammonia readings
+      // 1. Query inspection_tag_details view for warning/critical ammonia readings or recorded violations
       const { data, error } = await supabase
         .from('inspection_tag_details')
         .select('*')
-        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25')
+        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25,not.violation_category.is.null')
         .order('created_at', { ascending: false })
         .limit(100);
 
       if (!error && data) {
         const formatted: AlertItem[] = data.map((t: InspectionTagDetails) => {
-          const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (t.ammonia || 0) > 50;
-          const isHigh = (t.status || '').toUpperCase() === 'HIGH' || ((t.ammonia || 0) > 35 && (t.ammonia || 0) <= 50);
+          const vCat = (t.violation_category || '').trim();
+          const isCriticalViolation = ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes(vCat);
+          const isHighViolation = ['FOUL_ODOR', 'IMPROPER_WASTE_DISPOSAL', 'MANURE_PILING'].includes(vCat);
+          const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (t.ammonia || 0) > 50 || isCriticalViolation;
+          const isHigh = (t.status || '').toUpperCase() === 'HIGH' || ((t.ammonia || 0) > 35 && (t.ammonia || 0) <= 50) || isHighViolation;
+
           return {
             id: t.tag_id,
             tag_name: t.tag_name,
@@ -68,6 +75,7 @@ export default function Notifications() {
             site_code: t.site_code,
             schedule_name: t.schedule_name,
             ammonia: t.ammonia,
+            violation_category: t.violation_category || null,
             severity: isCritical ? 'CRITICAL' : isHigh ? 'HIGH' : 'WARNING',
             created_at: t.created_at,
             photo_url: t.photo_thumbnail_url || t.photo_url,
@@ -76,26 +84,40 @@ export default function Notifications() {
         });
         setAlerts(formatted);
       } else {
-        // Fallback to direct inspection_tags query
+        // Fallback: direct query to inspection_tags with violation_category or join
         const { data: rawTags } = await supabase
           .from('inspection_tags')
-          .select('*')
-          .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25')
+          .select(`
+            *,
+            inspection_sites (
+              site_name,
+              site_code
+            ),
+            inspection_schedules (
+              schedule_name
+            )
+          `)
+          .not('violation_category', 'is', null)
           .order('created_at', { ascending: false })
           .limit(100);
 
         if (rawTags) {
-          const formatted: AlertItem[] = rawTags.map((t: InspectionTag) => {
-            const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (t.ammonia || 0) > 50;
-            const isHigh = (t.status || '').toUpperCase() === 'HIGH' || ((t.ammonia || 0) > 35 && (t.ammonia || 0) <= 50);
+          const formatted: AlertItem[] = rawTags.map((t: any) => {
+            const vCat = (t.violation_category || '').trim();
+            const isCriticalViolation = ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes(vCat);
+            const isHighViolation = ['FOUL_ODOR', 'IMPROPER_WASTE_DISPOSAL', 'MANURE_PILING'].includes(vCat);
+            const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (t.ammonia || 0) > 50 || isCriticalViolation;
+            const isHigh = (t.status || '').toUpperCase() === 'HIGH' || ((t.ammonia || 0) > 35 && (t.ammonia || 0) <= 50) || isHighViolation;
+
             return {
               id: t.id,
               tag_name: t.tag_name,
               device_uid: t.device_uid || null,
-              site_name: null,
-              site_code: null,
-              schedule_name: null,
+              site_name: t.inspection_sites?.site_name || null,
+              site_code: t.inspection_sites?.site_code || null,
+              schedule_name: t.inspection_schedules?.schedule_name || null,
               ammonia: t.ammonia ?? null,
+              violation_category: t.violation_category || null,
               severity: isCritical ? 'CRITICAL' : isHigh ? 'HIGH' : 'WARNING',
               created_at: t.created_at || new Date().toISOString(),
               photo_url: t.photo_thumbnail_url || t.photo_url || null,
@@ -243,12 +265,38 @@ export default function Notifications() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                     <IonIcon icon={alertCircleOutline} style={{ color: a.severity === 'CRITICAL' ? '#dc2626' : '#f59e0b', fontSize: '18px' }} />
                     <h2 style={{ color: a.severity === 'CRITICAL' ? '#dc2626' : '#d97706', fontWeight: 'bold', margin: 0, fontSize: '16px' }}>
-                      {a.severity} AMMONIA EXCEEDANCE
+                      {a.violation_category
+                        ? `${a.severity} VIOLATION: ${getViolationCategoryLabel(a.violation_category)}`
+                        : `${a.severity} AMMONIA EXCEEDANCE`}
                     </h2>
                   </div>
 
+                  {a.violation_category && (
+                    <div style={{ margin: '4px 0 6px 0' }}>
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontSize: '12px',
+                          fontWeight: 700,
+                          backgroundColor: '#fee2e2',
+                          color: '#991b1b',
+                          border: '1px solid #f87171',
+                          padding: '2px 8px',
+                          borderRadius: '6px'
+                        }}
+                      >
+                        Violation: {getViolationCategoryLabel(a.violation_category)}
+                        {getViolationCategoryLaw(a.violation_category) && ` [${getViolationCategoryLaw(a.violation_category)}]`}
+                      </span>
+                    </div>
+                  )}
+
                   <p style={{ color: '#1a365d', fontWeight: 'bold', fontSize: '14px', margin: '3px 0' }}>
-                    AMMONIA: {a.ammonia?.toFixed(1) || '0'} PPM
+                    {a.ammonia !== null && a.ammonia !== undefined
+                      ? `AMMONIA: ${Number(a.ammonia).toFixed(1)} PPM`
+                      : 'FLAGGED ENVIRONMENTAL VIOLATION'}
                   </p>
 
                   <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', color: '#475569', fontSize: '12px', margin: '4px 0' }}>

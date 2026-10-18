@@ -80,13 +80,34 @@ export function useDashboardData() {
     };
 
     // 2. Alert Severity
-    const critical = severityData?.filter((d) => (d.status || '').toUpperCase() === 'CRITICAL' || (d.ammonia || 0) > 50).length || 0;
-    const high = severityData?.filter((d) => (d.status || '').toUpperCase() === 'HIGH' || ((d.ammonia || 0) > 35 && (d.ammonia || 0) <= 50)).length || 0;
-    const warning = severityData?.filter((d) => (d.status || '').toUpperCase() === 'WARNING' || ((d.ammonia || 0) > 25 && (d.ammonia || 0) <= 35)).length || 0;
-    const normal = severityData?.filter((d) => (d.status || '').toUpperCase() === 'NORMAL' || (d.ammonia !== null && d.ammonia !== undefined && d.ammonia <= 25)).length || 0;
+    const isCriticalItem = (d: { status?: string | null; ammonia?: number | null; violation_category?: string | null }) => {
+      const s = (d.status || '').toUpperCase();
+      const ppm = d.ammonia || 0;
+      const v = (d.violation_category || '').trim().toUpperCase();
+      return s === 'CRITICAL' || ppm > 50 || ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes(v);
+    };
+
+    const isHighItem = (d: { status?: string | null; ammonia?: number | null; violation_category?: string | null }) => {
+      const s = (d.status || '').toUpperCase();
+      const ppm = d.ammonia || 0;
+      const v = (d.violation_category || '').trim().toUpperCase();
+      return s === 'HIGH' || (ppm > 35 && ppm <= 50) || ['FOUL_ODOR', 'IMPROPER_WASTE_DISPOSAL', 'MANURE_PILING'].includes(v);
+    };
+
+    const isWarningItem = (d: { status?: string | null; ammonia?: number | null; violation_category?: string | null }) => {
+      const s = (d.status || '').toUpperCase();
+      const ppm = d.ammonia || 0;
+      const v = (d.violation_category || '').trim().toUpperCase();
+      return s === 'WARNING' || (ppm > 25 && ppm <= 35) || (v !== '' && !isCriticalItem(d) && !isHighItem(d));
+    };
+
+    const critical = severityData?.filter(isCriticalItem).length || 0;
+    const high = severityData?.filter((d) => !isCriticalItem(d) && isHighItem(d)).length || 0;
+    const warning = severityData?.filter((d) => !isCriticalItem(d) && !isHighItem(d) && isWarningItem(d)).length || 0;
+    const normal = severityData?.filter((d) => !isCriticalItem(d) && !isHighItem(d) && !isWarningItem(d)).length || 0;
 
     const alertSeverity: ChartDataGroup = {
-      labels: ['CRITICAL (>50 PPM)', 'HIGH (35-50 PPM)', 'WARNING (25-35 PPM)', 'NORMAL (<=25 PPM)'],
+      labels: ['CRITICAL (Exceedance/Major Violation)', 'HIGH (High PPM/Violation)', 'WARNING (Moderate/Violation)', 'NORMAL (Safe Limit)'],
       datasets: [{
         data: [critical, high, warning, normal],
         backgroundColor: ['#dc2626', '#ea580c', '#f59e0b', '#2d7d46'],
@@ -199,50 +220,72 @@ export function useDashboardData() {
     setLoading(true);
     try {
       // 1. Get stats from official schema tables: inspection_sites, inspection_schedules, devices, inspection_tags
-      const [sitesRes, schedulesRes, devicesRes, tagsRes, alertsRes] = await Promise.all([
+      let alertsCount = 0;
+      try {
+        const { count: viewAlerts, error: viewAlertsErr } = await supabase
+          .from('inspection_tag_details')
+          .select('tag_id', { count: 'exact', head: true })
+          .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25,not.violation_category.is.null');
+
+        if (!viewAlertsErr && viewAlerts !== null) {
+          alertsCount = viewAlerts;
+        } else {
+          // Fallback: count violations directly from inspection_tags where violation_category is not null
+          const { count: violCount } = await supabase
+            .from('inspection_tags')
+            .select('id', { count: 'exact', head: true })
+            .not('violation_category', 'is', null);
+          alertsCount = violCount || 0;
+        }
+      } catch {
+        alertsCount = 0;
+      }
+
+      const [sitesRes, schedulesRes, devicesRes, tagsRes] = await Promise.all([
         supabase.from('inspection_sites').select('id', { count: 'exact', head: true }),
         supabase.from('inspection_schedules').select('id', { count: 'exact', head: true }),
         supabase.from('devices').select('id', { count: 'exact', head: true }),
         supabase.from('inspection_tags').select('id', { count: 'exact', head: true }),
-        supabase.from('inspection_tags').select('id', { count: 'exact', head: true }).or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25'),
       ]);
 
       setStats({
         sites: sitesRes.count || 0,
         schedules: schedulesRes.count || 0,
         devices: devicesRes.count || 0,
-        alerts: alertsRes.count || 0,
+        alerts: alertsCount,
         tags: tagsRes.count || 0,
       });
 
-      // 2. Fetch ammonia trend data from inspection_tags
+      // 2. Fetch ammonia trend data from sensor_data or inspection_tag_details
       const { data: ammoniaData } = await supabase
-        .from('inspection_tags')
+        .from('sensor_data')
         .select('ammonia, created_at')
+        .not('ammonia', 'is', null)
         .order('created_at', { ascending: true })
         .limit(1000);
 
-      // 3. Fetch alert severity / status distribution from inspection_tags
+      // 3. Fetch alert severity / status distribution from inspection_tag_details (includes violation_category)
       const { data: severityData } = await supabase
-        .from('inspection_tags')
-        .select('status, ammonia');
+        .from('inspection_tag_details')
+        .select('status, ammonia, violation_category');
 
-      // 4. Fetch reading timestamp trend for alerts
+      // 4. Fetch reading timestamp trend for alerts / violations
       const { data: alertTrendData } = await supabase
-        .from('inspection_tags')
-        .select('created_at, status, ammonia')
-        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25');
+        .from('inspection_tag_details')
+        .select('created_at, status, ammonia, violation_category')
+        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25,not.violation_category.is.null');
 
       // 5. Fetch device status distribution
       const { data: deviceStatusData } = await supabase
         .from('devices')
         .select('status');
 
-      // 6. Fetch top alerting devices from inspection_tags
+      // 6. Fetch top alerting devices from inspection_tag_details
       const { data: topDevices } = await supabase
-        .from('inspection_tags')
+        .from('inspection_tag_details')
         .select('device_uid')
-        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25')
+        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25,not.violation_category.is.null')
+        .not('device_uid', 'is', null)
         .limit(1000);
 
       // 7. Fetch site summary for site comparison chart
