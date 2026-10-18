@@ -9,6 +9,8 @@ export interface InspectionSite {
   site_code: string;
   site_name: string;
   site_type?: string | null;
+  poultry_type?: string | null;
+  chicken_type?: string | null;
   current_latitude?: number | null;
   current_longitude?: number | null;
   address?: string | null;
@@ -22,7 +24,6 @@ export interface InspectionSite {
   created_by?: string | null;
   updated_at?: string;
   updated_by?: string | null;
-  notes?: string | null;
 }
 
 // 2. Table: inspection_schedules
@@ -78,7 +79,25 @@ export interface InspectionTag {
   inspection_photo_id?: number | null;
   notes?: string | null;
   violation_category?: ViolationCategory | string | null;
+  session_id?: string | null;
   offline_temp_id?: string | null;
+  created_at?: string;
+  created_by?: string | null;
+}
+
+// 4. Table: sensor_data
+export interface SensorData {
+  id: number;
+  session_id?: string | null;
+  inspection_tag_id?: number | null;
+  inspection_tag_temp_id?: string | null;
+  ammonia?: number | null; // PPM
+  temperature?: number | null; // °C
+  humidity?: number | null; // %
+  battery?: number | null; // %
+  status?: TagStatus | string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   created_at?: string;
   created_by?: string | null;
 }
@@ -167,6 +186,8 @@ export interface InspectionSiteSummary {
   site_name: string;
   site_code: string;
   site_type?: string | null;
+  poultry_type?: string | null;
+  chicken_type?: string | null;
   schedule_count: number;
   tag_count: number;
   photo_count: number;
@@ -182,6 +203,7 @@ export interface InspectionTagDetails {
   inspection_site_id: number | null;
   inspection_schedule_id: number | null;
   sensor_data_id: number | null;
+  session_id?: string | null;
   tag_latitude: number | null;
   tag_longitude: number | null;
   photo_url: string | null;
@@ -207,6 +229,9 @@ export interface InspectionTagDetails {
   scheduled_date: string | null;
   site_name: string | null;
   site_code: string | null;
+  site_type?: string | null;
+  poultry_type?: string | null;
+  chicken_type?: string | null;
   created_by_name: string | null;
   // Compatibility fields
   latitude?: number | null;

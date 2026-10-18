@@ -29,7 +29,9 @@ import {
   pricetagOutline,
   imageOutline,
   warningOutline,
-  refreshOutline
+  refreshOutline,
+  addOutline,
+  createOutline,
 } from 'ionicons/icons';
 
 import EmptyState from '../components/EmptyState';
@@ -37,21 +39,23 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useInspectionSites, InspectionSiteWithSummary } from '../hooks/useInspectionSites';
 import MapViewerModal from '../components/map/MapViewerModal';
 import useSyncFeedback from '../hooks/useSyncFeedback';
-
-const SITE_TYPES = [
-  'Piggery',
-  'Poultry',
-  'Industrial',
-  'Ambient',
-  'Agricultural',
-  'Commercial'
-];
+import SiteModal from '../components/admin/SiteModal';
+import {
+  SITE_TYPES,
+  POULTRY_TYPES,
+  CHICKEN_TYPES,
+  getSiteTypeLabel,
+  getPoultryTypeLabel,
+  getChickenTypeLabel
+} from '../constants/siteConstants';
 
 export default function AdminInspectionSites() {
   const { sites, loading, fetchInspectionSites } = useInspectionSites();
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
+  const [poultryTypeFilter, setPoultryTypeFilter] = useState('all');
+  const [chickenTypeFilter, setChickenTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('site_name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
@@ -59,8 +63,28 @@ export default function AdminInspectionSites() {
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapTarget, setMapTarget] = useState<InspectionSiteWithSummary | null>(null);
 
+  // Add/Edit Site modal state
+  const [showSiteModal, setShowSiteModal] = useState(false);
+  const [selectedSiteForEdit, setSelectedSiteForEdit] = useState<InspectionSiteWithSummary | null>(null);
+
+  const handleOpenAddSite = () => {
+    setSelectedSiteForEdit(null);
+    setShowSiteModal(true);
+  };
+
+  const handleOpenEditSite = (site: InspectionSiteWithSummary) => {
+    setSelectedSiteForEdit(site);
+    setShowSiteModal(true);
+  };
+
   const filteredSites = sites.filter(s => {
-    if (typeFilter !== 'all' && s.site_type?.toLowerCase() !== typeFilter.toLowerCase()) {
+    if (typeFilter !== 'all' && s.site_type?.toUpperCase() !== typeFilter.toUpperCase()) {
+      return false;
+    }
+    if (poultryTypeFilter !== 'all' && s.poultry_type?.toUpperCase() !== poultryTypeFilter.toUpperCase()) {
+      return false;
+    }
+    if (chickenTypeFilter !== 'all' && s.chicken_type?.toUpperCase() !== chickenTypeFilter.toUpperCase()) {
       return false;
     }
     if (!searchTerm) return true;
@@ -69,7 +93,9 @@ export default function AdminInspectionSites() {
       s.site_name?.toLowerCase().includes(term) ||
       s.site_code?.toLowerCase().includes(term) ||
       s.address?.toLowerCase().includes(term) ||
-      s.site_type?.toLowerCase().includes(term)
+      s.site_type?.toLowerCase().includes(term) ||
+      getPoultryTypeLabel(s.poultry_type).toLowerCase().includes(term) ||
+      getChickenTypeLabel(s.chicken_type).toLowerCase().includes(term)
     );
   }).sort((a, b) => {
     const aVal = String(a[sortBy as keyof InspectionSiteWithSummary] ?? '').toLowerCase();
@@ -94,6 +120,15 @@ export default function AdminInspectionSites() {
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
           <IonTitle style={{ fontWeight: 'bold' }}>INSPECTION SITES DIRECTORY</IonTitle>
           <IonButtons slot="end">
+            <IonButton
+              fill="solid"
+              color="light"
+              onClick={handleOpenAddSite}
+              style={{ fontWeight: 700, fontSize: '12px', marginRight: '6px', color: '#1a365d' }}
+            >
+              <IonIcon icon={addOutline} slot="start" />
+              ADD SITE
+            </IonButton>
             <IonButton onClick={() => triggerSync(fetchInspectionSites)}>
               <IonIcon icon={refreshOutline} />
             </IonButton>
@@ -119,7 +154,31 @@ export default function AdminInspectionSites() {
             >
               <IonSelectOption value="all">All Site Types</IonSelectOption>
               {SITE_TYPES.map(t => (
-                <IonSelectOption key={t} value={t}>{t}</IonSelectOption>
+                <IonSelectOption key={t.value} value={t.value}>{t.label}</IonSelectOption>
+              ))}
+            </IonSelect>
+
+            <IonSelect
+              value={poultryTypeFilter}
+              onIonChange={(e: SelectCustomEvent) => setPoultryTypeFilter(e.detail.value || 'all')}
+              interface="popover"
+              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
+            >
+              <IonSelectOption value="all">All Poultry Types</IonSelectOption>
+              {POULTRY_TYPES.map(p => (
+                <IonSelectOption key={p.value} value={p.value}>{p.label}</IonSelectOption>
+              ))}
+            </IonSelect>
+
+            <IonSelect
+              value={chickenTypeFilter}
+              onIonChange={(e: SelectCustomEvent) => setChickenTypeFilter(e.detail.value || 'all')}
+              interface="popover"
+              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
+            >
+              <IonSelectOption value="all">All Chicken Types</IonSelectOption>
+              {CHICKEN_TYPES.map(c => (
+                <IonSelectOption key={c.value} value={c.value}>{c.label}</IonSelectOption>
               ))}
             </IonSelect>
 
@@ -203,8 +262,18 @@ export default function AdminInspectionSites() {
                         {site.site_code}
                       </IonBadge>
                       <IonBadge color="secondary" style={{ fontSize: '11px' }}>
-                        {site.site_type || 'Unspecified'}
+                        {getSiteTypeLabel(site.site_type)}
                       </IonBadge>
+                      {site.poultry_type && (
+                        <IonBadge color="tertiary" style={{ fontSize: '11px' }}>
+                          Poultry: {getPoultryTypeLabel(site.poultry_type)}
+                        </IonBadge>
+                      )}
+                      {site.chicken_type && (
+                        <IonBadge color="dark" style={{ fontSize: '11px' }}>
+                          Chicken: {getChickenTypeLabel(site.chicken_type)}
+                        </IonBadge>
+                      )}
                       {!site.is_active && (
                         <IonBadge color="medium" style={{ fontSize: '11px' }}>
                           INACTIVE
@@ -257,7 +326,15 @@ export default function AdminInspectionSites() {
                     </div>
                   </IonLabel>
 
-                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center' }}>
+                  <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', gap: '6px' }}>
+                    <IonButton
+                      size="small"
+                      fill="outline"
+                      color="primary"
+                      onClick={() => handleOpenEditSite(site)}
+                    >
+                      <IonIcon icon={createOutline} slot="start" /> Edit
+                    </IonButton>
                     <IonButton
                       size="small"
                       fill="outline"
@@ -275,6 +352,19 @@ export default function AdminInspectionSites() {
             })}
           </IonList>
         )}
+
+        {/* Site Add / Edit Modal */}
+        <SiteModal
+          isOpen={showSiteModal}
+          onClose={() => {
+            setShowSiteModal(false);
+            setSelectedSiteForEdit(null);
+          }}
+          site={selectedSiteForEdit}
+          onSaved={() => {
+            fetchInspectionSites();
+          }}
+        />
 
         {/* Map Viewer Modal */}
         {mapTarget && (

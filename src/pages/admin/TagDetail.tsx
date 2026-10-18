@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   IonCard,
   IonCardContent,
   IonBadge,
   IonIcon,
-  IonButton
+  IonButton,
+  IonModal,
 } from '@ionic/react';
 import {
   thermometerOutline,
@@ -20,11 +21,16 @@ import {
   closeOutline,
   imageOutline,
   shieldCheckmarkOutline,
-  alertCircleOutline
+  alertCircleOutline,
+  pulseOutline,
+  analyticsOutline,
 } from 'ionicons/icons';
 import { InspectionTagDetails } from '../../types/schema';
 import { getAmmoniaBadgeStyle } from '../../components/admin/TagCard';
 import { getViolationCategoryLabel, getViolationCategoryLaw } from '../../constants/violationCategories';
+import { getPoultryTypeLabel, getChickenTypeLabel } from '../../constants/siteConstants';
+import { useTagSession } from '../../hooks/useTagSession';
+import SessionDetail from './SessionDetail';
 
 interface TagDetailProps {
   tag: InspectionTagDetails;
@@ -32,6 +38,12 @@ interface TagDetailProps {
 }
 
 export const TagDetail: React.FC<TagDetailProps> = ({ tag, onClose }) => {
+  const [showSessionModal, setShowSessionModal] = useState(false);
+  const { data: sessionData } = useTagSession({
+    inspectionTagId: tag.tag_id,
+    sessionId: tag.session_id,
+  });
+
   const photo = tag.photo_url || tag.photo_thumbnail_url;
   const ammoniaVal = tag.ammonia !== null && tag.ammonia !== undefined ? Number(tag.ammonia) : null;
   const tempVal = tag.temperature !== null && tag.temperature !== undefined ? Number(tag.temperature) : null;
@@ -120,6 +132,42 @@ export const TagDetail: React.FC<TagDetailProps> = ({ tag, onClose }) => {
                   <IonIcon icon={businessOutline} style={{ color: '#059669' }} />
                   {tag.site_name || 'Unassigned Site'} {tag.site_code ? `(${tag.site_code})` : ''}
                 </span>
+
+                {tag.poultry_type && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '12px',
+                      color: '#0891b2',
+                      backgroundColor: '#ecfeff',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Poultry: {getPoultryTypeLabel(tag.poultry_type)}
+                  </span>
+                )}
+
+                {tag.chicken_type && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      fontSize: '12px',
+                      color: '#475569',
+                      backgroundColor: '#f1f5f9',
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Chicken: {getChickenTypeLabel(tag.chicken_type)}
+                  </span>
+                )}
 
                 <span
                   style={{
@@ -210,6 +258,65 @@ export const TagDetail: React.FC<TagDetailProps> = ({ tag, onClose }) => {
           </div>
         </IonCardContent>
       </IonCard>
+
+      {/* 5-Minute Session Capture Compact Summary & Trigger */}
+      {(tag.session_id || (sessionData && sessionData.readings.length > 0)) && (
+        <IonCard
+          style={{
+            margin: '0 0 16px 0',
+            borderRadius: '14px',
+            border: '1px solid #bae6fd',
+            backgroundColor: '#f0f9ff',
+            boxShadow: '0 2px 8px rgba(2, 132, 199, 0.06)'
+          }}
+        >
+          <IonCardContent style={{ padding: '16px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.6px',
+                    color: '#0369a1',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px'
+                  }}
+                >
+                  <IonIcon icon={pulseOutline} />
+                  5-Minute Session Telemetry Capture
+                </span>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '18px', fontWeight: 800, color: '#0c4a6e' }}>
+                    {sessionData && sessionData.metrics.count > 0 ? `${sessionData.metrics.count} readings` : '60 readings'}
+                  </span>
+                  {sessionData && sessionData.metrics.count > 0 && (
+                    <span style={{ fontSize: '13px', color: '#0369a1' }}>
+                      &bull; Avg: <b>{sessionData.metrics.avgPpm} ppm</b> &bull; Max: <b>{sessionData.metrics.maxPpm} ppm</b>
+                      {sessionData.metrics.criticalCount > 0 && (
+                        <b style={{ color: '#dc2626', marginLeft: '6px' }}>
+                          ({sessionData.metrics.criticalCount} Critical)
+                        </b>
+                      )}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <IonButton
+                fill="solid"
+                style={{ '--background': '#0284c7', fontWeight: 700, fontSize: '13px' }}
+                onClick={() => setShowSessionModal(true)}
+              >
+                <IonIcon icon={analyticsOutline} slot="start" />
+                View Session ({sessionData?.metrics.count || 60} readings)
+              </IonButton>
+            </div>
+          </IonCardContent>
+        </IonCard>
+      )}
 
       {/* Main Grid: Photo & Telemetry Details */}
       <div style={{ display: 'grid', gridTemplateColumns: photo ? '1fr 1fr' : '1fr', gap: '16px', marginBottom: '16px' }}>
@@ -478,6 +585,42 @@ export const TagDetail: React.FC<TagDetailProps> = ({ tag, onClose }) => {
                 Read-Only Record (Protected)
               </b>
             </div>
+
+            {tag.poultry_type && (
+              <div>
+                <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                  <IonIcon icon={businessOutline} style={{ color: '#0891b2' }} />
+                  Poultry Classification
+                </span>
+                <b style={{ color: '#0f172a', display: 'block', marginTop: '2px' }}>
+                  {getPoultryTypeLabel(tag.poultry_type)}
+                </b>
+              </div>
+            )}
+
+            {tag.chicken_type && (
+              <div>
+                <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                  <IonIcon icon={businessOutline} style={{ color: '#475569' }} />
+                  Chicken Breed / Type
+                </span>
+                <b style={{ color: '#0f172a', display: 'block', marginTop: '2px' }}>
+                  {getChickenTypeLabel(tag.chicken_type)}
+                </b>
+              </div>
+            )}
+
+            {(tag.session_id || sessionData?.sessionId) && (
+              <div>
+                <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+                  <IonIcon icon={pulseOutline} style={{ color: '#0284c7' }} />
+                  Capture Session ID
+                </span>
+                <b style={{ color: '#0284c7', display: 'block', marginTop: '2px', wordBreak: 'break-all' }}>
+                  {tag.session_id || sessionData?.sessionId}
+                </b>
+              </div>
+            )}
           </div>
 
           {/* Notes Section */}
@@ -521,6 +664,18 @@ export const TagDetail: React.FC<TagDetailProps> = ({ tag, onClose }) => {
           </IonButton>
         )}
       </div>
+
+      {/* 5-Minute Session Detail Modal */}
+      <IonModal
+        isOpen={showSessionModal}
+        onDidDismiss={() => setShowSessionModal(false)}
+      >
+        <SessionDetail
+          tagId={tag.tag_id}
+          sessionId={tag.session_id || sessionData?.sessionId}
+          onClose={() => setShowSessionModal(false)}
+        />
+      </IonModal>
     </div>
   );
 };

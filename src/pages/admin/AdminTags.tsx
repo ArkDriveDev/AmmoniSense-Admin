@@ -83,7 +83,10 @@ export default function AdminTags() {
             inspection_sites (
               id,
               site_name,
-              site_code
+              site_code,
+              site_type,
+              poultry_type,
+              chicken_type
             ),
             inspection_schedules (
               id,
@@ -102,6 +105,7 @@ export default function AdminTags() {
           inspection_site_id: t.inspection_site_id,
           inspection_schedule_id: t.inspection_schedule_id,
           sensor_data_id: null,
+          session_id: t.session_id || null,
           tag_latitude: t.latitude,
           tag_longitude: t.longitude,
           photo_url: t.photo_url,
@@ -127,6 +131,9 @@ export default function AdminTags() {
           scheduled_date: t.inspection_schedules?.scheduled_date || null,
           site_name: t.inspection_sites?.site_name || null,
           site_code: t.inspection_sites?.site_code || null,
+          site_type: t.inspection_sites?.site_type || null,
+          poultry_type: t.inspection_sites?.poultry_type || null,
+          chicken_type: t.inspection_sites?.chicken_type || null,
           created_by_name: null,
           latitude: t.latitude,
           longitude: t.longitude,
@@ -140,6 +147,7 @@ export default function AdminTags() {
           reading_latitude?: number;
         })[]).map((t) => ({
           ...t,
+          session_id: t.session_id || null,
           violation_category: t.violation_category || null,
           latitude: t.tag_latitude ?? t.reading_latitude ?? t.latitude,
           longitude: t.tag_longitude ?? t.reading_longitude ?? t.longitude,
