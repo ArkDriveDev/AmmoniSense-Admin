@@ -19,7 +19,7 @@ export async function fetchInspectionReportData(scheduleId: number): Promise<Ins
   // 2. Schedule and joined site
   const { data: scheduleRow, error: schedErr } = await supabase
     .from('inspection_schedules')
-    .select('id, schedule_name, scheduled_date, scheduled_time, status, created_by, notes, inspection_sites(id, site_name, site_code, site_type, address)')
+    .select('id, schedule_name, scheduled_date, scheduled_time, status, confirmed, created_by, notes, inspection_sites(id, site_name, site_code, site_type, address)')
     .eq('id', scheduleId)
     .single();
 
@@ -28,9 +28,14 @@ export async function fetchInspectionReportData(scheduleId: number): Promise<Ins
   }
 
   const schedule: ReportSchedule = {
-    id: scheduleRow.id, schedule_name: scheduleRow.schedule_name,
-    scheduled_date: scheduleRow.scheduled_date, scheduled_time: scheduleRow.scheduled_time,
-    status: scheduleRow.status, created_by: scheduleRow.created_by, notes: scheduleRow.notes,
+    id: scheduleRow.id,
+    schedule_name: scheduleRow.schedule_name,
+    scheduled_date: scheduleRow.scheduled_date,
+    scheduled_time: scheduleRow.scheduled_time,
+    status: scheduleRow.status,
+    confirmed: scheduleRow.confirmed ?? false,
+    created_by: scheduleRow.created_by,
+    notes: scheduleRow.notes,
   };
 
   const rawSite = (scheduleRow.inspection_sites as unknown) as {

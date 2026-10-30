@@ -30,7 +30,8 @@ import {
   businessOutline,
   pricetagOutline,
   imageOutline,
-  warningOutline
+  warningOutline,
+  checkmarkCircleOutline,
 } from 'ionicons/icons';
 
 import EmptyState from '../components/EmptyState';
@@ -38,6 +39,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import { useInspectionSchedules } from '../hooks/useInspectionSchedules';
 import { useInspectionSites } from '../hooks/useInspectionSites';
 import useSyncFeedback from '../hooks/useSyncFeedback';
+import { supabase } from '../services/supabase';
 
 export default function InspectionSchedules() {
   const { schedules, loading, refresh } = useInspectionSchedules();
@@ -48,12 +50,20 @@ export default function InspectionSchedules() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [siteFilter, setSiteFilter] = useState<string>('all');
+  const [confirmedFilter, setConfirmedFilter] = useState<string>('all');
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
 
   const filteredSchedules = schedules.filter(s => {
     if (statusFilter !== 'all' && s.status?.toUpperCase() !== statusFilter.toUpperCase()) {
       return false;
     }
     if (siteFilter !== 'all' && s.inspection_site_id !== Number(siteFilter)) {
+      return false;
+    }
+    if (confirmedFilter === 'confirmed' && !s.confirmed) {
+      return false;
+    }
+    if (confirmedFilter === 'unconfirmed' && s.confirmed) {
       return false;
     }
     if (!searchTerm) return true;
@@ -73,6 +83,28 @@ export default function InspectionSchedules() {
       case 'SCHEDULED': return 'primary';
       case 'CANCELLED': return 'medium';
       default: return 'medium';
+    }
+  };
+
+  const handleToggleConfirm = async (scheduleId: number, currentConfirmed: boolean, currentStatus?: string) => {
+    if (currentStatus?.toUpperCase() !== 'COMPLETED') return;
+    try {
+      setUpdatingId(scheduleId);
+      const nextConfirmed = !currentConfirmed;
+      const { error } = await supabase
+        .from('inspection_schedules')
+        .update({ confirmed: nextConfirmed })
+        .eq('id', scheduleId);
+
+      if (error) {
+        console.error('Error updating confirmed status:', error);
+      } else {
+        await refresh();
+      }
+    } catch (err) {
+      console.error('Failed to toggle confirmed status:', err);
+    } finally {
+      setUpdatingId(null);
     }
   };
 
@@ -123,6 +155,17 @@ export default function InspectionSchedules() {
                 <IonSelectOption key={s.id} value={s.id.toString()}>{s.site_name}</IonSelectOption>
               ))}
             </IonSelect>
+
+            <IonSelect
+              value={confirmedFilter}
+              onIonChange={(e: SelectCustomEvent) => setConfirmedFilter(e.detail.value || 'all')}
+              interface="popover"
+              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
+            >
+              <IonSelectOption value="all">All Confirmation</IonSelectOption>
+              <IonSelectOption value="confirmed">Confirmed Only</IonSelectOption>
+              <IonSelectOption value="unconfirmed">Not Confirmed</IonSelectOption>
+            </IonSelect>
           </div>
         </IonToolbar>
       </IonHeader>
@@ -133,13 +176,14 @@ export default function InspectionSchedules() {
         ) : filteredSchedules.length === 0 ? (
           <EmptyState
             title="NO INSPECTION SCHEDULES FOUND"
-            message={searchTerm || statusFilter !== 'all' ? 'TRY ADJUSTING YOUR FILTERS' : 'NO SCHEDULES FOUND'}
+            message={searchTerm || statusFilter !== 'all' || siteFilter !== 'all' || confirmedFilter !== 'all' ? 'TRY ADJUSTING YOUR FILTERS' : 'NO SCHEDULES FOUND'}
           />
         ) : (
           <IonGrid style={{ padding: 0 }}>
             <IonRow>
               {filteredSchedules.map((s) => {
                 const currentStatus = s.schedule_status || s.status || 'SCHEDULED';
+                const isCompleted = currentStatus.toUpperCase() === 'COMPLETED';
 
                 return (
                   <IonCol key={s.schedule_id} size="12" size-md="6">
@@ -156,9 +200,21 @@ export default function InspectionSchedules() {
                             </div>
                           </div>
 
-                          <IonBadge color={getStatusColor(currentStatus)} style={{ fontSize: '12px', padding: '4px 8px' }}>
-                            {currentStatus}
-                          </IonBadge>
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                            <IonBadge color={getStatusColor(currentStatus)} style={{ fontSize: '12px', padding: '4px 8px' }}>
+                              {currentStatus}
+                            </IonBadge>
+
+                            {s.confirmed ? (
+                              <IonBadge color="success" style={{ fontSize: '12px', padding: '4px 8px', backgroundColor: '#16a34a', color: '#ffffff' }}>
+                                Confirmed
+                              </IonBadge>
+                            ) : (
+                              <IonBadge color="medium" style={{ fontSize: '12px', padding: '4px 8px', backgroundColor: '#64748b', color: '#ffffff' }}>
+                                Not Confirmed
+                              </IonBadge>
+                            )}
+                          </div>
                         </div>
 
                         <div style={{ fontSize: '12px', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '4px', margin: '12px 0' }}>
@@ -200,7 +256,25 @@ export default function InspectionSchedules() {
                         </div>
 
                         {/* Action buttons */}
-                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4, display: 'flex', justifyContent: 'flex-end' }}>
+                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 10, marginTop: 4, display: 'flex', justifyContent: 'flex-end', gap: '8px', alignItems: 'center' }}>
+                          <div
+                            title={isCompleted ? undefined : "Only completed schedules can be confirmed."}
+                            style={{ display: 'inline-block', cursor: isCompleted ? 'default' : 'not-allowed' }}
+                          >
+                            <IonButton
+                              fill={s.confirmed ? "outline" : "solid"}
+                              color={s.confirmed ? "warning" : "success"}
+                              size="small"
+                              disabled={!isCompleted || updatingId === s.schedule_id}
+                              title={isCompleted ? undefined : "Only completed schedules can be confirmed."}
+                              style={{ '--border-radius': '8px', fontSize: 12, fontWeight: 700 }}
+                              onClick={() => handleToggleConfirm(s.schedule_id, !!s.confirmed, currentStatus)}
+                            >
+                              <IonIcon icon={checkmarkCircleOutline} slot="start" />
+                              {s.confirmed ? 'Unconfirm' : 'Confirm'}
+                            </IonButton>
+                          </div>
+
                           <IonButton
                             fill="solid"
                             color="primary"

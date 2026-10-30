@@ -8,6 +8,7 @@ export interface ReportSchedule {
   scheduled_date: string;
   scheduled_time?: string | null;
   status?: string | null;
+  confirmed?: boolean | null;
   created_by?: string | null;
   notes?: string | null;
 }

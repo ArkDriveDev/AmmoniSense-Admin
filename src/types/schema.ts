@@ -36,8 +36,7 @@ export interface InspectionSchedule {
   scheduled_date: string; // YYYY-MM-DD
   scheduled_time?: string | null; // HH:MM:SS
   status?: ScheduleStatus;
-  started_at?: string | null;
-  completed_at?: string | null;
+  confirmed?: boolean | null;
   offline_temp_id?: string | null;
   created_at?: string;
   created_by?: string | null;
@@ -166,8 +165,7 @@ export interface InspectionScheduleSummary {
   scheduled_date: string;
   schedule_status: ScheduleStatus | string;
   status?: ScheduleStatus | string; // mapped compatibility
-  started_at?: string | null;
-  completed_at?: string | null;
+  confirmed?: boolean | null;
   inspection_site_id: number;
   site_name: string;
   site_code: string;

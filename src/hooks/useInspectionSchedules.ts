@@ -39,8 +39,7 @@ export function useInspectionSchedules() {
           scheduled_date: s.scheduled_date,
           schedule_status: s.status || 'SCHEDULED',
           status: s.status || 'SCHEDULED',
-          started_at: s.started_at || null,
-          completed_at: s.completed_at || null,
+          confirmed: s.confirmed ?? false,
           inspection_site_id: s.inspection_site_id,
           site_name: s.inspection_sites?.site_name || `Site #${s.inspection_site_id}`,
           site_code: s.inspection_sites?.site_code || 'N/A',
@@ -58,6 +57,7 @@ export function useInspectionSchedules() {
           ...s,
           status: s.schedule_status || s.status || 'SCHEDULED',
           schedule_status: s.schedule_status || s.status || 'SCHEDULED',
+          confirmed: s.confirmed ?? false,
         }));
         setSchedules(normalized);
       }
@@ -98,15 +98,23 @@ export function useInspectionSchedules() {
       updated_at: new Date().toISOString(),
     };
 
-    if (status === 'IN_PROGRESS') {
-      updates.started_at = new Date().toISOString();
-    } else if (status === 'COMPLETED') {
-      updates.completed_at = new Date().toISOString();
+    if (status !== 'COMPLETED') {
+      updates.confirmed = false;
     }
 
     const { error: updateErr } = await supabase
       .from('inspection_schedules')
       .update(updates)
+      .eq('id', scheduleId);
+
+    if (updateErr) throw updateErr;
+    await fetchSchedules();
+  };
+
+  const confirmSchedule = async (scheduleId: number, confirmed: boolean = true) => {
+    const { error: updateErr } = await supabase
+      .from('inspection_schedules')
+      .update({ confirmed })
       .eq('id', scheduleId);
 
     if (updateErr) throw updateErr;
@@ -134,6 +142,7 @@ export function useInspectionSchedules() {
     refresh: fetchSchedules,
     createSchedule,
     updateScheduleStatus,
+    confirmSchedule,
     deleteSchedule,
   };
 }

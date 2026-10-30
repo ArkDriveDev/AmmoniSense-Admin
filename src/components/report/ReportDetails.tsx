@@ -50,6 +50,18 @@ export const ReportDetails: React.FC<ReportDetailsProps> = ({ schedule, site, in
         <div style={rowStyle}><span>Inspection Date:</span><span>{scheduledDateFormatted}</span></div>
         <div style={rowStyle}><span>Inspection Time:</span><span>{schedule.scheduled_time ?? 'N/A'}</span></div>
         <div style={rowStyle}><span>Conducted By:</span><strong>{inspectorName}</strong></div>
+        <div style={rowStyle}>
+          <span>Confirmation:</span>
+          {schedule.confirmed ? (
+            <span style={{ color: '#16a34a', fontWeight: 700, backgroundColor: '#dcfce7', padding: '2px 8px', borderRadius: 4, fontSize: 11 }}>
+              Confirmed
+            </span>
+          ) : (
+            <span style={{ color: '#64748b', fontWeight: 600, backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: 4, fontSize: 11 }}>
+              Not Confirmed
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
