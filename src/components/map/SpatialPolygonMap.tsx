@@ -7,7 +7,11 @@ import {
   earthOutline,
   locateOutline,
   shieldCheckmarkOutline,
-  warningOutline
+  warningOutline,
+  informationCircleOutline,
+  chevronDownOutline,
+  chevronUpOutline,
+  closeOutline
 } from 'ionicons/icons';
 import {
   MANOLO_FORTICH_DEFAULTS,
@@ -74,8 +78,6 @@ interface SpatialPolygonMapProps {
   showSitesList?: boolean;
 }
 
-// (getAmmoniaColor imported from siteUtils)
-
 export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   centerLat = MANOLO_FORTICH_DEFAULTS.lat,
   centerLng = MANOLO_FORTICH_DEFAULTS.lng,
@@ -100,6 +102,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   const [mapLayer, setMapLayer] = useState<'street' | 'satellite'>('satellite');
   const [showBoundary, setShowBoundary] = useState<boolean>(true);
   const [showOdorZones, setShowOdorZones] = useState<boolean>(true);
+  const [showLegend, setShowLegend] = useState<boolean>(false);
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -118,7 +121,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       zoomControl: true,
     });
 
-    // Default to Realistic Satellite View (Esri World Imagery + CartoDB Voyager Labels)
+    // Default to Realistic Satellite View (Esri World Imagery + Esri Boundaries/Places Labels)
     const satLayer = L.tileLayer(TILE_LAYERS.satellite.url, {
       attribution: TILE_LAYERS.satellite.attribution,
       maxNativeZoom: TILE_LAYERS.satellite.maxNativeZoom,
@@ -517,18 +520,22 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         zIndex: 1000,
         backgroundColor: 'rgba(255, 255, 255, 0.96)',
         backdropFilter: 'blur(8px)',
-        padding: '6px 14px',
+        padding: '5px 12px',
         borderRadius: '20px',
         boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)',
-        fontSize: '12px',
+        fontSize: '11px',
         fontWeight: 700,
         color: '#1a365d',
         display: 'flex',
         alignItems: 'center',
-        gap: '6px'
+        gap: '6px',
+        maxWidth: 'min(200px, 32vw)',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
       }}>
-        <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ea580c' }}></span>
-        {siteName}
+        <span style={{ display: 'inline-block', width: '8px', height: '8px', minWidth: '8px', borderRadius: '50%', backgroundColor: '#ea580c' }}></span>
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{siteName}</span>
       </div>
 
       {/* Top Right Controls: Street / Satellite / Odor Zones / Manolo Boundary */}
@@ -539,12 +546,14 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         zIndex: 1000,
         display: 'flex',
         alignItems: 'center',
-        gap: '5px',
+        gap: '4px',
         backgroundColor: 'rgba(255, 255, 255, 0.96)',
         backdropFilter: 'blur(8px)',
-        padding: '4px',
+        padding: '3px 4px',
         borderRadius: '10px',
         boxShadow: '0 2px 12px rgba(0, 0, 0, 0.18)',
+        maxWidth: 'calc(100% - 16px)',
+        overflowX: 'auto',
       }}>
         <button
           type="button"
@@ -553,7 +562,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
-            padding: '5px 9px',
+            padding: '5px 8px',
             fontSize: '11px',
             fontWeight: 700,
             border: 'none',
@@ -562,6 +571,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
             backgroundColor: mapLayer === 'satellite' ? '#1a365d' : 'transparent',
             color: mapLayer === 'satellite' ? '#ffffff' : '#64748b',
             transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap',
           }}
           title="ESRI Satellite Imagery"
         >
@@ -576,7 +586,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
-            padding: '5px 9px',
+            padding: '5px 8px',
             fontSize: '11px',
             fontWeight: 700,
             border: 'none',
@@ -585,6 +595,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
             backgroundColor: mapLayer === 'street' ? '#1a365d' : 'transparent',
             color: mapLayer === 'street' ? '#ffffff' : '#64748b',
             transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap',
           }}
           title="Street Map View"
         >
@@ -601,7 +612,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
-            padding: '5px 8px',
+            padding: '5px 7px',
             fontSize: '11px',
             fontWeight: 700,
             border: 'none',
@@ -610,6 +621,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
             backgroundColor: showOdorZones ? '#ffedd5' : '#f1f5f9',
             color: showOdorZones ? '#c2410c' : '#94a3b8',
             transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap',
           }}
           title="Toggle Odor Zone Polygons"
         >
@@ -624,7 +636,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
-            padding: '5px 8px',
+            padding: '5px 7px',
             fontSize: '11px',
             fontWeight: 700,
             border: 'none',
@@ -633,11 +645,12 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
             backgroundColor: '#f1f5f9',
             color: '#1a365d',
             transition: 'all 0.2s ease',
+            whiteSpace: 'nowrap',
           }}
           title="Focus Manolo Fortich Municipal Boundary"
         >
           <IonIcon icon={locateOutline} style={{ fontSize: '14px', color: '#047857' }} />
-          Focus Manolo
+          Focus
         </button>
 
         <button
@@ -671,7 +684,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
           zIndex: 1000,
           backgroundColor: 'rgba(255, 255, 255, 0.94)',
           backdropFilter: 'blur(6px)',
-          padding: '6px 14px',
+          padding: '5px 12px',
           borderRadius: '20px',
           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
           fontSize: '11px',
@@ -687,93 +700,137 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         </div>
       )}
 
-      {/* Bottom Map Legend */}
-      <div style={{
-        position: 'absolute',
-        bottom: '10px',
-        right: '10px',
-        zIndex: 1000,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(8px)',
-        padding: '10px 14px',
-        borderRadius: '10px',
-        boxShadow: '0 4px 16px rgba(0, 0, 0, 0.16)',
-        fontSize: '11px',
-        color: '#1e293b',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '6px',
-        maxWidth: '260px'
-      }}>
-        <div style={{ fontWeight: 800, color: '#1a365d', display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <span>🗺️</span> Spatial Map Legend
-        </div>
+      {/* Bottom Map Legend Toggle & Mobile-Friendly Panel */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '12px',
+          right: '12px',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '6px',
+          maxWidth: 'calc(100% - 24px)',
+        }}
+      >
+        {showLegend && (
+          <div
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.96)',
+              backdropFilter: 'blur(12px)',
+              padding: '12px 14px',
+              borderRadius: '12px',
+              border: '1px solid rgba(226, 232, 240, 0.9)',
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+              fontSize: '11px',
+              color: '#1e293b',
+              width: '240px',
+              maxWidth: 'calc(100vw - 32px)',
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', paddingBottom: '6px', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ fontWeight: 800, color: '#1a365d', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11.5px' }}>
+                <IonIcon icon={informationCircleOutline} style={{ color: '#2563eb', fontSize: '14px' }} />
+                <span>Map Legend</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLegend(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '2px',
+                  color: '#94a3b8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderRadius: '4px',
+                }}
+                title="Close Legend"
+              >
+                <IonIcon icon={closeOutline} style={{ fontSize: '16px' }} />
+              </button>
+            </div>
 
-        {/* Site Types Grid */}
-        <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginTop: '2px' }}>Site Types</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 8px', fontSize: '10.5px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>🐔</span>
-            <span>Poultry</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>🐷</span>
-            <span>Piggery</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>🌱</span>
-            <span>Agricultural</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>🏭</span>
-            <span>Industrial</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>💧</span>
-            <span>Waterway</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <span>🏢</span>
-            <span>General</span>
-          </div>
-        </div>
+            {/* Ammonia Levels */}
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Ammonia Levels</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 6px', borderRadius: '5px', backgroundColor: '#f0fdf4' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
+                  <span style={{ fontWeight: 600, color: '#166534', fontSize: '10.5px' }}>0 – 5 PPM</span>
+                </div>
+                <span style={{ color: '#15803d', fontWeight: 600, fontSize: '10px' }}>Normal (Safe)</span>
+              </div>
 
-        <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 6px', borderRadius: '5px', backgroundColor: '#fefce8' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#eab308' }} />
+                  <span style={{ fontWeight: 600, color: '#854d0e', fontSize: '10.5px' }}>5 – 10 PPM</span>
+                </div>
+                <span style={{ color: '#a16207', fontWeight: 600, fontSize: '10px' }}>Warning</span>
+              </div>
 
-        {/* Ammonia Levels */}
-        <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Ammonia Levels</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '10.5px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#22c55e' }}></span>
-            <span><b>0 – 5 PPM</b>: Normal (Safe)</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#eab308' }}></span>
-            <span><b>5 – 10 PPM</b>: Warning (Moderate)</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#f97316' }}></span>
-            <span><b>10 – 20 PPM</b>: High (Action Req.)</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: '#ef4444' }}></span>
-            <span><b>&gt; 20 PPM</b>: Critical (Hazardous)</span>
-          </div>
-        </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 6px', borderRadius: '5px', backgroundColor: '#fff7ed' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#f97316' }} />
+                  <span style={{ fontWeight: 600, color: '#9a3412', fontSize: '10.5px' }}>10 – 20 PPM</span>
+                </div>
+                <span style={{ color: '#c2410c', fontWeight: 600, fontSize: '10px' }}>High</span>
+              </div>
 
-        <div style={{ borderTop: '1px solid #f1f5f9', margin: '2px 0' }} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '3px 6px', borderRadius: '5px', backgroundColor: '#fef2f2' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#ef4444' }} />
+                  <span style={{ fontWeight: 700, color: '#991b1b', fontSize: '10.5px' }}>&gt; 20 PPM</span>
+                </div>
+                <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '10px' }}>Critical</span>
+              </div>
+            </div>
 
-        {/* Layers & Tags */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', fontSize: '10.5px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px solid #8b5cf6', backgroundColor: '#8b5cf6', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px' }}>📷</span>
-            <span>Photo Tag Marker</span>
+            <div style={{ borderTop: '1px solid #f1f5f9', margin: '6px 0 4px 0' }} />
+
+            {/* Map Feature Markers */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', fontSize: '10px', color: '#64748b' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '13px', height: '13px', borderRadius: '50%', backgroundColor: '#8b5cf6', color: '#ffffff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px' }}>📷</span>
+                <span>Photo Tag</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ width: '10px', height: '10px', borderRadius: '2px', border: '1.5px dashed #ea580c', backgroundColor: 'rgba(249,115,22,0.3)', display: 'inline-block' }} />
+                <span>Odor Zone</span>
+              </div>
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '10px', height: '10px', borderRadius: '2px', border: '1.5px dashed #ea580c', backgroundColor: 'rgba(249,115,22,0.3)' }}></span>
-            <span>Odor Dispersion Zone</span>
-          </div>
-        </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowLegend(!showLegend)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            padding: '6px 12px',
+            borderRadius: '20px',
+            border: '1px solid rgba(226, 232, 240, 0.9)',
+            backgroundColor: showLegend ? '#1a365d' : 'rgba(255, 255, 255, 0.95)',
+            color: showLegend ? '#ffffff' : '#1a365d',
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.14)',
+            fontSize: '11px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+          }}
+          title={showLegend ? "Hide Legend" : "Show Map Legend"}
+        >
+          <IonIcon icon={informationCircleOutline} style={{ fontSize: '14px', color: showLegend ? '#93c5fd' : '#2563eb' }} />
+          <span>Legend</span>
+          <IonIcon icon={showLegend ? chevronDownOutline : chevronUpOutline} style={{ fontSize: '11px', opacity: 0.7 }} />
+        </button>
       </div>
     </div>
   );

@@ -41,8 +41,8 @@ export const TILE_LAYERS = {
     maxZoom: 18,
   },
   satelliteLabels: {
-    url: 'https://basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png',
-    attribution: '&copy; CartoDB',
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri &mdash; Boundaries & Places',
     maxNativeZoom: 18,
     maxZoom: 18,
   },

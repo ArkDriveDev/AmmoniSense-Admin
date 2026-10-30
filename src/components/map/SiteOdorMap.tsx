@@ -5,7 +5,11 @@ import { IonIcon } from '@ionic/react';
 import {
   mapOutline,
   earthOutline,
-  locateOutline
+  locateOutline,
+  informationCircleOutline,
+  chevronDownOutline,
+  chevronUpOutline,
+  closeOutline
 } from 'ionicons/icons';
 import {
   MANOLO_FORTICH_DEFAULTS,
@@ -40,6 +44,7 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
   const zonesLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
   const [mapLayer, setMapLayer] = useState<'street' | 'satellite'>('street');
+  const [showLegend, setShowLegend] = useState<boolean>(false);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -372,36 +377,87 @@ export const SiteOdorMap: React.FC<SiteOdorMapProps> = ({
         </button>
       </div>
 
-      {/* Map Legend Overlay */}
-      <div style={{
-        position: 'absolute',
-        bottom: '10px',
-        right: '10px',
-        zIndex: 1000,
-        backgroundColor: 'rgba(255, 255, 255, 0.92)',
-        backdropFilter: 'blur(6px)',
-        padding: '8px 12px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-        fontSize: '11px',
-        color: '#1e293b',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '4px'
-      }}>
-        <div style={{ fontWeight: 700, marginBottom: '2px', color: '#1a365d' }}>Spatial Impact Legend</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: ammonia && ammonia > 50 ? '#dc2626' : ammonia && ammonia > 25 ? '#f59e0b' : '#2d7d46' }}></span>
-          <span>Odor Dispersion Plume</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px dashed #3b82f6', backgroundColor: 'rgba(96,165,250,0.2)' }}></span>
-          <span>Community Buffer (500m)</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '10px', height: '10px', borderRadius: '50%', border: '2px dashed #64748b' }}></span>
-          <span>Perimeter Boundary (1000m)</span>
-        </div>
+      {/* Map Legend Overlay (Collapsible for mobile) */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '10px',
+          right: '10px',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'flex-end',
+          gap: '5px',
+          maxWidth: 'calc(100% - 20px)',
+        }}
+      >
+        {showLegend && (
+          <div
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.96)',
+              backdropFilter: 'blur(10px)',
+              padding: '10px 12px',
+              borderRadius: '10px',
+              border: '1px solid rgba(226, 232, 240, 0.9)',
+              boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
+              fontSize: '11px',
+              color: '#1e293b',
+              width: '210px',
+              maxWidth: 'calc(100vw - 32px)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', paddingBottom: '4px', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ fontWeight: 800, color: '#1a365d', fontSize: '11px' }}>Spatial Impact Legend</div>
+              <button
+                type="button"
+                onClick={() => setShowLegend(false)}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 0, color: '#94a3b8' }}
+                title="Close"
+              >
+                <IonIcon icon={closeOutline} style={{ fontSize: '14px' }} />
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '9px', height: '9px', borderRadius: '50%', backgroundColor: ammonia && ammonia > 50 ? '#dc2626' : ammonia && ammonia > 25 ? '#f59e0b' : '#2d7d46' }} />
+                <span>Odor Dispersion Plume</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '9px', height: '9px', borderRadius: '50%', border: '1.5px dashed #3b82f6', backgroundColor: 'rgba(96,165,250,0.2)' }} />
+                <span>Community Buffer (500m)</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ width: '9px', height: '9px', borderRadius: '50%', border: '1.5px dashed #64748b' }} />
+                <span>Perimeter (1000m)</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setShowLegend(!showLegend)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            padding: '5px 10px',
+            borderRadius: '16px',
+            border: '1px solid rgba(226, 232, 240, 0.9)',
+            backgroundColor: showLegend ? '#1a365d' : 'rgba(255, 255, 255, 0.94)',
+            color: showLegend ? '#ffffff' : '#1a365d',
+            backdropFilter: 'blur(6px)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+            fontSize: '10.5px',
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+          title={showLegend ? "Hide Legend" : "Show Legend"}
+        >
+          <IonIcon icon={informationCircleOutline} style={{ fontSize: '13px', color: showLegend ? '#93c5fd' : '#2563eb' }} />
+          <span>Legend</span>
+          <IonIcon icon={showLegend ? chevronDownOutline : chevronUpOutline} style={{ fontSize: '10px', opacity: 0.7 }} />
+        </button>
       </div>
     </div>
   );
