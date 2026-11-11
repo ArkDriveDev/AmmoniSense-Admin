@@ -33,45 +33,47 @@ export const ReportViolationsTable: React.FC<ReportViolationsTableProps> = ({ vi
           No violations recorded during this inspection schedule.
         </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #cbd5e1', borderRadius: 6, overflow: 'hidden' }}>
-          <thead>
-            <tr>
-              <th style={thStyle}>Tag</th>
-              <th style={thStyle}>Category</th>
-              <th style={thStyle}>Location</th>
-              <th style={thStyle}>Notes</th>
-              <th style={{ ...thStyle, width: 60, textAlign: 'center' }}>Photo</th>
-            </tr>
-          </thead>
-          <tbody>
-            {violations.map((v, i) => (
-              <tr key={i} style={{ background: i % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
-                <td style={tdStyle}><strong>{v.tag_name}</strong></td>
-                <td style={tdStyle}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: 4, fontWeight: 700, fontSize: 10 }}>
-                      {getViolationCategoryLabel(v.violation_category)}
-                    </span>
-                    {getViolationCategoryLaw(v.violation_category) && (
-                      <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 600, fontSize: 9 }}>
-                        {getViolationCategoryLaw(v.violation_category)}
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td style={tdStyle}>
-                  {v.latitude && v.longitude ? `${v.latitude.toFixed(4)}, ${v.longitude.toFixed(4)}` : 'N/A'}
-                </td>
-                <td style={tdStyle}>{v.notes || '—'}</td>
-                <td style={{ ...tdStyle, textAlign: 'center' }}>
-                  {v.photo_thumbnail_url ? (
-                    <img src={v.photo_thumbnail_url} alt="Violation" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #cbd5e1' }} />
-                  ) : '—'}
-                </td>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ width: '100%', minWidth: '540px', borderCollapse: 'collapse', border: '1px solid #cbd5e1', borderRadius: 6, overflow: 'hidden' }}>
+            <thead>
+              <tr>
+                <th style={thStyle}>Tag</th>
+                <th style={thStyle}>Category</th>
+                <th style={thStyle}>Location</th>
+                <th style={thStyle}>Notes</th>
+                <th style={{ ...thStyle, width: 60, textAlign: 'center' }}>Photo</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {violations.map((v, i) => (
+                <tr key={i} style={{ background: i % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                  <td style={tdStyle}><strong>{v.tag_name}</strong></td>
+                  <td style={tdStyle}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: 4, fontWeight: 700, fontSize: 10 }}>
+                        {getViolationCategoryLabel(v.violation_category)}
+                      </span>
+                      {getViolationCategoryLaw(v.violation_category) && (
+                        <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 600, fontSize: 9 }}>
+                          {getViolationCategoryLaw(v.violation_category)}
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td style={tdStyle}>
+                    {v.latitude && v.longitude ? `${v.latitude.toFixed(4)}, ${v.longitude.toFixed(4)}` : 'N/A'}
+                  </td>
+                  <td style={tdStyle}>{v.notes || '—'}</td>
+                  <td style={{ ...tdStyle, textAlign: 'center' }}>
+                    {v.photo_thumbnail_url ? (
+                      <img src={v.photo_thumbnail_url} alt="Violation" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #cbd5e1' }} />
+                    ) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

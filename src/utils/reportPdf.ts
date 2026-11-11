@@ -21,6 +21,8 @@ export async function exportReportToPdf(
       backgroundColor: '#ffffff',
       scrollX: 0,
       scrollY: 0,
+      windowWidth: element.scrollWidth,
+      windowHeight: element.scrollHeight,
       width: element.scrollWidth,
       height: element.scrollHeight,
     });

@@ -1,6 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { useParams, useHistory } from 'react-router-dom';
 import {
+  IonPage,
+  IonContent,
   IonButton,
   IonIcon,
   IonBadge,
@@ -64,8 +66,21 @@ export const SessionDetail: React.FC<SessionDetailProps> = ({
     }
   };
 
+  const renderContainer = (children: React.ReactNode) => {
+    const innerContent = (
+      <IonContent
+        className="ion-padding"
+        style={{ '--background': '#f8fafc' }}
+        scrollY={true}
+      >
+        {children}
+      </IonContent>
+    );
+    return onClose ? innerContent : <IonPage>{innerContent}</IonPage>;
+  };
+
   if (loading) {
-    return (
+    return renderContainer(
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '360px', padding: '30px' }}>
         <IonSpinner name="crescent" style={{ width: '40px', height: '40px', color: '#1a365d' }} />
         <p style={{ marginTop: '14px', fontSize: '13px', color: '#64748b' }}>Loading 5-minute session captures...</p>
@@ -74,7 +89,7 @@ export const SessionDetail: React.FC<SessionDetailProps> = ({
   }
 
   if (error || !data) {
-    return (
+    return renderContainer(
       <div style={{ textAlign: 'center', padding: '40px 20px', maxWidth: '500px', margin: '0 auto' }}>
         <IonIcon icon={warningOutline} style={{ fontSize: '48px', color: '#dc2626' }} />
         <h3 style={{ color: '#0f172a', fontWeight: 700, margin: '10px 0' }}>Unable to load session</h3>
@@ -110,8 +125,8 @@ export const SessionDetail: React.FC<SessionDetailProps> = ({
     ? new Date(metrics.startTime).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })
     : '—';
 
-  return (
-    <div style={{ background: '#f8fafc', minHeight: '100%', padding: '16px 20px' }}>
+  return renderContainer(
+    <div style={{ minHeight: '100%', paddingBottom: '32px' }}>
       {/* Top Nav / Actions Bar */}
       <div
         className="no-print"

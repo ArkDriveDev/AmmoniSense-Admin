@@ -65,7 +65,7 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({ violations, readings
       <div style={{ fontSize: 13, fontWeight: 700, color: '#1a365d', textTransform: 'uppercase', marginBottom: 8 }}>
         Visual Analysis &amp; Sensor Trends
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
         <div style={chartBox}>
           {Object.keys(catCounts).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: 12 }}>No violation data for chart</div>
