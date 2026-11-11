@@ -87,17 +87,21 @@ export interface InspectionTag {
 // 4. Table: sensor_data
 export interface SensorData {
   id: number;
-  session_id?: string | null;
-  inspection_tag_id?: number | null;
-  inspection_tag_temp_id?: string | null;
+  device_uid: string;
   ammonia?: number | null; // PPM
   temperature?: number | null; // °C
   humidity?: number | null; // %
   battery?: number | null; // %
   status?: TagStatus | string | null;
+  submitted_by?: string | null;
+  submitted_at?: string | null;
+  created_at?: string;
+  session_id?: string | null;
+  inspection_tag_id?: number | null;
+  inspection_tag_temp_id?: string | null;
+  // Compatibility fields
   latitude?: number | null;
   longitude?: number | null;
-  created_at?: string;
   created_by?: string | null;
 }
 

@@ -122,8 +122,15 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
           <IonRow className="ion-align-items-center">
             <IonCol size="6" size-sm="6" size-md="3">
               <div style={{ padding: '6px 10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', display: 'block' }}>Ammonia (NH₃)</span>
-                <span style={{ fontSize: '17px', fontWeight: '800', color: statusDetails.text }}>{site.latest_ammonia !== null ? `${site.latest_ammonia.toFixed(1)} ppm` : 'N/A'}</span>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '600', display: 'block' }}>Ammonia Peak (NH₃)</span>
+                <span style={{ fontSize: '17px', fontWeight: '800', color: statusDetails.text }}>
+                  {(site.highest_ammonia ?? site.max_ammonia) !== null && (site.highest_ammonia ?? site.max_ammonia) !== undefined
+                    ? `${(site.highest_ammonia ?? site.max_ammonia)!.toFixed(1)} ppm`
+                    : (site.latest_ammonia !== null ? `${site.latest_ammonia.toFixed(1)} ppm` : 'N/A')}
+                </span>
+                {site.latest_ammonia !== null && (site.highest_ammonia ?? site.max_ammonia) !== null && (
+                  <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>Latest: {site.latest_ammonia.toFixed(1)} ppm</span>
+                )}
               </div>
             </IonCol>
             <IonCol size="6" size-sm="6" size-md="3">
@@ -204,7 +211,7 @@ export const SiteAnalyticsCard: React.FC<SiteAnalyticsCardProps> = ({ site }) =>
                   <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '700', color: '#1a365d', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <IonIcon icon={mapOutline} style={{ color: '#d97706' }} /> Odor Zones & Community Buffer Polygons
                   </h4>
-                  <SiteOdorMap latitude={site.latitude} longitude={site.longitude} siteName={site.site_name} siteType={site.site_type} ammonia={site.latest_ammonia} areaHectares={site.area_size_hectares} height="280px" />
+                  <SiteOdorMap latitude={site.latitude} longitude={site.longitude} siteName={site.site_name} siteType={site.site_type} ammonia={site.highest_ammonia ?? site.max_ammonia ?? site.latest_ammonia} areaHectares={site.area_size_hectares} height="280px" />
                 </div>
               </IonCol>
 

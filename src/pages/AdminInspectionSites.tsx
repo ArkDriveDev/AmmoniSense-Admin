@@ -376,6 +376,7 @@ export default function AdminInspectionSites() {
             }}
             title={`${mapTarget.site_name} Location`}
             siteName={mapTarget.site_name}
+            siteId={mapTarget.id}
             latitude={mapTarget.current_latitude || 8.3697}
             longitude={mapTarget.current_longitude || 124.8640}
           />

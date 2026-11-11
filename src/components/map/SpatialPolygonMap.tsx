@@ -58,6 +58,8 @@ export interface InspectionSiteMarker {
   site_type?: string | null;
   owner_name?: string | null;
   latest_ammonia?: number | null;
+  highest_ammonia?: number | null;
+  max_ammonia?: number | null;
   alert_status?: string | null;
   area_size_hectares?: number | null;
 }
@@ -289,7 +291,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       if (site.latitude && site.longitude) {
         const hasExplicitZone = allOdorZones.some((z) => z.id === site.id);
         if (!hasExplicitZone) {
-          const nh3 = site.latest_ammonia || 0;
+          const nh3 = (site.highest_ammonia ?? site.max_ammonia ?? site.latest_ammonia) || 0;
           const baseRadius = Math.sqrt(((site.area_size_hectares || 1) * 10000) / Math.PI);
           const outerRadius = Math.max(120, baseRadius + nh3 * 4);
 
@@ -327,7 +329,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       const pinMeta = getSiteMapPinMeta(site.site_type || undefined);
       const isSelected = String(selectedSiteId) === String(site.id);
       const pinColor = isSelected ? '#1a365d' : pinMeta.pinColor;
-      const nh3 = site.latest_ammonia;
+      const nh3 = site.highest_ammonia ?? site.max_ammonia ?? site.latest_ammonia;
       const statusColor = getAmmoniaColor(nh3 || 0, site.alert_status || undefined);
 
       const siteIcon = L.divIcon({
@@ -375,7 +377,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
           </div>
           ${site.owner_name ? `<div style="font-size: 11px; color: #64748b; margin-bottom: 4px;"><b>Owner:</b> ${site.owner_name}</div>` : ''}
           <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:4px 8px; border-radius:6px; margin-top:6px; border:1px solid #e2e8f0;">
-            <span style="font-size: 11px; color:#64748b;">Latest NH₃:</span>
+            <span style="font-size: 11px; color:#64748b;">Highest NH₃:</span>
             <strong style="color: ${statusColor}; font-size: 13px;">${nh3 !== null && nh3 !== undefined ? `${nh3.toFixed(1)} ppm` : 'No data'}</strong>
           </div>
           <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">GPS: ${site.latitude.toFixed(5)}°, ${site.longitude.toFixed(5)}°</div>
@@ -392,7 +394,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     });
   }, [sites, selectedSiteId]);
 
-  // Render Sensor Readings (Colored dots inside/around zones)
+  // Render Sensor Readings (Colored dots inside/around zones showing highest ppm)
   useEffect(() => {
     if (!mapRef.current || !readingsLayerGroupRef.current) return;
     const readingsGroup = readingsLayerGroupRef.current;
@@ -472,7 +474,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         <div style="font-family: system-ui, sans-serif; min-width: 170px; padding: 4px;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
             <h4 style="margin: 0; font-size: 14px; color: ${color}; font-weight: 700;">
-              NH₃: ${Number(reading.ammonia || 0).toFixed(1)} ppm
+              Highest NH₃: ${Number(reading.ammonia || 0).toFixed(1)} ppm
             </h4>
             <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; color: white; background: ${color}; text-transform: uppercase;">
               ${reading.status || getAmmoniaSeverityLabel(reading.ammonia)}

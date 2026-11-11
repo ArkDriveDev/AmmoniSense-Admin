@@ -25,8 +25,10 @@ export interface SiteAnalyticsData {
   critical_readings: number;
   last_inspection_at: string | null;
 
-  // Latest reading info
+  // Reading info
   latest_ammonia: number | null;
+  highest_ammonia?: number | null;
+  max_ammonia?: number | null;
   latest_temperature: number | null;
   latest_humidity: number | null;
   latest_battery: number | null;
@@ -65,17 +67,9 @@ export interface SiteAnalyticsData {
   }[];
 }
 
-export interface SiteGlobalStats {
-  totalSites: number;
-  activeDevices: number;
-  sitesWithAlerts: number;
-  criticalAlerts: number;
-  totalSchedules: number;
-}
-
 export function useSiteAnalytics() {
   const [sites, setSites] = useState<SiteAnalyticsData[]>([]);
-  const [globalStats, setGlobalStats] = useState<SiteGlobalStats>({
+  const [globalStats, setGlobalStats] = useState({
     totalSites: 0,
     activeDevices: 0,
     sitesWithAlerts: 0,
@@ -140,28 +134,23 @@ export function useSiteAnalytics() {
       // 5. Fetch total schedule count
       let totalSchedules = 0;
       try {
-        const { count } = await supabase
+        const { count, error: countErr } = await supabase
           .from('inspection_schedules')
-          .select('id', { count: 'exact', head: true });
-        totalSchedules = count || 0;
+          .select('*', { count: 'exact', head: true });
+        if (!countErr && count !== null) totalSchedules = count;
       } catch (err) {
         console.warn('Could not count inspection_schedules:', err);
       }
 
-      const sevenDaysAgoTime = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      const allTags = tagsData;
+      // 6. Assemble rich analytics objects for each site
       const allDevices = devicesData;
+      const sevenDaysAgoTime = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
       const processedSites: SiteAnalyticsData[] = (sitesData || []).map((site: InspectionSite) => {
         const sum = summaryMap.get(site.id);
-
-        // Match devices
-        const siteDevices = allDevices.filter((d: Device) => d.inspection_site_id === site.id);
-        const deviceUids = siteDevices.map((d: Device) => d.device_uid);
-
-        // Match tags (by site_id or device_uid)
-        const siteTags = allTags.filter((t: InspectionTag) =>
-          t.inspection_site_id === site.id || (t.device_uid && deviceUids.includes(t.device_uid))
+        const siteTags = tagsData.filter((t: InspectionTag) => t.inspection_site_id === site.id);
+        const siteDevices = allDevices.filter(
+          (d: Device) => d.inspection_site_id === site.id
         );
 
         const latestTag = siteTags[0] || null;
@@ -233,6 +222,11 @@ export function useSiteAnalytics() {
           trend_7days.push({ date: dateStr, ammonia: Math.round(avg * 10) / 10 });
         }
 
+        const validSitePpm = siteTags
+          .map((t: InspectionTag) => t.ammonia)
+          .filter((v): v is number => v !== null && v !== undefined && !isNaN(v));
+        const highestAmmonia = validSitePpm.length > 0 ? Math.max(...validSitePpm) : (latestTag?.ammonia ?? null);
+
         return {
           id: site.id,
           site_name: siteNameStr,
@@ -255,6 +249,8 @@ export function useSiteAnalytics() {
           last_inspection_at: sum?.last_inspection_at || latestTag?.created_at || null,
 
           latest_ammonia: latestTag?.ammonia ?? null,
+          highest_ammonia: highestAmmonia,
+          max_ammonia: highestAmmonia,
           latest_temperature: latestTag?.temperature ?? null,
           latest_humidity: latestTag?.humidity ?? null,
           latest_battery: latestTag?.battery ?? null,
