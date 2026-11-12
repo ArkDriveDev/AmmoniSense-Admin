@@ -12,6 +12,7 @@ import Devices from '../pages/Devices';
 import Notifications from '../pages/Notifications';
 import InspectionReport from '../pages/admin/InspectionReport';
 import SessionDetail from '../pages/admin/SessionDetail';
+import UserDevices from '../pages/admin/UserDevices';
 
 import ProtectedRoute from '../components/ProtectedRoute';
 import AdminLayout from '../layouts/AdminLayout';
@@ -120,6 +121,28 @@ export default function AppRouter() {
           <ProtectedRoute>
             <AdminLayout>
               <Devices />
+            </AdminLayout>
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        path="/admin/devices"
+        render={() => (
+          <ProtectedRoute>
+            <AdminLayout>
+              <UserDevices />
+            </AdminLayout>
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        path="/user-devices"
+        render={() => (
+          <ProtectedRoute>
+            <AdminLayout>
+              <UserDevices />
             </AdminLayout>
           </ProtectedRoute>
         )}

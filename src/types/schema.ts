@@ -251,3 +251,18 @@ export interface Profile {
   email?: string;
   phone_number?: string;
 }
+
+// Table: user_devices
+export type UserDeviceStatus = 'APPROVED' | 'BLOCKED' | 'PENDING' | string;
+
+export interface UserDevice {
+  id: number;
+  profile_id?: string | null;
+  device_name?: string | null;
+  device_identifier?: string | null;
+  status: UserDeviceStatus;
+  ip_address?: string | null;
+  last_seen_at?: string | null;
+  created_at?: string | null;
+  profiles?: Profile | null;
+}

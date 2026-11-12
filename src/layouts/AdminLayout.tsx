@@ -18,6 +18,7 @@ import {
   homeOutline,
   businessOutline,
   hardwareChipOutline,
+  phonePortraitOutline,
   barChartOutline,
   calendarOutline,
   notificationsOutline,
@@ -267,6 +268,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               <IonIcon icon={hardwareChipOutline} slot="start" />
               <IonLabel style={{ fontSize: '13px' }}>BLE DEVICES</IonLabel>
+            </IonItem>
+
+            <IonItem 
+              button 
+              lines="none"
+              onClick={() => handleNavigate('/admin/devices')}
+              color={isActive('/admin/devices') || isActive('/user-devices') ? 'primary' : undefined}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: (isActive('/admin/devices') || isActive('/user-devices')) ? '4px solid #1a365d' : 'none',
+                fontWeight: (isActive('/admin/devices') || isActive('/user-devices')) ? 'bold' : 'normal'
+              }}
+            >
+              <IonIcon icon={phonePortraitOutline} slot="start" />
+              <IonLabel style={{ fontSize: '13px' }}>USER DEVICES</IonLabel>
             </IonItem>
 
             <IonItem 
