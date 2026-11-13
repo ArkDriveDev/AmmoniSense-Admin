@@ -33,6 +33,7 @@ import {
   refreshOutline,
   addOutline,
   createOutline,
+  informationCircleOutline,
 } from 'ionicons/icons';
 
 import EmptyState from '../components/EmptyState';
@@ -41,6 +42,7 @@ import { useInspectionSites, InspectionSiteWithSummary } from '../hooks/useInspe
 import MapViewerModal from '../components/map/MapViewerModal';
 import useSyncFeedback from '../hooks/useSyncFeedback';
 import SiteModal from '../components/admin/SiteModal';
+import { SiteDetailModal } from '../components/admin/SiteDetailModal';
 import {
   SITE_TYPES,
   POULTRY_TYPES,
@@ -92,6 +94,10 @@ export default function AdminInspectionSites() {
   // Add/Edit Site modal state
   const [showSiteModal, setShowSiteModal] = useState(false);
   const [selectedSiteForEdit, setSelectedSiteForEdit] = useState<InspectionSiteWithSummary | null>(null);
+
+  // Site Detail modal state
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedSiteForDetail, setSelectedSiteForDetail] = useState<InspectionSiteWithSummary | null>(null);
 
   const handleOpenAddSite = () => {
     setSelectedSiteForEdit(null);
@@ -347,7 +353,14 @@ export default function AdminInspectionSites() {
                 >
                   <IonLabel style={{ margin: '14px 0' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                      <h2 style={{ color: '#1a365d', fontWeight: 'bold', fontSize: '17px', margin: 0 }}>
+                      <h2
+                        style={{ color: '#1a365d', fontWeight: 'bold', fontSize: '17px', margin: 0, cursor: 'pointer' }}
+                        onClick={() => {
+                          setSelectedSiteForDetail(site);
+                          setShowDetailModal(true);
+                        }}
+                        title="Click to view full site details"
+                      >
                         <IonIcon icon={businessOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
                         {site.site_name}
                       </h2>
@@ -428,6 +441,17 @@ export default function AdminInspectionSites() {
                     <IonButton
                       size="small"
                       fill="outline"
+                      color="tertiary"
+                      onClick={() => {
+                        setSelectedSiteForDetail(site);
+                        setShowDetailModal(true);
+                      }}
+                    >
+                      <IonIcon icon={informationCircleOutline} slot="start" /> Details
+                    </IonButton>
+                    <IonButton
+                      size="small"
+                      fill="outline"
                       color="primary"
                       onClick={() => handleOpenEditSite(site)}
                     >
@@ -450,6 +474,23 @@ export default function AdminInspectionSites() {
             })}
           </IonList>
         )}
+
+        {/* Site Detail Modal */}
+        <SiteDetailModal
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedSiteForDetail(null);
+          }}
+          site={selectedSiteForDetail}
+          onOpenInSites={(siteId) => {
+            setShowDetailModal(false);
+            const el = document.getElementById(`site-card-${siteId}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+        />
 
         {/* Site Add / Edit Modal */}
         <SiteModal

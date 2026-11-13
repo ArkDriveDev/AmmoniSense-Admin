@@ -34,11 +34,37 @@ import {
 import { SiteAnalyticsData } from '../../hooks/useSiteAnalytics';
 import { InspectionSiteWithSummary } from '../../hooks/useInspectionSites';
 
-// Compatible type for both SiteAnalyticsData and InspectionSiteWithSummary
-export type SiteDetailData = (Partial<SiteAnalyticsData> & Partial<InspectionSiteWithSummary>) & {
+// Compatible interface for both SiteAnalyticsData and InspectionSiteWithSummary
+export interface SiteDetailData {
   id: number;
   site_name: string;
-};
+  site_code?: string | null;
+  site_type?: string | null;
+  poultry_type?: string | null;
+  chicken_type?: string | null;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  current_latitude?: number | null;
+  current_longitude?: number | null;
+  area_size_hectares?: number | null;
+  site_photo_url?: string | null;
+  site_photo_thumbnail?: string | null;
+  is_active?: boolean | null;
+  notes?: string | null;
+
+  schedule_count?: number | null;
+  tag_count?: number | null;
+  photo_count?: number | null;
+  avg_ammonia?: number | null;
+  critical_readings?: number | null;
+  last_inspection_at?: string | null;
+
+  latest_ammonia?: number | null;
+  highest_ammonia?: number | null;
+  max_ammonia?: number | null;
+  alert_status?: string | null;
+}
 
 export interface SiteDetailModalProps {
   isOpen: boolean;
