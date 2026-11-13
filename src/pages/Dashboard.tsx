@@ -36,6 +36,7 @@ import { useSiteAnalytics, SiteAnalyticsData } from '../hooks/useSiteAnalytics';
 import { StatsCard } from '../components/charts';
 import SiteAnalyticsCard from '../components/dashboard/SiteAnalyticsCard';
 import SpatialPolygonMap, { SensorReadingMarker } from '../components/map/SpatialPolygonMap';
+import { SiteDetailModal } from '../components/admin/SiteDetailModal';
 import { supabase } from '../services/supabase';
 import useSyncFeedback from '../hooks/useSyncFeedback';
 
@@ -50,6 +51,8 @@ export default function Dashboard() {
 
   const [mapReadings, setMapReadings] = useState<SensorReadingMarker[]>([]);
   const [showGlobalMap, setShowGlobalMap] = useState<boolean>(false);
+  const [selectedSiteForModal, setSelectedSiteForModal] = useState<SiteAnalyticsData | null>(null);
+  const [showSiteDetailModal, setShowSiteDetailModal] = useState<boolean>(false);
 
   const fetchMapReadings = useCallback(async () => {
     try {
@@ -258,7 +261,11 @@ export default function Dashboard() {
                     }))}
                     readings={mapReadings}
                     onSelectSite={(siteId) => {
-                      history.push(`/inspection-sites?siteId=${siteId}`);
+                      const targetSite = sites.find(s => s.id === Number(siteId) || String(s.id) === String(siteId));
+                      if (targetSite) {
+                        setSelectedSiteForModal(targetSite);
+                        setShowSiteDetailModal(true);
+                      }
                     }}
                     height="380px"
                   />
@@ -345,6 +352,15 @@ export default function Dashboard() {
             </IonCol>
           </IonRow>
         </IonGrid>
+
+        <SiteDetailModal
+          isOpen={showSiteDetailModal}
+          onClose={() => {
+            setShowSiteDetailModal(false);
+            setSelectedSiteForModal(null);
+          }}
+          site={selectedSiteForModal}
+        />
 
         <IonToast
           isOpen={syncToast.isOpen}
