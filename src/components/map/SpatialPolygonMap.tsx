@@ -375,7 +375,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         { direction: 'top', offset: [0, -34], opacity: 0.95 }
       );
 
-      // On marker click: navigate directly to the site's detail/info page
+      // On marker click: invoke onSelectSite callback to open site details modal
       marker.on('click', () => {
         if (onSelectSite) {
           onSelectSite(site.id, site.latitude, site.longitude);
