@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useHistory } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { IonIcon } from '@ionic/react';
@@ -92,6 +93,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   onSelectSite,
   height = '460px',
 }) => {
+  const history = useHistory();
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const baseTileLayerRef = useRef<L.TileLayer | null>(null);
@@ -364,29 +366,21 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
 
       const marker = L.marker([site.latitude, site.longitude], { icon: siteIcon });
 
-      marker.bindPopup(`
-        <div style="font-family: system-ui, sans-serif; min-width: 190px; padding: 4px;">
-          <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-            <span style="font-size: 18px;">${pinMeta.emoji}</span>
-            <h4 style="margin: 0; color: #1a365d; font-size: 14px; font-weight: 700;">${site.site_name}</h4>
-          </div>
-          <div style="font-size: 12px; margin-bottom: 6px;">
-            <span style="display:inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; background: ${pinMeta.fillColor}; color: ${pinMeta.pinColor}; border: 1px solid ${pinMeta.pinColor}40;">
-              ${pinMeta.label}
-            </span>
-          </div>
-          ${site.owner_name ? `<div style="font-size: 11px; color: #64748b; margin-bottom: 4px;"><b>Owner:</b> ${site.owner_name}</div>` : ''}
-          <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:4px 8px; border-radius:6px; margin-top:6px; border:1px solid #e2e8f0;">
-            <span style="font-size: 11px; color:#64748b;">Highest NH₃:</span>
-            <strong style="color: ${statusColor}; font-size: 13px;">${nh3 !== null && nh3 !== undefined ? `${nh3.toFixed(1)} ppm` : 'No data'}</strong>
-          </div>
-          <div style="font-size: 10px; color: #94a3b8; margin-top: 4px;">GPS: ${site.latitude.toFixed(5)}°, ${site.longitude.toFixed(5)}°</div>
-        </div>
-      `);
+      // Show tooltip on hover
+      marker.bindTooltip(
+        `<div style="font-family: system-ui, sans-serif; padding: 2px 4px; text-align: center;">
+          <strong style="color: #1a365d; font-size: 12px;">${site.site_name}</strong>
+          <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Click to view site details &rarr;</div>
+        </div>`,
+        { direction: 'top', offset: [0, -34], opacity: 0.95 }
+      );
 
+      // On marker click: navigate directly to the site's detail/info page
       marker.on('click', () => {
         if (onSelectSite) {
           onSelectSite(site.id, site.latitude, site.longitude);
+        } else {
+          history.push(`/inspection-sites?siteId=${site.id}`);
         }
       });
 

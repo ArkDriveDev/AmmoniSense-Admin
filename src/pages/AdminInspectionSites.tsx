@@ -19,7 +19,8 @@ import {
   SelectCustomEvent
 } from '@ionic/react';
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useHistory, useLocation, useParams } from 'react-router-dom';
 import {
   businessOutline,
   locationOutline,
@@ -50,6 +51,12 @@ import {
 } from '../constants/siteConstants';
 
 export default function AdminInspectionSites() {
+  const history = useHistory();
+  const location = useLocation();
+  const params = useParams<{ siteId?: string; id?: string }>();
+  const queryParams = new URLSearchParams(location.search);
+  const targetSiteId = params.siteId || params.id || queryParams.get('siteId');
+
   const { sites, loading, fetchInspectionSites } = useInspectionSites();
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
   const [searchTerm, setSearchTerm] = useState('');
@@ -58,6 +65,25 @@ export default function AdminInspectionSites() {
   const [chickenTypeFilter, setChickenTypeFilter] = useState('all');
   const [sortBy, setSortBy] = useState('site_name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Identify focused site from map navigation
+  const selectedSite = useMemo(() => {
+    if (!targetSiteId) return null;
+    return sites.find(s => String(s.id) === String(targetSiteId)) || null;
+  }, [sites, targetSiteId]);
+
+  // Scroll to focused site card once loaded
+  useEffect(() => {
+    if (selectedSite) {
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`site-card-${selectedSite.id}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 200);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedSite]);
 
   // Map modal state
   const [showMapModal, setShowMapModal] = useState(false);
@@ -77,33 +103,46 @@ export default function AdminInspectionSites() {
     setShowSiteModal(true);
   };
 
-  const filteredSites = sites.filter(s => {
-    if (typeFilter !== 'all' && s.site_type?.toUpperCase() !== typeFilter.toUpperCase()) {
-      return false;
+  const filteredSites = useMemo(() => {
+    const list = sites.filter(s => {
+      if (typeFilter !== 'all' && s.site_type?.toUpperCase() !== typeFilter.toUpperCase()) {
+        return false;
+      }
+      if (poultryTypeFilter !== 'all' && s.poultry_type?.toUpperCase() !== poultryTypeFilter.toUpperCase()) {
+        return false;
+      }
+      if (chickenTypeFilter !== 'all' && s.chicken_type?.toUpperCase() !== chickenTypeFilter.toUpperCase()) {
+        return false;
+      }
+      if (!searchTerm) return true;
+      const term = searchTerm.toLowerCase();
+      return (
+        s.site_name?.toLowerCase().includes(term) ||
+        s.site_code?.toLowerCase().includes(term) ||
+        s.address?.toLowerCase().includes(term) ||
+        s.site_type?.toLowerCase().includes(term) ||
+        getPoultryTypeLabel(s.poultry_type).toLowerCase().includes(term) ||
+        getChickenTypeLabel(s.chicken_type).toLowerCase().includes(term)
+      );
+    }).sort((a, b) => {
+      const aVal = String(a[sortBy as keyof InspectionSiteWithSummary] ?? '').toLowerCase();
+      const bVal = String(b[sortBy as keyof InspectionSiteWithSummary] ?? '').toLowerCase();
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    // If navigated from map with a selected site, prioritize it at the top
+    if (selectedSite) {
+      const idx = list.findIndex(s => s.id === selectedSite.id);
+      if (idx > 0) {
+        const [target] = list.splice(idx, 1);
+        list.unshift(target);
+      }
     }
-    if (poultryTypeFilter !== 'all' && s.poultry_type?.toUpperCase() !== poultryTypeFilter.toUpperCase()) {
-      return false;
-    }
-    if (chickenTypeFilter !== 'all' && s.chicken_type?.toUpperCase() !== chickenTypeFilter.toUpperCase()) {
-      return false;
-    }
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      s.site_name?.toLowerCase().includes(term) ||
-      s.site_code?.toLowerCase().includes(term) ||
-      s.address?.toLowerCase().includes(term) ||
-      s.site_type?.toLowerCase().includes(term) ||
-      getPoultryTypeLabel(s.poultry_type).toLowerCase().includes(term) ||
-      getChickenTypeLabel(s.chicken_type).toLowerCase().includes(term)
-    );
-  }).sort((a, b) => {
-    const aVal = String(a[sortBy as keyof InspectionSiteWithSummary] ?? '').toLowerCase();
-    const bVal = String(b[sortBy as keyof InspectionSiteWithSummary] ?? '').toLowerCase();
-    if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
-    if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
-    return 0;
-  });
+
+    return list;
+  }, [sites, typeFilter, poultryTypeFilter, chickenTypeFilter, searchTerm, sortBy, sortOrder, selectedSite]);
 
   const handleSort = (field: string) => {
     if (sortBy === field) {
@@ -228,6 +267,56 @@ export default function AdminInspectionSites() {
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>
+        {/* Banner when navigated from map with a focused site */}
+        {selectedSite && (
+          <div
+            style={{
+              backgroundColor: '#eff6ff',
+              border: '1.5px solid #93c5fd',
+              borderRadius: '12px',
+              padding: '12px 16px',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '10px',
+              boxShadow: '0 2px 8px rgba(37,99,235,0.08)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <IonIcon icon={businessOutline} style={{ color: '#1a365d', fontSize: '24px' }} />
+              <div>
+                <strong style={{ color: '#1a365d', fontSize: '15px' }}>
+                  Viewing Site Details: {selectedSite.site_name}
+                </strong>
+                <span style={{ fontSize: '12px', color: '#475569', display: 'block' }}>
+                  Code: {selectedSite.site_code} &bull; {selectedSite.address || 'Manolo Fortich'}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <IonButton
+                size="small"
+                fill="outline"
+                color="dark"
+                onClick={() => history.push('/inspection-sites')}
+              >
+                View All Sites
+              </IonButton>
+              <IonButton
+                size="small"
+                fill="solid"
+                color="primary"
+                onClick={() => history.push('/dashboard')}
+              >
+                &larr; Back to Dashboard
+              </IonButton>
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <LoadingSpinner />
         ) : filteredSites.length === 0 ? (
@@ -240,16 +329,20 @@ export default function AdminInspectionSites() {
             {filteredSites.map((site) => {
               const hasCritical = (site.critical_readings || 0) > 0;
               const hasAvgAmmonia = site.avg_ammonia !== null && site.avg_ammonia !== undefined;
+              const isSelected = selectedSite && site.id === selectedSite.id;
 
               return (
                 <IonItem
+                  id={`site-card-${site.id}`}
                   key={site.id}
                   style={{
                     '--background': '#ffffff',
                     borderRadius: '12px',
                     marginBottom: '12px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                    borderLeft: `5px solid ${hasCritical ? '#dc2626' : site.is_active ? '#1a365d' : '#94a3b8'}`
+                    boxShadow: isSelected ? '0 4px 16px rgba(37,99,235,0.22)' : '0 2px 8px rgba(0,0,0,0.04)',
+                    borderLeft: `5px solid ${hasCritical ? '#dc2626' : site.is_active ? '#1a365d' : '#94a3b8'}`,
+                    outline: isSelected ? '2px solid #2563eb' : 'none',
+                    outlineOffset: isSelected ? '1px' : '0'
                   }}
                 >
                   <IonLabel style={{ margin: '14px 0' }}>
@@ -258,6 +351,11 @@ export default function AdminInspectionSites() {
                         <IonIcon icon={businessOutline} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
                         {site.site_name}
                       </h2>
+                      {isSelected && (
+                        <IonBadge color="primary" style={{ fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                          <IonIcon icon={locationOutline} /> Selected From Map
+                        </IonBadge>
+                      )}
                       <IonBadge color="primary" style={{ fontSize: '11px' }}>
                         {site.site_code}
                       </IonBadge>

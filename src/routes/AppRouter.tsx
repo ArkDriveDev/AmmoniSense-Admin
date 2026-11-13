@@ -83,7 +83,13 @@ export default function AppRouter() {
       />
 
       <Route
-        path="/inspection-sites"
+        path={[
+          '/inspection-sites',
+          '/inspection-sites/:siteId',
+          '/admin/inspection-sites',
+          '/admin/inspection-sites/:siteId',
+          '/admin/sites/:siteId'
+        ]}
         render={() => (
           <ProtectedRoute>
             <AdminLayout>

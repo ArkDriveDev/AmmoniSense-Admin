@@ -31,6 +31,7 @@ import {
   calendarOutline
 } from 'ionicons/icons';
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useHistory } from 'react-router-dom';
 import { useSiteAnalytics, SiteAnalyticsData } from '../hooks/useSiteAnalytics';
 import { StatsCard } from '../components/charts';
 import SiteAnalyticsCard from '../components/dashboard/SiteAnalyticsCard';
@@ -39,6 +40,7 @@ import { supabase } from '../services/supabase';
 import useSyncFeedback from '../hooks/useSyncFeedback';
 
 export default function Dashboard() {
+  const history = useHistory();
   const { sites, globalStats, loading, refresh } = useSiteAnalytics();
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -255,6 +257,9 @@ export default function Dashboard() {
                       area_size_hectares: s.area_size_hectares
                     }))}
                     readings={mapReadings}
+                    onSelectSite={(siteId) => {
+                      history.push(`/inspection-sites?siteId=${siteId}`);
+                    }}
                     height="380px"
                   />
                 </div>
