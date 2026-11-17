@@ -163,16 +163,16 @@ export const MapViewerModal: React.FC<MapViewerModalProps> = ({
           centerLat={currentLat}
           centerLng={currentLng}
           siteName={siteName}
-          markerStyle="poultry"
-          showAreaCircle={true}
-          hidePpmBadge={true}
+          markerStyle="default"
+          showAreaCircle={false}
           sites={[
             {
               id: siteId || 'focus-site',
               site_name: siteName,
               latitude: currentLat,
               longitude: currentLng,
-              area_size_hectares: areaHectares || 1.0,
+              highest_ammonia: siteHighestPpm,
+              latest_ammonia: siteHighestPpm,
             }
           ]}
           readings={siteReadings.length > 0 ? siteReadings : []}
