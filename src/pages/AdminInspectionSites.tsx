@@ -39,6 +39,8 @@ import {
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { useInspectionSites, InspectionSiteWithSummary } from '../hooks/useInspectionSites';
+import { useSiteSensorAnalytics } from '../hooks/useSiteSensorAnalytics';
+import { SiteAnalyticsSection } from '../components/charts/SiteAnalyticsSection';
 import MapViewerModal from '../components/map/MapViewerModal';
 import useSyncFeedback from '../hooks/useSyncFeedback';
 import SiteModal from '../components/admin/SiteModal';
@@ -60,7 +62,9 @@ export default function AdminInspectionSites() {
   const targetSiteId = params.siteId || params.id || queryParams.get('siteId');
 
   const { sites, loading, fetchInspectionSites } = useInspectionSites();
+  const { siteMetrics, aggregate, loading: analyticsLoading, refresh: refreshSensorAnalytics } = useSiteSensorAnalytics(sites);
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
+  const [showAnalyticsSection, setShowAnalyticsSection] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [poultryTypeFilter, setPoultryTypeFilter] = useState('all');
@@ -174,7 +178,7 @@ export default function AdminInspectionSites() {
               <IonIcon icon={addOutline} slot="start" />
               ADD SITE
             </IonButton>
-            <IonButton onClick={() => triggerSync(fetchInspectionSites)}>
+            <IonButton onClick={() => triggerSync(async () => { await fetchInspectionSites(); await refreshSensorAnalytics(); })}>
               <IonIcon icon={refreshOutline} />
             </IonButton>
           </IonButtons>
@@ -322,6 +326,13 @@ export default function AdminInspectionSites() {
             </div>
           </div>
         )}
+
+        {/* Inspection Sites Analytics & Telemetry Charts Block (Moved from Dashboard) */}
+        <SiteAnalyticsSection
+          aggregate={aggregate}
+          siteMetrics={siteMetrics}
+          loading={analyticsLoading}
+        />
 
         {loading ? (
           <LoadingSpinner />
