@@ -204,31 +204,6 @@ export default function Dashboard() {
             </IonCol>
           </IonRow>
 
-          {/* Environmental Compliance Overview Card */}
-          <IonRow style={{ marginTop: '12px' }}>
-            <IonCol size="12">
-              <IonCard style={{ margin: 0, borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', backgroundColor: '#ffffff' }}>
-                <IonCardContent style={{ padding: '16px 20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800', color: '#1a365d' }}>
-                        Municipality of Manolo Fortich &bull; MENRO Air Quality Surveillance
-                      </h3>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
-                        Continuous agricultural and industrial ammonia telemetry monitoring pursuant to municipal environmental code.
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '12px', color: '#059669', backgroundColor: '#dcfce7', padding: '4px 10px', borderRadius: '16px', fontWeight: '700' }}>
-                        Live Telemetry Online
-                      </span>
-                    </div>
-                  </div>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-          </IonRow>
-
           {/* Spatial Polygon Map Toggle */}
           <IonRow style={{ margin: '8px 0 16px 0' }}>
             <IonCol size="12">
