@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -12,7 +12,8 @@ import {
   informationCircleOutline,
   chevronDownOutline,
   chevronUpOutline,
-  closeOutline
+  closeOutline,
+  searchOutline
 } from 'ionicons/icons';
 import {
   MANOLO_FORTICH_DEFAULTS,
@@ -79,6 +80,7 @@ interface SpatialPolygonMapProps {
   onSelectSite?: (siteId: string | number, lat: number, lng: number) => void;
   height?: string;
   showSitesList?: boolean;
+  showSearch?: boolean;
 }
 
 export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
@@ -92,6 +94,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   selectedSiteId,
   onSelectSite,
   height = '460px',
+  showSearch = true,
 }) => {
   const history = useHistory();
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -107,6 +110,42 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   const [showBoundary, setShowBoundary] = useState<boolean>(true);
   const [showOdorZones, setShowOdorZones] = useState<boolean>(true);
   const [showLegend, setShowLegend] = useState<boolean>(false);
+
+  // Search & zoom state
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showSearchDropdown, setShowSearchDropdown] = useState<boolean>(false);
+  const [highlightedSiteId, setHighlightedSiteId] = useState<string | number | undefined>(selectedSiteId);
+
+  useEffect(() => {
+    setHighlightedSiteId(selectedSiteId);
+  }, [selectedSiteId]);
+
+  const filteredSearchSites = useMemo(() => {
+    if (!searchQuery.trim()) return sites.slice(0, 8);
+    const q = searchQuery.toLowerCase();
+    return sites.filter((s) =>
+      s.site_name.toLowerCase().includes(q) ||
+      (s.site_type && s.site_type.toLowerCase().includes(q)) ||
+      String(s.id).includes(q)
+    ).slice(0, 8);
+  }, [sites, searchQuery]);
+
+  const handleSelectSearchedSite = (site: InspectionSiteMarker) => {
+    setSearchQuery(site.site_name);
+    setShowSearchDropdown(false);
+    setHighlightedSiteId(site.id);
+
+    if (mapRef.current && site.latitude && site.longitude) {
+      mapRef.current.setView([site.latitude, site.longitude], 16, {
+        animate: true,
+        duration: 0.8,
+      });
+    }
+
+    if (onSelectSite) {
+      onSelectSite(site.id, site.latitude, site.longitude);
+    }
+  };
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -329,7 +368,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       if (!site.latitude || !site.longitude) return;
 
       const pinMeta = getSiteMapPinMeta(site.site_type || undefined);
-      const isSelected = String(selectedSiteId) === String(site.id);
+      const isSelected = String(highlightedSiteId ?? selectedSiteId) === String(site.id);
       const pinColor = isSelected ? '#1a365d' : pinMeta.pinColor;
       const nh3 = site.highest_ammonia ?? site.max_ammonia ?? site.latest_ammonia;
       const statusColor = getAmmoniaColor(nh3 || 0, site.alert_status || undefined);
@@ -386,7 +425,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
 
       sitesGroup.addLayer(marker);
     });
-  }, [sites, selectedSiteId]);
+  }, [sites, selectedSiteId, highlightedSiteId]);
 
   // Render Sensor Readings (Colored dots inside/around zones showing highest ppm)
   useEffect(() => {
@@ -504,8 +543,114 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     <div
       onMouseDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
-      style={{ position: 'relative', width: '100%', height, borderRadius: '12px', overflow: 'hidden', border: '1px solid #cbd5e1', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
+      style={{ position: 'relative', width: '100%' }}
     >
+      {/* Search Input and Result Dropdown above map */}
+      {showSearch && (
+        <div style={{ position: 'relative', marginBottom: '8px', zIndex: 1100 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            backgroundColor: '#ffffff',
+            border: '1px solid #cbd5e1',
+            borderRadius: '10px',
+            padding: '6px 12px',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+          }}>
+            <IonIcon icon={searchOutline} style={{ color: '#64748b', fontSize: '18px', marginRight: '8px' }} />
+            <input
+              type="text"
+              placeholder="Search site name, code or location to zoom..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSearchDropdown(true);
+              }}
+              onFocus={() => setShowSearchDropdown(true)}
+              style={{
+                border: 'none',
+                outline: 'none',
+                width: '100%',
+                fontSize: '13px',
+                color: '#1a365d',
+                backgroundColor: 'transparent'
+              }}
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setShowSearchDropdown(false);
+                }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#94a3b8' }}
+              >
+                <IonIcon icon={closeOutline} style={{ fontSize: '16px' }} />
+              </button>
+            )}
+          </div>
+
+          {/* Results Dropdown */}
+          {showSearchDropdown && (
+            <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              marginTop: '4px',
+              backgroundColor: '#ffffff',
+              borderRadius: '8px',
+              border: '1px solid #cbd5e1',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+              maxHeight: '220px',
+              overflowY: 'auto',
+              zIndex: 1200
+            }}>
+              {filteredSearchSites.length === 0 ? (
+                <div style={{ padding: '10px 14px', fontSize: '12px', color: '#94a3b8' }}>
+                  No matching sites found
+                </div>
+              ) : (
+                filteredSearchSites.map((site: InspectionSiteMarker) => (
+                  <div
+                    key={site.id}
+                    onClick={() => handleSelectSearchedSite(site)}
+                    style={{
+                      padding: '8px 12px',
+                      borderBottom: '1px solid #f1f5f9',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      transition: 'background-color 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <div>
+                      <strong style={{ color: '#1a365d' }}>{site.site_name}</strong>
+                      <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '6px' }}>
+                        ({site.site_type || 'Site'})
+                      </span>
+                    </div>
+                    {site.latest_ammonia !== null && site.latest_ammonia !== undefined && (
+                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#059669' }}>
+                        {site.latest_ammonia.toFixed(1)} PPM
+                      </span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Map Container */}
+      <div
+        style={{ position: 'relative', width: '100%', height, borderRadius: '12px', overflow: 'hidden', border: '1px solid #cbd5e1', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
+      >
       <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
 
       {/* Top Left Jurisdiction Title Badge */}
@@ -827,6 +972,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
           <span>Legend</span>
           <IonIcon icon={showLegend ? chevronDownOutline : chevronUpOutline} style={{ fontSize: '11px', opacity: 0.7 }} />
         </button>
+      </div>
       </div>
     </div>
   );
