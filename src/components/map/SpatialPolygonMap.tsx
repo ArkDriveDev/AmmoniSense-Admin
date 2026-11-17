@@ -81,6 +81,9 @@ interface SpatialPolygonMapProps {
   height?: string;
   showSitesList?: boolean;
   showSearch?: boolean;
+  markerStyle?: 'default' | 'poultry';
+  showAreaCircle?: boolean;
+  hidePpmBadge?: boolean;
 }
 
 export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
@@ -95,6 +98,9 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   onSelectSite,
   height = '460px',
   showSearch = true,
+  markerStyle = 'default',
+  showAreaCircle = false,
+  hidePpmBadge = false,
 }) => {
   const history = useHistory();
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -373,42 +379,108 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       const nh3 = site.highest_ammonia ?? site.max_ammonia ?? site.latest_ammonia;
       const statusColor = getAmmoniaColor(nh3 || 0, site.alert_status || undefined);
 
-      const siteIcon = L.divIcon({
-        className: 'custom-site-pin',
-        html: `
-          <div style="
-            position: relative;
-            background: ${pinColor};
-            width: 34px;
-            height: 34px;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            border: 2.5px solid #ffffff;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            ${isSelected ? 'outline: 3px solid #1a365d; outline-offset: 2px;' : ''}
-          ">
-            <span style="
-              transform: rotate(45deg);
-              font-size: 16px;
-              line-height: 1;
-              display: block;
-            ">${pinMeta.emoji}</span>
-          </div>
-        `,
-        iconSize: [34, 34],
-        iconAnchor: [17, 34],
-      });
+      // Render site area circle if poultry style or showAreaCircle requested
+      if (markerStyle === 'poultry' || showAreaCircle) {
+        const areaHectares = site.area_size_hectares && site.area_size_hectares > 0 ? Number(site.area_size_hectares) : 1.0;
+        const radiusMeters = Math.max(35, Math.sqrt((areaHectares * 10000) / Math.PI));
+
+        const areaCircle = L.circle([site.latitude, site.longitude], {
+          radius: radiusMeters,
+          color: isSelected ? '#1a365d' : '#d97706',
+          weight: isSelected ? 2.5 : 1.5,
+          dashArray: '5, 5',
+          fillColor: isSelected ? '#3b82f6' : '#f59e0b',
+          fillOpacity: 0.16,
+        });
+
+        areaCircle.bindTooltip(
+          `<div style="font-family: system-ui, sans-serif; font-size: 11px;">
+            <strong style="color: #1a365d;">${site.site_name}</strong><br/>
+            Site Area: ${areaHectares.toFixed(2)} ha (~${Math.round(radiusMeters)}m radius)
+          </div>`,
+          { direction: 'top', sticky: true }
+        );
+
+        areaCircle.on('click', () => {
+          if (onSelectSite) {
+            onSelectSite(site.id, site.latitude, site.longitude);
+          }
+        });
+
+        sitesGroup.addLayer(areaCircle);
+      }
+
+      let siteIcon: L.DivIcon;
+
+      if (markerStyle === 'poultry') {
+        const poultryBadgeColor = isSelected ? '#1a365d' : '#d97706';
+        siteIcon = L.divIcon({
+          className: 'custom-poultry-pin',
+          html: `
+            <div style="
+              position: relative;
+              background: ${poultryBadgeColor};
+              width: 36px;
+              height: 36px;
+              border-radius: 50% 50% 50% 4px;
+              transform: rotate(-45deg);
+              border: 2.5px solid #ffffff;
+              box-shadow: 0 4px 14px rgba(217, 119, 6, 0.45);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              ${isSelected ? 'outline: 3px solid #1a365d; outline-offset: 3px; box-shadow: 0 0 16px rgba(26, 54, 93, 0.8);' : ''}
+            ">
+              <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff" style="display: block;">
+                  <path d="M14.5 3c-.83 0-1.54.5-1.84 1.22l-.89 2.12c-.52.27-1.07.6-1.63 1l-.89-.89a1.5 1.5 0 0 0-2.12 0l-.71.71a1.5 1.5 0 0 0 0 2.12l.62.62c-.34.62-.64 1.29-.88 2.02l-1.05-.26a1.5 1.5 0 0 0-1.78 1.12l-.24.97a1.5 1.5 0 0 0 1.12 1.78l1.37.34c.05.65.17 1.29.35 1.91l-.9.9a1.5 1.5 0 0 0 0 2.12l.71.71a1.5 1.5 0 0 0 2.12 0l.9-.9c.62.18 1.26.3 1.91.35l.34 1.37a1.5 1.5 0 0 0 1.78 1.12l.97-.24a1.5 1.5 0 0 0 1.12-1.78l-.26-1.05c.73-.24 1.4-.54 2.02-.88l.62.62a1.5 1.5 0 0 0 2.12 0l.71-.71a1.5 1.5 0 0 0 0-2.12l-.89-.89c.4-.56.73-1.11 1-1.63l2.12-.89c.72-.3 1.22-1.01 1.22-1.84v-.5a2.5 2.5 0 0 0-2.5-2.5h-.7l-.46-1.38A2.5 2.5 0 0 0 19.14 6H17V4.5A1.5 1.5 0 0 0 15.5 3h-1zm.5 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                </svg>
+              </div>
+            </div>
+          `,
+          iconSize: [36, 36],
+          iconAnchor: [18, 36],
+        });
+      } else {
+        siteIcon = L.divIcon({
+          className: 'custom-site-pin',
+          html: `
+            <div style="
+              position: relative;
+              background: ${pinColor};
+              width: 34px;
+              height: 34px;
+              border-radius: 50% 50% 50% 0;
+              transform: rotate(-45deg);
+              border: 2.5px solid #ffffff;
+              box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              ${isSelected ? 'outline: 3px solid #1a365d; outline-offset: 2px;' : ''}
+            ">
+              <span style="
+                transform: rotate(45deg);
+                font-size: 16px;
+                line-height: 1;
+                display: block;
+              ">${pinMeta.emoji}</span>
+            </div>
+          `,
+          iconSize: [34, 34],
+          iconAnchor: [17, 34],
+        });
+      }
 
       const marker = L.marker([site.latitude, site.longitude], { icon: siteIcon });
 
-      // Show tooltip on hover
+      // Show tooltip on hover (no ppm number displayed when markerStyle is poultry or hidePpmBadge is true)
       marker.bindTooltip(
         `<div style="font-family: system-ui, sans-serif; padding: 2px 4px; text-align: center;">
           <strong style="color: #1a365d; font-size: 12px;">${site.site_name}</strong>
+          ${markerStyle !== 'poultry' && !hidePpmBadge && nh3 !== null && nh3 !== undefined ? `<div style="font-size: 11px; font-weight: bold; color: ${statusColor}; margin: 2px 0;">${nh3.toFixed(1)} PPM</div>` : ''}
           <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Click to view site details &rarr;</div>
         </div>`,
         { direction: 'top', offset: [0, -34], opacity: 0.95 }
@@ -425,7 +497,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
 
       sitesGroup.addLayer(marker);
     });
-  }, [sites, selectedSiteId, highlightedSiteId]);
+  }, [sites, selectedSiteId, highlightedSiteId, markerStyle, showAreaCircle, hidePpmBadge]);
 
   // Render Sensor Readings (Colored dots inside/around zones showing highest ppm)
   useEffect(() => {

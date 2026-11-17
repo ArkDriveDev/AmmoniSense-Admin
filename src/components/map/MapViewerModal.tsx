@@ -22,7 +22,9 @@ interface MapViewerModalProps {
   longitude: number;
   siteName?: string;
   siteId?: number;
+  areaHectares?: number | null;
   readings?: SensorReadingMarker[];
+  onSelectSite?: (siteId: number) => void;
 }
 
 export const MapViewerModal: React.FC<MapViewerModalProps> = ({
@@ -33,7 +35,9 @@ export const MapViewerModal: React.FC<MapViewerModalProps> = ({
   longitude,
   siteName = 'Inspection Site',
   siteId,
+  areaHectares,
   readings = [],
+  onSelectSite,
 }) => {
   const currentLat = latitude || MANOLO_FORTICH_DEFAULTS.lat;
   const currentLng = longitude || MANOLO_FORTICH_DEFAULTS.lng;
@@ -159,26 +163,25 @@ export const MapViewerModal: React.FC<MapViewerModalProps> = ({
           centerLat={currentLat}
           centerLng={currentLng}
           siteName={siteName}
+          markerStyle="poultry"
+          showAreaCircle={true}
+          hidePpmBadge={true}
           sites={[
             {
               id: siteId || 'focus-site',
               site_name: siteName,
               latitude: currentLat,
               longitude: currentLng,
-              highest_ammonia: siteHighestPpm,
-              latest_ammonia: siteHighestPpm,
+              area_size_hectares: areaHectares || 1.0,
             }
           ]}
-          readings={siteReadings.length > 0 ? siteReadings : [
-            {
-              id: 'focus',
-              latitude: currentLat,
-              longitude: currentLng,
-              ammonia: siteHighestPpm || 0,
-              created_at: new Date().toISOString(),
-              status: 'normal'
+          readings={siteReadings.length > 0 ? siteReadings : []}
+          onSelectSite={(id) => {
+            onDismiss();
+            if (onSelectSite && typeof id === 'number') {
+              onSelectSite(id);
             }
-          ]}
+          }}
           height="500px"
         />
 

@@ -34,6 +34,7 @@ import {
   addOutline,
   createOutline,
   informationCircleOutline,
+  mapOutline,
 } from 'ionicons/icons';
 
 import EmptyState from '../components/EmptyState';
@@ -42,6 +43,7 @@ import { useInspectionSites, InspectionSiteWithSummary } from '../hooks/useInspe
 import { useSiteSensorAnalytics } from '../hooks/useSiteSensorAnalytics';
 import { SiteAnalyticsSection } from '../components/charts/SiteAnalyticsSection';
 import MapViewerModal from '../components/map/MapViewerModal';
+import SpatialPolygonMap from '../components/map/SpatialPolygonMap';
 import useSyncFeedback from '../hooks/useSyncFeedback';
 import SiteModal from '../components/admin/SiteModal';
 import { SiteDetailModal } from '../components/admin/SiteDetailModal';
@@ -94,6 +96,7 @@ export default function AdminInspectionSites() {
   // Map modal state
   const [showMapModal, setShowMapModal] = useState(false);
   const [mapTarget, setMapTarget] = useState<InspectionSiteWithSummary | null>(null);
+  const [showSitesMap, setShowSitesMap] = useState(false);
 
   // Add/Edit Site modal state
   const [showSiteModal, setShowSiteModal] = useState(false);
@@ -334,6 +337,49 @@ export default function AdminInspectionSites() {
           loading={analyticsLoading}
         />
 
+        {/* Inspection Sites Poultry Map Toggle */}
+        <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxShadow: '0 2px 6px rgba(0,0,0,0.03)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <IonIcon icon={mapOutline} style={{ fontSize: '22px', color: '#1a365d' }} />
+            <div>
+              <strong style={{ color: '#1a365d', fontSize: '14px' }}>Poultry Sites Spatial Overview Map</strong>
+              <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>Poultry icons and physical hectarage perimeters</span>
+            </div>
+          </div>
+          <IonButton size="small" fill="outline" color="primary" onClick={() => setShowSitesMap(!showSitesMap)}>
+            {showSitesMap ? 'Hide Map' : 'Show Map'}
+          </IonButton>
+        </div>
+
+        {showSitesMap && (
+          <div style={{ marginBottom: '16px' }}>
+            <SpatialPolygonMap
+              siteName="MENRO Poultry Inspection Sites Map"
+              markerStyle="poultry"
+              showAreaCircle={true}
+              hidePpmBadge={true}
+              sites={sites.filter(s => s.current_latitude && s.current_longitude).map(s => ({
+                id: s.id,
+                site_name: s.site_name,
+                latitude: s.current_latitude!,
+                longitude: s.current_longitude!,
+                site_type: s.site_type,
+                area_size_hectares: s.area_size_hectares,
+                latest_ammonia: s.avg_ammonia,
+                highest_ammonia: s.avg_ammonia,
+              }))}
+              onSelectSite={(siteId) => {
+                const s = sites.find(x => x.id === Number(siteId));
+                if (s) {
+                  setSelectedSiteForDetail(s);
+                  setShowDetailModal(true);
+                }
+              }}
+              height="400px"
+            />
+          </div>
+        )}
+
         {loading ? (
           <LoadingSpinner />
         ) : filteredSites.length === 0 ? (
@@ -529,6 +575,14 @@ export default function AdminInspectionSites() {
             siteId={mapTarget.id}
             latitude={mapTarget.current_latitude || 8.3697}
             longitude={mapTarget.current_longitude || 124.8640}
+            areaHectares={mapTarget.area_size_hectares}
+            onSelectSite={(id) => {
+              const s = sites.find(x => x.id === id);
+              if (s) {
+                setSelectedSiteForDetail(s);
+                setShowDetailModal(true);
+              }
+            }}
           />
         )}
 
