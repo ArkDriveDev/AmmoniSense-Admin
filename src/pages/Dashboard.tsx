@@ -28,11 +28,20 @@ import {
   swapVerticalOutline,
   mapOutline,
   searchOutline,
-  calendarOutline
+  calendarOutline,
+  shieldCheckmarkOutline,
+  homeOutline,
+  constructOutline,
+  swapHorizontalOutline,
+  eggOutline,
+  nutritionOutline,
+  heartOutline,
+  ribbonOutline
 } from 'ionicons/icons';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useSiteAnalytics, SiteAnalyticsData } from '../hooks/useSiteAnalytics';
+import { useDashboardSummaryCounts } from '../hooks/useDashboardSummaryCounts';
 import { StatsCard } from '../components/charts';
 import SiteAnalyticsCard from '../components/dashboard/SiteAnalyticsCard';
 import SpatialPolygonMap, { SensorReadingMarker } from '../components/map/SpatialPolygonMap';
@@ -43,6 +52,7 @@ import useSyncFeedback from '../hooks/useSyncFeedback';
 export default function Dashboard() {
   const history = useHistory();
   const { sites, globalStats, loading, refresh } = useSiteAnalytics();
+  const summaryCounts = useDashboardSummaryCounts();
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -176,14 +186,14 @@ export default function Dashboard() {
       <IonHeader>
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
           <IonTitle style={{ fontWeight: 'bold' }}>MENRO SITES MONITORING DASHBOARD</IonTitle>
-          <IonButton slot="end" fill="clear" onClick={() => triggerSync(async () => { await refresh(); await fetchMapReadings(); })} style={{ '--color': '#ffffff' }}>
+          <IonButton slot="end" fill="clear" onClick={() => triggerSync(async () => { await refresh(); await fetchMapReadings(); await summaryCounts.refresh(); })} style={{ '--color': '#ffffff' }}>
             <IonIcon icon={refreshOutline} />
           </IonButton>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>
-        <IonRefresher slot="fixed" onIonRefresh={(e) => { handleRefresh(e); triggerSync(async () => { await refresh(); await fetchMapReadings(); }); }}>
+        <IonRefresher slot="fixed" onIonRefresh={(e) => { handleRefresh(e); triggerSync(async () => { await refresh(); await fetchMapReadings(); await summaryCounts.refresh(); }); }}>
           <IonRefresherContent />
         </IonRefresher>
 
@@ -201,6 +211,97 @@ export default function Dashboard() {
             </IonCol>
             <IonCol size="12" size-sm="6" size-md="3">
               <StatsCard title="Critical NH₃ Exceedances" value={globalStats.criticalAlerts} icon={alertCircleOutline} color="danger" />
+            </IonCol>
+          </IonRow>
+
+          {/* Summary Section: Clean Air (<5 PPM), Poultry by Type, Chicken by Type */}
+          <IonRow style={{ marginTop: '8px' }}>
+            {/* Sites with clean air / low ppm (< 5 ppm) */}
+            <IonCol size="12" size-sm="6" size-md="3">
+              <StatsCard
+                title="Sites with Clean Air (<5 PPM)"
+                value={summaryCounts.cleanAirCount}
+                icon={shieldCheckmarkOutline}
+                color="success"
+                subtitle="Active sites, latest inspection"
+              />
+            </IonCol>
+
+            {/* Poultry Housing: Conventional */}
+            <IonCol size="4" size-sm="2" size-md="3">
+              <StatsCard
+                title="Conventional"
+                value={summaryCounts.poultryCounts.conventional}
+                icon={homeOutline}
+                color="primary"
+                subtitle="Poultry Type"
+              />
+            </IonCol>
+
+            {/* Poultry Housing: Retrofitted */}
+            <IonCol size="4" size-sm="2" size-md="3">
+              <StatsCard
+                title="Retrofitted"
+                value={summaryCounts.poultryCounts.retrofitted}
+                icon={constructOutline}
+                color="primary"
+                subtitle="Poultry Type"
+              />
+            </IonCol>
+
+            {/* Poultry Housing: Tunnel Vent */}
+            <IonCol size="4" size-sm="2" size-md="3">
+              <StatsCard
+                title="Tunnel Vent"
+                value={summaryCounts.poultryCounts.tunnelVent}
+                icon={swapHorizontalOutline}
+                color="primary"
+                subtitle="Poultry Type"
+              />
+            </IonCol>
+
+            {/* Chicken: Layer */}
+            <IonCol size="6" size-sm="3" size-md="3">
+              <StatsCard
+                title="Layer"
+                value={summaryCounts.chickenCounts.layer}
+                icon={eggOutline}
+                color="tertiary"
+                subtitle="Chicken Type"
+              />
+            </IonCol>
+
+            {/* Chicken: Broiler */}
+            <IonCol size="6" size-sm="3" size-md="3">
+              <StatsCard
+                title="Broiler"
+                value={summaryCounts.chickenCounts.broiler}
+                icon={nutritionOutline}
+                color="tertiary"
+                subtitle="Chicken Type"
+              />
+            </IonCol>
+
+            {/* Chicken: Breeder */}
+            <IonCol size="6" size-sm="3" size-md="3">
+              <StatsCard
+                title="Breeder"
+                value={summaryCounts.chickenCounts.breeder}
+                icon={heartOutline}
+                color="tertiary"
+                subtitle="Chicken Type"
+              />
+            </IonCol>
+
+            {/* Chicken: Grand Parents / GP */}
+            <IonCol size="6" size-sm="3" size-md="3">
+              <StatsCard
+                title="Grand Parents (GP)"
+                value={summaryCounts.chickenCounts.grandParents}
+                icon={ribbonOutline}
+                color="tertiary"
+                subtitle="Chicken Type"
+              />
             </IonCol>
           </IonRow>
 
