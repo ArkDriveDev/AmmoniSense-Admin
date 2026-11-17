@@ -39,6 +39,9 @@ export interface OdorZonePolygon {
   siteName?: string;
 }
 
+export type MapScheduleSort = 'recent' | 'oldest' | 'name';
+const MAP_SCHEDULE_SORT_KEY = 'admin_map_schedule_sort';
+
 export interface SensorReadingMarker {
   id: number | string;
   latitude: number;
@@ -127,6 +130,53 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showSearchDropdown, setShowSearchDropdown] = useState<boolean>(false);
   const [highlightedSiteId, setHighlightedSiteId] = useState<string | number | undefined>(selectedSiteId);
+
+  // Schedule sorter state with localStorage persistence
+  const [scheduleSort, setScheduleSort] = useState<MapScheduleSort>(() => {
+    try {
+      const saved = localStorage.getItem(MAP_SCHEDULE_SORT_KEY);
+      if (saved === 'recent' || saved === 'oldest' || saved === 'name') {
+        return saved;
+      }
+    } catch (e) {
+      console.warn('Could not read admin_map_schedule_sort from localStorage:', e);
+    }
+    return 'recent';
+  });
+
+  const handleSortChange = (newSort: MapScheduleSort) => {
+    setScheduleSort(newSort);
+    try {
+      localStorage.setItem(MAP_SCHEDULE_SORT_KEY, newSort);
+    } catch (e) {
+      console.warn('Could not write admin_map_schedule_sort to localStorage:', e);
+    }
+  };
+
+  // Sort readings according to schedule sorter selection
+  const sortedReadings = useMemo(() => {
+    const list = [...readings];
+    return list.sort((a, b) => {
+      if (scheduleSort === 'recent') {
+        const dateA = a.scheduled_date ? new Date(a.scheduled_date).getTime() : new Date(a.created_at).getTime();
+        const dateB = b.scheduled_date ? new Date(b.scheduled_date).getTime() : new Date(b.created_at).getTime();
+        if (dateB !== dateA) return dateB - dateA;
+      } else if (scheduleSort === 'oldest') {
+        const dateA = a.scheduled_date ? new Date(a.scheduled_date).getTime() : new Date(a.created_at).getTime();
+        const dateB = b.scheduled_date ? new Date(b.scheduled_date).getTime() : new Date(b.created_at).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+      } else if (scheduleSort === 'name') {
+        const nameA = (a.schedule_name || '').toLowerCase();
+        const nameB = (b.schedule_name || '').toLowerCase();
+        const cmp = nameA.localeCompare(nameB);
+        if (cmp !== 0) return cmp;
+      }
+      // Secondary sort: tag created_at descending
+      const catA = new Date(a.created_at).getTime();
+      const catB = new Date(b.created_at).getTime();
+      return catB - catA;
+    });
+  }, [readings, scheduleSort]);
 
   useEffect(() => {
     setHighlightedSiteId(selectedSiteId);
@@ -521,7 +571,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     const readingsGroup = readingsLayerGroupRef.current;
     readingsGroup.clearLayers();
 
-    readings.forEach((reading) => {
+    sortedReadings.forEach((reading) => {
       if (!reading.latitude || !reading.longitude) return;
 
       const hasReading =
@@ -634,7 +684,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       marker.bindPopup(popupContent);
       readingsGroup.addLayer(marker);
     });
-  }, [readings]);
+  }, [sortedReadings]);
 
   const handleFocusManolo = () => {
     if (!mapRef.current) return;
@@ -648,107 +698,152 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       onTouchStart={(e) => e.stopPropagation()}
       style={{ position: 'relative', width: '100%' }}
     >
-      {/* Search Input and Result Dropdown above map */}
-      {showSearch && (
-        <div style={{ position: 'relative', marginBottom: '8px', zIndex: 1100 }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            backgroundColor: '#ffffff',
-            border: '1px solid #cbd5e1',
-            borderRadius: '10px',
-            padding: '6px 12px',
-            boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
-          }}>
-            <IonIcon icon={searchOutline} style={{ color: '#64748b', fontSize: '18px', marginRight: '8px' }} />
-            <input
-              type="text"
-              placeholder="Search site name, code or location to zoom..."
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowSearchDropdown(true);
-              }}
-              onFocus={() => setShowSearchDropdown(true)}
-              style={{
-                border: 'none',
-                outline: 'none',
-                width: '100%',
-                fontSize: '13px',
-                color: '#1a365d',
-                backgroundColor: 'transparent'
-              }}
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setShowSearchDropdown(false);
-                }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#94a3b8' }}
-              >
-                <IonIcon icon={closeOutline} style={{ fontSize: '16px' }} />
-              </button>
-            )}
-          </div>
-
-          {/* Results Dropdown */}
-          {showSearchDropdown && (
+      {/* Top Bar Controls: Search Input and Schedule Sorter above map */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        marginBottom: '8px',
+        zIndex: 1100,
+        position: 'relative',
+        flexWrap: 'wrap'
+      }}>
+        {showSearch && (
+          <div style={{ flex: '1 1 240px', minWidth: '200px', position: 'relative' }}>
             <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              marginTop: '4px',
+              display: 'flex',
+              alignItems: 'center',
               backgroundColor: '#ffffff',
-              borderRadius: '8px',
               border: '1px solid #cbd5e1',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-              maxHeight: '220px',
-              overflowY: 'auto',
-              zIndex: 1200
+              borderRadius: '10px',
+              padding: '6px 12px',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
             }}>
-              {filteredSearchSites.length === 0 ? (
-                <div style={{ padding: '10px 14px', fontSize: '12px', color: '#94a3b8' }}>
-                  No matching sites found
-                </div>
-              ) : (
-                filteredSearchSites.map((site: InspectionSiteMarker) => (
-                  <div
-                    key={site.id}
-                    onClick={() => handleSelectSearchedSite(site)}
-                    style={{
-                      padding: '8px 12px',
-                      borderBottom: '1px solid #f1f5f9',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      transition: 'background-color 0.15s ease'
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
-                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                  >
-                    <div>
-                      <strong style={{ color: '#1a365d' }}>{site.site_name}</strong>
-                      <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '6px' }}>
-                        ({site.site_type || 'Site'})
-                      </span>
-                    </div>
-                    {site.latest_ammonia !== null && site.latest_ammonia !== undefined && (
-                      <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#059669' }}>
-                        {site.latest_ammonia.toFixed(1)} PPM
-                      </span>
-                    )}
-                  </div>
-                ))
+              <IonIcon icon={searchOutline} style={{ color: '#64748b', fontSize: '18px', marginRight: '8px' }} />
+              <input
+                type="text"
+                placeholder="Search site name, code or location to zoom..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSearchDropdown(true);
+                }}
+                onFocus={() => setShowSearchDropdown(true)}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  width: '100%',
+                  fontSize: '13px',
+                  color: '#1a365d',
+                  backgroundColor: 'transparent'
+                }}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setShowSearchDropdown(false);
+                  }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#94a3b8' }}
+                >
+                  <IonIcon icon={closeOutline} style={{ fontSize: '16px' }} />
+                </button>
               )}
             </div>
-          )}
+
+            {/* Results Dropdown */}
+            {showSearchDropdown && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: '4px',
+                backgroundColor: '#ffffff',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                maxHeight: '220px',
+                overflowY: 'auto',
+                zIndex: 1200
+              }}>
+                {filteredSearchSites.length === 0 ? (
+                  <div style={{ padding: '10px 14px', fontSize: '12px', color: '#94a3b8' }}>
+                    No matching sites found
+                  </div>
+                ) : (
+                  filteredSearchSites.map((site: InspectionSiteMarker) => (
+                    <div
+                      key={site.id}
+                      onClick={() => handleSelectSearchedSite(site)}
+                      style={{
+                        padding: '8px 12px',
+                        borderBottom: '1px solid #f1f5f9',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        transition: 'background-color 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <div>
+                        <strong style={{ color: '#1a365d' }}>{site.site_name}</strong>
+                        <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '6px' }}>
+                          ({site.site_type || 'Site'})
+                        </span>
+                      </div>
+                      {site.latest_ammonia !== null && site.latest_ammonia !== undefined && (
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#059669' }}>
+                          {site.latest_ammonia.toFixed(1)} PPM
+                        </span>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Schedule Sorter Control */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          backgroundColor: '#ffffff',
+          border: '1px solid #cbd5e1',
+          borderRadius: '10px',
+          padding: '6px 12px',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
+          marginLeft: showSearch ? '0' : 'auto'
+        }}>
+          <label htmlFor="map-schedule-sorter" style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Sort:
+          </label>
+          <select
+            id="map-schedule-sorter"
+            value={scheduleSort}
+            onChange={(e) => handleSortChange(e.target.value as MapScheduleSort)}
+            style={{
+              border: 'none',
+              outline: 'none',
+              backgroundColor: 'transparent',
+              fontSize: '12px',
+              fontWeight: 600,
+              color: '#1a365d',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="recent">Recent (Newest)</option>
+            <option value="oldest">Oldest</option>
+            <option value="name">Schedule Name (A–Z)</option>
+          </select>
         </div>
-      )}
+      </div>
 
       {/* Map Container */}
       <div
