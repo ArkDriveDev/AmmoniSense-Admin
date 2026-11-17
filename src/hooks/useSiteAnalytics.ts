@@ -122,7 +122,13 @@ export function useSiteAnalytics() {
         const fourteenDaysAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString();
         const { data: tData } = await supabase
           .from('inspection_tags')
-          .select('*')
+          .select(`
+            *,
+            inspection_schedules (
+              id,
+              inspection_site_id
+            )
+          `)
           .gte('created_at', fourteenDaysAgo)
           .order('created_at', { ascending: false });
 
@@ -148,7 +154,11 @@ export function useSiteAnalytics() {
 
       const processedSites: SiteAnalyticsData[] = (sitesData || []).map((site: InspectionSite) => {
         const sum = summaryMap.get(site.id);
-        const siteTags = tagsData.filter((t: InspectionTag) => t.inspection_site_id === site.id);
+        const siteTags = tagsData.filter((t: any) => {
+          const sched = t.inspection_schedules;
+          const siteId = sched ? (Array.isArray(sched) ? sched[0]?.inspection_site_id : sched.inspection_site_id) : null;
+          return siteId === site.id;
+        });
         const siteDevices = allDevices.filter(
           (d: Device) => d.inspection_site_id === site.id
         );

@@ -64,6 +64,7 @@ export interface InspectionTag {
   id: number;
   tag_name: string;
   inspection_schedule_id?: number | null;
+  /** @deprecated Dropped from DB schema; join through inspection_schedules(inspection_site_id) */
   inspection_site_id?: number | null;
   ammonia?: number | null; // PPM
   temperature?: number | null; // °C

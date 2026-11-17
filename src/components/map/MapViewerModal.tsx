@@ -57,13 +57,25 @@ export const MapViewerModal: React.FC<MapViewerModalProps> = ({
 
     if (!siteId) return;
 
-    // Fetch site tags and sensor_data to get the highest PPM for this site
+    // Fetch site tags and sensor_data to get the average PPM for this site
     const loadSiteMapData = async () => {
       try {
+        const { data: schedRows } = await supabase
+          .from('inspection_schedules')
+          .select('id')
+          .eq('inspection_site_id', siteId);
+
+        const schedIds = (schedRows || []).map((s) => s.id);
+        if (schedIds.length === 0) {
+          setSiteReadings([]);
+          setSiteHighestPpm(null);
+          return;
+        }
+
         const { data: tagRows } = await supabase
           .from('inspection_tags')
           .select('*')
-          .eq('inspection_site_id', siteId)
+          .in('inspection_schedule_id', schedIds)
           .not('latitude', 'is', null)
           .not('longitude', 'is', null)
           .order('created_at', { ascending: false });

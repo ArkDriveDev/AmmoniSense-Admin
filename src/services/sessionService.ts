@@ -123,15 +123,21 @@ export async function fetchSessionData(params: {
         .from('inspection_tags')
         .select(`
           *,
-          inspection_sites (*)
+          inspection_schedules (
+            id,
+            inspection_site_id,
+            inspection_sites (*)
+          )
         `)
         .eq('id', inspectionTagId)
         .maybeSingle();
 
       if (!tagErr && tagData) {
         tag = tagData as unknown as InspectionTag;
-        if ((tagData as unknown as { inspection_sites?: InspectionSite }).inspection_sites) {
-          site = (tagData as unknown as { inspection_sites: InspectionSite }).inspection_sites;
+        const sched = (tagData as any).inspection_schedules;
+        const schedObj = Array.isArray(sched) ? sched[0] : sched;
+        if (schedObj?.inspection_sites) {
+          site = Array.isArray(schedObj.inspection_sites) ? schedObj.inspection_sites[0] : schedObj.inspection_sites;
         }
         if (!resolvedSessionId && tag.session_id) {
           resolvedSessionId = tag.session_id;
@@ -180,15 +186,21 @@ export async function fetchSessionData(params: {
         .from('inspection_tags')
         .select(`
           *,
-          inspection_sites (*)
+          inspection_schedules (
+            id,
+            inspection_site_id,
+            inspection_sites (*)
+          )
         `)
         .eq('id', readings[0].inspection_tag_id)
         .maybeSingle();
 
       if (tagData) {
         tag = tagData as unknown as InspectionTag;
-        if ((tagData as unknown as { inspection_sites?: InspectionSite }).inspection_sites) {
-          site = (tagData as unknown as { inspection_sites: InspectionSite }).inspection_sites;
+        const sched = (tagData as any).inspection_schedules;
+        const schedObj = Array.isArray(sched) ? sched[0] : sched;
+        if (schedObj?.inspection_sites) {
+          site = Array.isArray(schedObj.inspection_sites) ? schedObj.inspection_sites[0] : schedObj.inspection_sites;
         }
       }
     } catch (err) {

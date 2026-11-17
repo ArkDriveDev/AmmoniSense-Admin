@@ -94,56 +94,61 @@ export function useDashboardSummaryCounts(): DashboardSummaryCounts {
 
       // 4. Compute Sites with clean air / low ppm (< 5 ppm)
       // Active sites whose most recent tag's average ppm is below 5 ppm using sensor_data
+      // Join: inspection_sites -> inspection_schedules (inspection_site_id) -> inspection_tags (inspection_schedule_id) -> sensor_data (inspection_tag_id)
       const activeSiteIds = sitesList.map((s) => s.id);
       if (activeSiteIds.length === 0) {
         setCleanAirCount(0);
         return;
       }
 
-      // Query latest schedules for active sites
+      // Query schedules for active sites
       const { data: schedules, error: schedErr } = await supabase
         .from('inspection_schedules')
-        .select('id, inspection_site_id, scheduled_date, created_at')
-        .in('inspection_site_id', activeSiteIds)
-        .order('scheduled_date', { ascending: false });
+        .select('id, inspection_site_id, scheduled_date')
+        .in('inspection_site_id', activeSiteIds);
 
       if (schedErr) {
         console.warn('Could not fetch inspection schedules for clean air count:', schedErr);
       }
 
-      const latestScheduleMap = new Map<number, number>();
+      const scheduleToSiteMap = new Map<number, number>();
+      const scheduleIds: number[] = [];
       (schedules || []).forEach((sc) => {
-        if (!latestScheduleMap.has(sc.inspection_site_id)) {
-          latestScheduleMap.set(sc.inspection_site_id, sc.id);
+        if (sc.id && sc.inspection_site_id) {
+          scheduleToSiteMap.set(sc.id, sc.inspection_site_id);
+          scheduleIds.push(sc.id);
         }
       });
 
-      const latestScheduleIds = Array.from(new Set(latestScheduleMap.values()));
-      if (latestScheduleIds.length === 0) {
+      if (scheduleIds.length === 0) {
         setCleanAirCount(0);
         return;
       }
 
-      // Query tags for these latest schedules
+      // Query tags for these schedules ordered by created_at descending
       const { data: tags, error: tagsErr } = await supabase
         .from('inspection_tags')
-        .select('id, inspection_site_id, inspection_schedule_id, created_at')
-        .in('inspection_schedule_id', latestScheduleIds)
+        .select('id, inspection_schedule_id, created_at')
+        .in('inspection_schedule_id', scheduleIds)
         .order('created_at', { ascending: false });
 
       if (tagsErr) {
         console.warn('Could not fetch inspection tags for clean air count:', tagsErr);
       }
 
-      const mostRecentTagPerSite = new Map<number, number>();
+      // Pick the latest tag per site (by tag created_at descending)
+      const latestTagPerSite = new Map<number, number>();
       (tags || []).forEach((t) => {
-        if (t.inspection_site_id && !mostRecentTagPerSite.has(t.inspection_site_id)) {
-          mostRecentTagPerSite.set(t.inspection_site_id, t.id);
+        if (t.inspection_schedule_id) {
+          const siteId = scheduleToSiteMap.get(t.inspection_schedule_id);
+          if (siteId && !latestTagPerSite.has(siteId)) {
+            latestTagPerSite.set(siteId, t.id);
+          }
         }
       });
 
-      const mostRecentTagIds = Array.from(new Set(mostRecentTagPerSite.values()));
-      if (mostRecentTagIds.length === 0) {
+      const latestTagIds = Array.from(latestTagPerSite.values());
+      if (latestTagIds.length === 0) {
         setCleanAirCount(0);
         return;
       }
@@ -152,7 +157,7 @@ export function useDashboardSummaryCounts(): DashboardSummaryCounts {
       const { data: sensorReadings, error: sensorErr } = await supabase
         .from('sensor_data')
         .select('inspection_tag_id, ammonia')
-        .in('inspection_tag_id', mostRecentTagIds)
+        .in('inspection_tag_id', latestTagIds)
         .not('ammonia', 'is', null);
 
       if (sensorErr) {
@@ -169,9 +174,9 @@ export function useDashboardSummaryCounts(): DashboardSummaryCounts {
       });
 
       let cleanSites = 0;
-      mostRecentTagPerSite.forEach((tagId) => {
+      latestTagPerSite.forEach((tagId) => {
         const readings = ammoniaByTag.get(tagId);
-        // If a site has no readings, do NOT count it
+        // If a site has no readings on its latest tag, do NOT count it
         if (readings && readings.length > 0) {
           const avg = readings.reduce((a, b) => a + b, 0) / readings.length;
           if (avg < 5.0) {

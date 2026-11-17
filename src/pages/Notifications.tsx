@@ -89,12 +89,12 @@ export default function Notifications() {
           .from('inspection_tags')
           .select(`
             *,
-            inspection_sites (
-              site_name,
-              site_code
-            ),
             inspection_schedules (
-              schedule_name
+              schedule_name,
+              inspection_sites (
+                site_name,
+                site_code
+              )
             )
           `)
           .not('violation_category', 'is', null)
@@ -109,13 +109,18 @@ export default function Notifications() {
             const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (t.ammonia || 0) > 50 || isCriticalViolation;
             const isHigh = (t.status || '').toUpperCase() === 'HIGH' || ((t.ammonia || 0) > 35 && (t.ammonia || 0) <= 50) || isHighViolation;
 
+            const schedObj = Array.isArray(t.inspection_schedules) ? t.inspection_schedules[0] : t.inspection_schedules;
+            const siteObj = schedObj?.inspection_sites
+              ? (Array.isArray(schedObj.inspection_sites) ? schedObj.inspection_sites[0] : schedObj.inspection_sites)
+              : null;
+
             return {
               id: t.id,
               tag_name: t.tag_name,
               device_uid: t.device_uid || null,
-              site_name: t.inspection_sites?.site_name || null,
-              site_code: t.inspection_sites?.site_code || null,
-              schedule_name: t.inspection_schedules?.schedule_name || null,
+              site_name: siteObj?.site_name || null,
+              site_code: siteObj?.site_code || null,
+              schedule_name: schedObj?.schedule_name || null,
               ammonia: t.ammonia ?? null,
               violation_category: t.violation_category || null,
               severity: isCritical ? 'CRITICAL' : isHigh ? 'HIGH' : 'WARNING',

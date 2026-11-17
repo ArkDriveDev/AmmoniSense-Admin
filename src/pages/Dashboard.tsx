@@ -60,14 +60,14 @@ export default function Dashboard() {
         .from('inspection_tags')
         .select(`
           *,
-          inspection_sites (
-            id,
-            site_name
-          ),
           inspection_schedules (
             id,
             schedule_name,
-            scheduled_date
+            scheduled_date,
+            inspection_sites (
+              id,
+              site_name
+            )
           )
         `)
         .not('latitude', 'is', null)
@@ -116,7 +116,9 @@ export default function Dashboard() {
             : (d.ammonia !== null && d.ammonia !== undefined ? 1 : 0);
 
           const schedObj = Array.isArray(d.inspection_schedules) ? d.inspection_schedules[0] : d.inspection_schedules;
-          const siteObj = Array.isArray(d.inspection_sites) ? d.inspection_sites[0] : d.inspection_sites;
+          const siteObj = schedObj?.inspection_sites
+            ? (Array.isArray(schedObj.inspection_sites) ? schedObj.inspection_sites[0] : schedObj.inspection_sites)
+            : null;
 
           return {
             id: d.id,
@@ -166,9 +168,14 @@ export default function Dashboard() {
       const latestScheduleIds = Array.from(new Set(latestScheduleMap.values()));
       if (latestScheduleIds.length === 0) return;
 
+      const schedToSite = new Map<number, number>();
+      latestScheduleMap.forEach((schedId, siteId) => {
+        schedToSite.set(schedId, siteId);
+      });
+
       const { data: schedTags, error: tagsErr } = await supabase
         .from('inspection_tags')
-        .select('id, inspection_site_id, inspection_schedule_id')
+        .select('id, inspection_schedule_id')
         .in('inspection_schedule_id', latestScheduleIds);
 
       if (tagsErr || !schedTags || schedTags.length === 0) return;
@@ -176,7 +183,10 @@ export default function Dashboard() {
       const schedTagIds = schedTags.map(t => t.id);
       const tagToSite = new Map<number, number>();
       schedTags.forEach(t => {
-        if (t.inspection_site_id) tagToSite.set(t.id, t.inspection_site_id);
+        if (t.inspection_schedule_id) {
+          const siteId = schedToSite.get(t.inspection_schedule_id);
+          if (siteId) tagToSite.set(t.id, siteId);
+        }
       });
 
       const { data: sensorRows, error: sensorErr } = await supabase

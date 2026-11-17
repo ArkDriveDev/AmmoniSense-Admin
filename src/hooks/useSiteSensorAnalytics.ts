@@ -34,7 +34,7 @@ export function useSiteSensorAnalytics(knownSites: { id: number; site_name: stri
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. One query to fetch sensor_data joined with inspection_tags
+      // 1. One query to fetch sensor_data joined with inspection_tags and inspection_schedules
       const { data: sensorRows, error: sensorErr } = await supabase
         .from('sensor_data')
         .select(`
@@ -44,9 +44,12 @@ export function useSiteSensorAnalytics(knownSites: { id: number; site_name: stri
           inspection_tag_id,
           inspection_tags!inner (
             id,
-            inspection_site_id,
             inspection_schedule_id,
-            created_at
+            created_at,
+            inspection_schedules!inner (
+              id,
+              inspection_site_id
+            )
           )
         `)
         .not('ammonia', 'is', null);
@@ -82,9 +85,10 @@ export function useSiteSensorAnalytics(knownSites: { id: number; site_name: stri
 
       rows.forEach((r: any) => {
         const tag = r.inspection_tags;
-        if (!tag || !tag.inspection_site_id) return;
+        const sched = tag?.inspection_schedules;
+        const siteId = sched?.inspection_site_id ? Number(sched.inspection_site_id) : null;
+        if (!siteId) return;
 
-        const siteId = Number(tag.inspection_site_id);
         const nh3 = Number(r.ammonia);
         if (isNaN(nh3)) return;
 

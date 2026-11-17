@@ -159,17 +159,17 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
             inspection_tags!inner (
               id,
               tag_name,
-              inspection_site_id,
               inspection_schedule_id,
               created_at,
-              inspection_schedules (
+              inspection_schedules!inner (
                 id,
+                inspection_site_id,
                 schedule_name,
                 scheduled_date
               )
             )
           `)
-          .eq('inspection_tags.inspection_site_id', site.id)
+          .eq('inspection_tags.inspection_schedules.inspection_site_id', site.id)
           .not('ammonia', 'is', null)
           .order('created_at', { ascending: false });
 

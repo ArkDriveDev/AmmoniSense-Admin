@@ -66,22 +66,17 @@ export async function fetchInspectionReportData(scheduleId: number): Promise<Ins
     .order('created_at', { ascending: true });
 
   if (!tagErr && tagRows && tagRows.length > 0) {
-    // Collect all tag IDs and linked sensor_data_ids
+    // Collect all tag IDs
     const tagIds = tagRows.map((t: any) => t.id).filter(Boolean);
-    const sDataIds = tagRows.map((t: any) => t.sensor_data_id).filter(Boolean);
 
-    // Fetch matching sensor readings by inspection_tag_id OR sensor_data.id
+    // Fetch matching sensor readings by inspection_tag_id
     let sensorDataList: any[] = [];
-    const orClauses: string[] = [];
-    if (tagIds.length > 0) orClauses.push(`inspection_tag_id.in.(${tagIds.join(',')})`);
-    if (sDataIds.length > 0) orClauses.push(`id.in.(${sDataIds.join(',')})`);
-
-    if (orClauses.length > 0) {
+    if (tagIds.length > 0) {
       try {
         const { data: sRows, error: sErr } = await supabase
           .from('sensor_data')
           .select('*')
-          .or(orClauses.join(','))
+          .in('inspection_tag_id', tagIds)
           .order('created_at', { ascending: false });
 
         if (!sErr && sRows) {
@@ -93,16 +88,15 @@ export async function fetchInspectionReportData(scheduleId: number): Promise<Ins
     }
 
     tags = tagRows.map((t: any) => {
-      // Find matching sensor_data: priority to exact sensor_data_id, then latest by inspection_tag_id
-      const matching = sensorDataList.filter((sd) => sd.id === t.sensor_data_id || sd.inspection_tag_id === t.id);
-      const s = matching.find((sd) => sd.id === t.sensor_data_id) || matching[0];
+      // Find matching sensor_data: latest by inspection_tag_id
+      const s = sensorDataList.find((sd) => sd.inspection_tag_id === t.id);
 
       return {
         tag_id: t.id,
         tag_name: t.tag_name,
-        inspection_site_id: t.inspection_site_id,
+        inspection_site_id: (scheduleRow as any)?.inspection_site_id || site.id || null,
         inspection_schedule_id: t.inspection_schedule_id,
-        sensor_data_id: t.sensor_data_id || s?.id || null,
+        sensor_data_id: s?.id || null,
         session_id: t.session_id || s?.session_id || null,
         tag_latitude: t.latitude,
         tag_longitude: t.longitude,
