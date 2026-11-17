@@ -48,60 +48,92 @@ export default function Dashboard() {
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
 
   const [mapReadings, setMapReadings] = useState<SensorReadingMarker[]>([]);
+  const [siteLatestScheduleAvgMap, setSiteLatestScheduleAvgMap] = useState<Record<number, number | null>>({});
   const [showGlobalMap, setShowGlobalMap] = useState<boolean>(false);
   const [selectedSiteForModal, setSelectedSiteForModal] = useState<SiteAnalyticsData | null>(null);
   const [showSiteDetailModal, setShowSiteDetailModal] = useState<boolean>(false);
 
   const fetchMapReadings = useCallback(async () => {
     try {
-      // 1. Fetch inspection tags with coordinates
+      // 1. Fetch inspection tags with coordinates and associated schedule/site
       const { data: tagsData } = await supabase
         .from('inspection_tags')
-        .select('*')
+        .select(`
+          *,
+          inspection_sites (
+            id,
+            site_name
+          ),
+          inspection_schedules (
+            id,
+            schedule_name,
+            scheduled_date
+          )
+        `)
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
         .order('created_at', { ascending: false })
         .limit(60);
 
       if (tagsData && tagsData.length > 0) {
-        const tagIds = tagsData.map((d) => d.id).filter(Boolean);
-        let maxPpmMap: Record<number, number> = {};
+        const tagIds = tagsData.map((d: any) => d.id).filter(Boolean);
+        const tagPpmMap: Record<number, { sum: number; count: number }> = {};
 
-        // 2. Query sensor_data for highest peak ppm per tag
+        // 2. Query sensor_data for average ppm per tag
         if (tagIds.length > 0) {
           try {
             const { data: sensorRows } = await supabase
               .from('sensor_data')
               .select('inspection_tag_id, ammonia')
-              .in('inspection_tag_id', tagIds);
+              .in('inspection_tag_id', tagIds)
+              .not('ammonia', 'is', null);
 
             if (sensorRows && sensorRows.length > 0) {
-              sensorRows.forEach((r) => {
+              sensorRows.forEach((r: any) => {
                 if (r.inspection_tag_id && r.ammonia !== null && r.ammonia !== undefined) {
                   const val = Number(r.ammonia);
-                  maxPpmMap[r.inspection_tag_id] = Math.max(maxPpmMap[r.inspection_tag_id] ?? 0, val);
+                  if (!tagPpmMap[r.inspection_tag_id]) {
+                    tagPpmMap[r.inspection_tag_id] = { sum: 0, count: 0 };
+                  }
+                  tagPpmMap[r.inspection_tag_id].sum += val;
+                  tagPpmMap[r.inspection_tag_id].count += 1;
                 }
               });
             }
           } catch (sErr) {
-            console.warn('Could not query sensor_data for highest ppm:', sErr);
+            console.warn('Could not query sensor_data for average ppm:', sErr);
           }
         }
 
-        setMapReadings(tagsData.map((d) => {
-          const sensorMax = maxPpmMap[d.id];
-          const tagAmmonia = d.ammonia !== null && d.ammonia !== undefined ? Number(d.ammonia) : 0;
-          const highestAmmonia = Math.max(sensorMax !== undefined ? sensorMax : 0, tagAmmonia);
+        setMapReadings(tagsData.map((d: any) => {
+          const stats = tagPpmMap[d.id];
+          const hasSensorData = stats && stats.count > 0;
+          const avgAmmonia = hasSensorData
+            ? stats.sum / stats.count
+            : (d.ammonia !== null && d.ammonia !== undefined ? Number(d.ammonia) : null);
+          const readingCount = hasSensorData
+            ? stats.count
+            : (d.ammonia !== null && d.ammonia !== undefined ? 1 : 0);
+
+          const schedObj = Array.isArray(d.inspection_schedules) ? d.inspection_schedules[0] : d.inspection_schedules;
+          const siteObj = Array.isArray(d.inspection_sites) ? d.inspection_sites[0] : d.inspection_sites;
 
           return {
             id: d.id,
             latitude: d.latitude,
             longitude: d.longitude,
-            ammonia: highestAmmonia,
+            ammonia: avgAmmonia,
+            avg_ammonia: avgAmmonia,
+            reading_count: readingCount,
             device_uid: d.device_uid || d.tag_name,
             created_at: d.created_at,
             photo_url: d.photo_thumbnail_url || d.photo_url || undefined,
-            status: d.status
+            status: d.status,
+            site_name: siteObj?.site_name || d.site_name,
+            notes: d.notes,
+            inspection_schedule_id: d.inspection_schedule_id,
+            scheduled_date: schedObj?.scheduled_date || null,
+            schedule_name: schedObj?.schedule_name || null,
           };
         }));
       } else {
@@ -112,13 +144,85 @@ export default function Dashboard() {
     }
   }, []);
 
+  const fetchSiteLatestAverages = useCallback(async (siteList: SiteAnalyticsData[]) => {
+    if (!siteList || siteList.length === 0) return;
+    try {
+      const siteIds = siteList.map(s => s.id);
+      const { data: schedules, error: schedErr } = await supabase
+        .from('inspection_schedules')
+        .select('id, inspection_site_id, scheduled_date')
+        .in('inspection_site_id', siteIds)
+        .order('scheduled_date', { ascending: false });
+
+      if (schedErr || !schedules) return;
+
+      const latestScheduleMap = new Map<number, number>();
+      schedules.forEach((sc) => {
+        if (!latestScheduleMap.has(sc.inspection_site_id)) {
+          latestScheduleMap.set(sc.inspection_site_id, sc.id);
+        }
+      });
+
+      const latestScheduleIds = Array.from(new Set(latestScheduleMap.values()));
+      if (latestScheduleIds.length === 0) return;
+
+      const { data: schedTags, error: tagsErr } = await supabase
+        .from('inspection_tags')
+        .select('id, inspection_site_id, inspection_schedule_id')
+        .in('inspection_schedule_id', latestScheduleIds);
+
+      if (tagsErr || !schedTags || schedTags.length === 0) return;
+
+      const schedTagIds = schedTags.map(t => t.id);
+      const tagToSite = new Map<number, number>();
+      schedTags.forEach(t => {
+        if (t.inspection_site_id) tagToSite.set(t.id, t.inspection_site_id);
+      });
+
+      const { data: sensorRows, error: sensorErr } = await supabase
+        .from('sensor_data')
+        .select('inspection_tag_id, ammonia')
+        .in('inspection_tag_id', schedTagIds)
+        .not('ammonia', 'is', null);
+
+      if (sensorErr || !sensorRows) return;
+
+      const siteAgg: Record<number, { sum: number; count: number }> = {};
+      sensorRows.forEach((r: any) => {
+        const siteId = tagToSite.get(r.inspection_tag_id);
+        if (siteId && r.ammonia !== null && r.ammonia !== undefined) {
+          if (!siteAgg[siteId]) siteAgg[siteId] = { sum: 0, count: 0 };
+          siteAgg[siteId].sum += Number(r.ammonia);
+          siteAgg[siteId].count += 1;
+        }
+      });
+
+      const resultMap: Record<number, number | null> = {};
+      latestScheduleMap.forEach((_schedId, siteId) => {
+        const agg = siteAgg[siteId];
+        resultMap[siteId] = agg && agg.count > 0 ? agg.sum / agg.count : null;
+      });
+
+      setSiteLatestScheduleAvgMap(resultMap);
+    } catch (err) {
+      console.warn('Could not compute site latest schedule averages:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchMapReadings();
   }, [fetchMapReadings]);
 
+  useEffect(() => {
+    if (sites.length > 0) {
+      fetchSiteLatestAverages(sites);
+    }
+  }, [sites, fetchSiteLatestAverages]);
+
   const handleRefresh = async (event: CustomEvent) => {
     await refresh();
     await fetchMapReadings();
+    if (sites.length > 0) await fetchSiteLatestAverages(sites);
     event.detail.complete();
   };
 
@@ -140,14 +244,14 @@ export default function Dashboard() {
       <IonHeader>
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
           <IonTitle style={{ fontWeight: 'bold' }}>MENRO SITES MONITORING DASHBOARD</IonTitle>
-          <IonButton slot="end" fill="clear" onClick={() => triggerSync(async () => { await refresh(); await fetchMapReadings(); await summaryCounts.refresh(); })} style={{ '--color': '#ffffff' }}>
+          <IonButton slot="end" fill="clear" onClick={() => triggerSync(async () => { await refresh(); await fetchMapReadings(); await fetchSiteLatestAverages(sites); await summaryCounts.refresh(); })} style={{ '--color': '#ffffff' }}>
             <IonIcon icon={refreshOutline} />
           </IonButton>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>
-        <IonRefresher slot="fixed" onIonRefresh={(e) => { handleRefresh(e); triggerSync(async () => { await refresh(); await fetchMapReadings(); await summaryCounts.refresh(); }); }}>
+        <IonRefresher slot="fixed" onIonRefresh={(e) => { handleRefresh(e); triggerSync(async () => { await refresh(); await fetchMapReadings(); await fetchSiteLatestAverages(sites); await summaryCounts.refresh(); }); }}>
           <IonRefresherContent />
         </IonRefresher>
 
@@ -286,6 +390,7 @@ export default function Dashboard() {
                       site_type: s.site_type,
                       latest_ammonia: s.latest_ammonia,
                       highest_ammonia: s.highest_ammonia ?? s.max_ammonia ?? s.latest_ammonia,
+                      avg_ammonia_latest_schedule: siteLatestScheduleAvgMap[s.id] ?? null,
                       alert_status: s.alert_status,
                       area_size_hectares: s.area_size_hectares
                     }))}

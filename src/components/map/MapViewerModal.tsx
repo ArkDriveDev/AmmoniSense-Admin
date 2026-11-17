@@ -70,20 +70,25 @@ export const MapViewerModal: React.FC<MapViewerModalProps> = ({
 
         if (tagRows && tagRows.length > 0) {
           const tagIds = tagRows.map((t) => t.id).filter(Boolean);
-          let maxMap: Record<number, number> = {};
+          let tagPpmMap: Record<number, { sum: number; count: number }> = {};
 
           if (tagIds.length > 0) {
             try {
               const { data: sData } = await supabase
                 .from('sensor_data')
                 .select('inspection_tag_id, ammonia')
-                .in('inspection_tag_id', tagIds);
+                .in('inspection_tag_id', tagIds)
+                .not('ammonia', 'is', null);
 
               if (sData) {
                 sData.forEach((sd) => {
                   if (sd.inspection_tag_id && sd.ammonia !== null && sd.ammonia !== undefined) {
                     const val = Number(sd.ammonia);
-                    maxMap[sd.inspection_tag_id] = Math.max(maxMap[sd.inspection_tag_id] ?? 0, val);
+                    if (!tagPpmMap[sd.inspection_tag_id]) {
+                      tagPpmMap[sd.inspection_tag_id] = { sum: 0, count: 0 };
+                    }
+                    tagPpmMap[sd.inspection_tag_id].sum += val;
+                    tagPpmMap[sd.inspection_tag_id].count += 1;
                   }
                 });
               }
@@ -92,18 +97,28 @@ export const MapViewerModal: React.FC<MapViewerModalProps> = ({
             }
           }
 
-          let overallMax = 0;
+          let overallSum = 0;
+          let overallCount = 0;
           const mapped = tagRows.map((t) => {
-            const sensorMax = maxMap[t.id];
-            const tagAmmonia = t.ammonia ? Number(t.ammonia) : 0;
-            const highest = Math.max(sensorMax !== undefined ? sensorMax : 0, tagAmmonia);
-            if (highest > overallMax) overallMax = highest;
+            const stats = tagPpmMap[t.id];
+            const hasSensors = stats && stats.count > 0;
+            const tagAvg = hasSensors
+              ? stats.sum / stats.count
+              : (t.ammonia !== null && t.ammonia !== undefined ? Number(t.ammonia) : null);
+            const count = hasSensors ? stats.count : (t.ammonia !== null && t.ammonia !== undefined ? 1 : 0);
+
+            if (tagAvg !== null && !isNaN(tagAvg)) {
+              overallSum += tagAvg;
+              overallCount++;
+            }
 
             return {
               id: t.id,
               latitude: t.latitude,
               longitude: t.longitude,
-              ammonia: highest,
+              ammonia: tagAvg,
+              avg_ammonia: tagAvg,
+              reading_count: count,
               device_uid: t.device_uid || t.tag_name,
               created_at: t.created_at,
               photo_url: t.photo_thumbnail_url || t.photo_url || undefined,
@@ -113,7 +128,7 @@ export const MapViewerModal: React.FC<MapViewerModalProps> = ({
           });
 
           setSiteReadings(mapped);
-          setSiteHighestPpm(overallMax > 0 ? overallMax : null);
+          setSiteHighestPpm(overallCount > 0 ? overallSum / overallCount : null);
         } else {
           setSiteReadings([]);
           setSiteHighestPpm(null);
@@ -154,7 +169,7 @@ export const MapViewerModal: React.FC<MapViewerModalProps> = ({
           </div>
           {siteHighestPpm !== null && (
             <div style={{ backgroundColor: siteHighestPpm > 25 ? '#fee2e2' : '#dcfce7', color: siteHighestPpm > 25 ? '#dc2626' : '#15803d', padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 700 }}>
-              Peak Level: {siteHighestPpm.toFixed(1)} PPM
+              Avg Level: {siteHighestPpm.toFixed(2)} PPM
             </div>
           )}
         </div>
@@ -173,6 +188,7 @@ export const MapViewerModal: React.FC<MapViewerModalProps> = ({
               longitude: currentLng,
               highest_ammonia: siteHighestPpm,
               latest_ammonia: siteHighestPpm,
+              avg_ammonia_latest_schedule: siteHighestPpm,
             }
           ]}
           readings={siteReadings.length > 0 ? siteReadings : []}

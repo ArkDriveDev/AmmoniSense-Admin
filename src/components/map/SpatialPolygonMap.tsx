@@ -43,13 +43,18 @@ export interface SensorReadingMarker {
   id: number | string;
   latitude: number;
   longitude: number;
-  ammonia: number;
+  ammonia: number | null;
+  avg_ammonia?: number | null;
+  reading_count?: number;
   device_uid?: string;
   created_at: string;
   photo_url?: string;
   status?: string;
   site_name?: string;
   notes?: string;
+  inspection_schedule_id?: number | null;
+  scheduled_date?: string | null;
+  schedule_name?: string | null;
 }
 
 export interface InspectionSiteMarker {
@@ -62,6 +67,7 @@ export interface InspectionSiteMarker {
   latest_ammonia?: number | null;
   highest_ammonia?: number | null;
   max_ammonia?: number | null;
+  avg_ammonia_latest_schedule?: number | null;
   alert_status?: string | null;
   area_size_hectares?: number | null;
 }
@@ -474,13 +480,23 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         });
       }
 
+      const latestScheduleAvg = site.avg_ammonia_latest_schedule;
+      const hasLatestAvg = latestScheduleAvg !== null && latestScheduleAvg !== undefined && !isNaN(Number(latestScheduleAvg));
+      const siteAvgDisplay = hasLatestAvg
+        ? `Avg NH₃ (latest schedule): ${Number(latestScheduleAvg).toFixed(2)} ppm`
+        : `Avg NH₃: — <span style="font-size: 10px; color: #94a3b8;">(No readings)</span>`;
+      const siteStatusColor = hasLatestAvg ? getAmmoniaColor(Number(latestScheduleAvg), site.alert_status || undefined) : '#64748b';
+
       const marker = L.marker([site.latitude, site.longitude], { icon: siteIcon });
 
-      // Show tooltip on hover (no ppm number displayed when markerStyle is poultry or hidePpmBadge is true)
+      // Show tooltip on hover
       marker.bindTooltip(
-        `<div style="font-family: system-ui, sans-serif; padding: 2px 4px; text-align: center;">
-          <strong style="color: #1a365d; font-size: 12px;">${site.site_name}</strong>
-          ${markerStyle !== 'poultry' && !hidePpmBadge && nh3 !== null && nh3 !== undefined ? `<div style="font-size: 11px; font-weight: bold; color: ${statusColor}; margin: 2px 0;">${nh3.toFixed(1)} PPM</div>` : ''}
+        `<div style="font-family: system-ui, sans-serif; padding: 4px 6px; text-align: center;">
+          <strong style="color: #1a365d; font-size: 12px; display: block; margin-bottom: 2px;">${site.site_name}</strong>
+          ${!hidePpmBadge ? `
+            <div style="font-size: 11px; font-weight: 600; color: ${hasLatestAvg ? siteStatusColor : '#64748b'}; margin: 2px 0;">
+              ${siteAvgDisplay}
+            </div>` : ''}
           <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Click to view site details &rarr;</div>
         </div>`,
         { direction: 'top', offset: [0, -34], opacity: 0.95 }
@@ -508,7 +524,21 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     readings.forEach((reading) => {
       if (!reading.latitude || !reading.longitude) return;
 
-      const color = getAmmoniaColor(reading.ammonia, reading.status);
+      const hasReading =
+        (reading.reading_count !== undefined && reading.reading_count !== null
+          ? reading.reading_count > 0
+          : false) ||
+        (reading.avg_ammonia !== null && reading.avg_ammonia !== undefined) ||
+        (reading.ammonia !== null && reading.ammonia !== undefined);
+
+      const avgVal = reading.avg_ammonia ?? reading.ammonia;
+      const isValidNumber = hasReading && avgVal !== null && avgVal !== undefined && !isNaN(Number(avgVal));
+      const color = isValidNumber ? getAmmoniaColor(Number(avgVal), reading.status) : '#64748b';
+      const pillVal = isValidNumber ? Number(avgVal).toFixed(1) : '—';
+      const avgText = isValidNumber
+        ? `Avg NH₃: ${Number(avgVal).toFixed(2)} ppm`
+        : `Avg NH₃: — <span style="font-size: 11px; font-weight: 500; color: #94a3b8;">(No readings)</span>`;
+
       let tagIcon: L.DivIcon;
 
       if (reading.photo_url) {
@@ -538,7 +568,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
                 font-weight: 800;
                 text-align: center;
                 line-height: 11px;
-              ">${Number(reading.ammonia || 0).toFixed(1)}</span>
+              ">${pillVal}</span>
             </div>
           `,
           iconSize: [38, 38],
@@ -564,7 +594,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
               align-items: center;
               gap: 3px;
             ">
-              <span>📍 ${Number(reading.ammonia || 0).toFixed(1)}</span>
+              <span>📍 ${pillVal}</span>
               <span style="font-size: 8px; opacity: 0.9;">PPM</span>
             </div>
           `,
@@ -578,14 +608,15 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       const popupContent = `
         <div style="font-family: system-ui, sans-serif; min-width: 170px; padding: 4px;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
-            <h4 style="margin: 0; font-size: 14px; color: ${color}; font-weight: 700;">
-              Highest NH₃: ${Number(reading.ammonia || 0).toFixed(1)} ppm
+            <h4 style="margin: 0; font-size: 14px; color: ${isValidNumber ? color : '#1e293b'}; font-weight: 700;">
+              ${avgText}
             </h4>
             <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; color: white; background: ${color}; text-transform: uppercase;">
-              ${reading.status || getAmmoniaSeverityLabel(reading.ammonia)}
+              ${isValidNumber ? (reading.status || getAmmoniaSeverityLabel(Number(avgVal))) : 'NO DATA'}
             </span>
           </div>
           ${reading.site_name ? `<div style="font-size: 12px; color: #334155; margin-bottom: 2px;"><b>Site:</b> ${reading.site_name}</div>` : ''}
+          ${reading.schedule_name ? `<div style="font-size: 11px; color: #475569; margin-bottom: 2px;"><b>Schedule:</b> ${reading.schedule_name}${reading.scheduled_date ? ` (${reading.scheduled_date})` : ''}</div>` : ''}
           <div style="font-size: 11px; color: #475569; margin-bottom: 2px;">
             <b>Device UID:</b> ${reading.device_uid || 'N/A'}
           </div>
