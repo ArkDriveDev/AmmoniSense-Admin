@@ -14,9 +14,6 @@ import {
   IonButton,
   IonCard,
   IonCardContent,
-  IonSearchbar,
-  IonSelect,
-  IonSelectOption,
   IonToast
 } from '@ionic/react';
 import {
@@ -24,17 +21,21 @@ import {
   hardwareChipOutline,
   alertCircleOutline,
   refreshOutline,
-  funnelOutline,
-  swapVerticalOutline,
   mapOutline,
-  searchOutline,
-  calendarOutline
+  shieldCheckmarkOutline,
+  homeOutline,
+  constructOutline,
+  swapHorizontalOutline,
+  eggOutline,
+  nutritionOutline,
+  heartOutline,
+  ribbonOutline
 } from 'ionicons/icons';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useSiteAnalytics, SiteAnalyticsData } from '../hooks/useSiteAnalytics';
+import { useDashboardSummaryCounts } from '../hooks/useDashboardSummaryCounts';
 import { StatsCard } from '../components/charts';
-import SiteAnalyticsCard from '../components/dashboard/SiteAnalyticsCard';
 import SpatialPolygonMap, { SensorReadingMarker } from '../components/map/SpatialPolygonMap';
 import { SiteDetailModal } from '../components/admin/SiteDetailModal';
 import { supabase } from '../services/supabase';
@@ -43,67 +44,96 @@ import useSyncFeedback from '../hooks/useSyncFeedback';
 export default function Dashboard() {
   const history = useHistory();
   const { sites, globalStats, loading, refresh } = useSiteAnalytics();
+  const summaryCounts = useDashboardSummaryCounts();
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [selectedType, setSelectedType] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'last_reading' | 'site_name' | 'alert_level'>('last_reading');
 
   const [mapReadings, setMapReadings] = useState<SensorReadingMarker[]>([]);
+  const [siteLatestScheduleAvgMap, setSiteLatestScheduleAvgMap] = useState<Record<number, number | null>>({});
   const [showGlobalMap, setShowGlobalMap] = useState<boolean>(false);
   const [selectedSiteForModal, setSelectedSiteForModal] = useState<SiteAnalyticsData | null>(null);
   const [showSiteDetailModal, setShowSiteDetailModal] = useState<boolean>(false);
 
   const fetchMapReadings = useCallback(async () => {
     try {
-      // 1. Fetch inspection tags with coordinates
+      // 1. Fetch inspection tags with coordinates and associated schedule/site
       const { data: tagsData } = await supabase
         .from('inspection_tags')
-        .select('*')
+        .select(`
+          *,
+          inspection_sites (
+            id,
+            site_name
+          ),
+          inspection_schedules (
+            id,
+            schedule_name,
+            scheduled_date
+          )
+        `)
         .not('latitude', 'is', null)
         .not('longitude', 'is', null)
         .order('created_at', { ascending: false })
         .limit(60);
 
       if (tagsData && tagsData.length > 0) {
-        const tagIds = tagsData.map((d) => d.id).filter(Boolean);
-        let maxPpmMap: Record<number, number> = {};
+        const tagIds = tagsData.map((d: any) => d.id).filter(Boolean);
+        const tagPpmMap: Record<number, { sum: number; count: number }> = {};
 
-        // 2. Query sensor_data for highest peak ppm per tag
+        // 2. Query sensor_data for average ppm per tag
         if (tagIds.length > 0) {
           try {
             const { data: sensorRows } = await supabase
               .from('sensor_data')
               .select('inspection_tag_id, ammonia')
-              .in('inspection_tag_id', tagIds);
+              .in('inspection_tag_id', tagIds)
+              .not('ammonia', 'is', null);
 
             if (sensorRows && sensorRows.length > 0) {
-              sensorRows.forEach((r) => {
+              sensorRows.forEach((r: any) => {
                 if (r.inspection_tag_id && r.ammonia !== null && r.ammonia !== undefined) {
                   const val = Number(r.ammonia);
-                  maxPpmMap[r.inspection_tag_id] = Math.max(maxPpmMap[r.inspection_tag_id] ?? 0, val);
+                  if (!tagPpmMap[r.inspection_tag_id]) {
+                    tagPpmMap[r.inspection_tag_id] = { sum: 0, count: 0 };
+                  }
+                  tagPpmMap[r.inspection_tag_id].sum += val;
+                  tagPpmMap[r.inspection_tag_id].count += 1;
                 }
               });
             }
           } catch (sErr) {
-            console.warn('Could not query sensor_data for highest ppm:', sErr);
+            console.warn('Could not query sensor_data for average ppm:', sErr);
           }
         }
 
-        setMapReadings(tagsData.map((d) => {
-          const sensorMax = maxPpmMap[d.id];
-          const tagAmmonia = d.ammonia !== null && d.ammonia !== undefined ? Number(d.ammonia) : 0;
-          const highestAmmonia = Math.max(sensorMax !== undefined ? sensorMax : 0, tagAmmonia);
+        setMapReadings(tagsData.map((d: any) => {
+          const stats = tagPpmMap[d.id];
+          const hasSensorData = stats && stats.count > 0;
+          const avgAmmonia = hasSensorData
+            ? stats.sum / stats.count
+            : (d.ammonia !== null && d.ammonia !== undefined ? Number(d.ammonia) : null);
+          const readingCount = hasSensorData
+            ? stats.count
+            : (d.ammonia !== null && d.ammonia !== undefined ? 1 : 0);
+
+          const schedObj = Array.isArray(d.inspection_schedules) ? d.inspection_schedules[0] : d.inspection_schedules;
+          const siteObj = Array.isArray(d.inspection_sites) ? d.inspection_sites[0] : d.inspection_sites;
 
           return {
             id: d.id,
             latitude: d.latitude,
             longitude: d.longitude,
-            ammonia: highestAmmonia,
+            ammonia: avgAmmonia,
+            avg_ammonia: avgAmmonia,
+            reading_count: readingCount,
             device_uid: d.device_uid || d.tag_name,
             created_at: d.created_at,
             photo_url: d.photo_thumbnail_url || d.photo_url || undefined,
-            status: d.status
+            status: d.status,
+            site_name: siteObj?.site_name || d.site_name,
+            notes: d.notes,
+            inspection_schedule_id: d.inspection_schedule_id,
+            scheduled_date: schedObj?.scheduled_date || null,
+            schedule_name: schedObj?.schedule_name || null,
           };
         }));
       } else {
@@ -114,49 +144,87 @@ export default function Dashboard() {
     }
   }, []);
 
+  const fetchSiteLatestAverages = useCallback(async (siteList: SiteAnalyticsData[]) => {
+    if (!siteList || siteList.length === 0) return;
+    try {
+      const siteIds = siteList.map(s => s.id);
+      const { data: schedules, error: schedErr } = await supabase
+        .from('inspection_schedules')
+        .select('id, inspection_site_id, scheduled_date')
+        .in('inspection_site_id', siteIds)
+        .order('scheduled_date', { ascending: false });
+
+      if (schedErr || !schedules) return;
+
+      const latestScheduleMap = new Map<number, number>();
+      schedules.forEach((sc) => {
+        if (!latestScheduleMap.has(sc.inspection_site_id)) {
+          latestScheduleMap.set(sc.inspection_site_id, sc.id);
+        }
+      });
+
+      const latestScheduleIds = Array.from(new Set(latestScheduleMap.values()));
+      if (latestScheduleIds.length === 0) return;
+
+      const { data: schedTags, error: tagsErr } = await supabase
+        .from('inspection_tags')
+        .select('id, inspection_site_id, inspection_schedule_id')
+        .in('inspection_schedule_id', latestScheduleIds);
+
+      if (tagsErr || !schedTags || schedTags.length === 0) return;
+
+      const schedTagIds = schedTags.map(t => t.id);
+      const tagToSite = new Map<number, number>();
+      schedTags.forEach(t => {
+        if (t.inspection_site_id) tagToSite.set(t.id, t.inspection_site_id);
+      });
+
+      const { data: sensorRows, error: sensorErr } = await supabase
+        .from('sensor_data')
+        .select('inspection_tag_id, ammonia')
+        .in('inspection_tag_id', schedTagIds)
+        .not('ammonia', 'is', null);
+
+      if (sensorErr || !sensorRows) return;
+
+      const siteAgg: Record<number, { sum: number; count: number }> = {};
+      sensorRows.forEach((r: any) => {
+        const siteId = tagToSite.get(r.inspection_tag_id);
+        if (siteId && r.ammonia !== null && r.ammonia !== undefined) {
+          if (!siteAgg[siteId]) siteAgg[siteId] = { sum: 0, count: 0 };
+          siteAgg[siteId].sum += Number(r.ammonia);
+          siteAgg[siteId].count += 1;
+        }
+      });
+
+      const resultMap: Record<number, number | null> = {};
+      latestScheduleMap.forEach((_schedId, siteId) => {
+        const agg = siteAgg[siteId];
+        resultMap[siteId] = agg && agg.count > 0 ? agg.sum / agg.count : null;
+      });
+
+      setSiteLatestScheduleAvgMap(resultMap);
+    } catch (err) {
+      console.warn('Could not compute site latest schedule averages:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchMapReadings();
   }, [fetchMapReadings]);
 
+  useEffect(() => {
+    if (sites.length > 0) {
+      fetchSiteLatestAverages(sites);
+    }
+  }, [sites, fetchSiteLatestAverages]);
+
   const handleRefresh = async (event: CustomEvent) => {
     await refresh();
     await fetchMapReadings();
+    if (sites.length > 0) await fetchSiteLatestAverages(sites);
     event.detail.complete();
   };
-
-  const filteredAndSortedSites = useMemo(() => {
-    let result = [...sites];
-    if (searchTerm.trim() !== '') {
-      const term = searchTerm.toLowerCase();
-      result = result.filter((s) =>
-        s.site_name.toLowerCase().includes(term) ||
-        (s.site_code && s.site_code.toLowerCase().includes(term)) ||
-        s.site_type.toLowerCase().includes(term) ||
-        s.address.toLowerCase().includes(term)
-      );
-    }
-    if (selectedType !== 'all') {
-      result = result.filter((s) => s.site_type.toLowerCase() === selectedType.toLowerCase());
-    }
-    if (selectedStatus !== 'all') {
-      result = result.filter((s) => s.alert_status === selectedStatus);
-    }
-
-    result.sort((a, b) => {
-      if (sortBy === 'site_name') {
-        return a.site_name.localeCompare(b.site_name);
-      }
-      if (sortBy === 'alert_level') {
-        const priority = { critical: 4, high: 3, warning: 2, normal: 1 };
-        return priority[b.alert_status] - priority[a.alert_status];
-      }
-      const timeA = a.last_reading_at ? new Date(a.last_reading_at).getTime() : 0;
-      const timeB = b.last_reading_at ? new Date(b.last_reading_at).getTime() : 0;
-      return timeB - timeA;
-    });
-
-    return result;
-  }, [sites, searchTerm, selectedType, selectedStatus, sortBy]);
 
   if (loading && sites.length === 0) {
     return (
@@ -176,14 +244,14 @@ export default function Dashboard() {
       <IonHeader>
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
           <IonTitle style={{ fontWeight: 'bold' }}>MENRO SITES MONITORING DASHBOARD</IonTitle>
-          <IonButton slot="end" fill="clear" onClick={() => triggerSync(async () => { await refresh(); await fetchMapReadings(); })} style={{ '--color': '#ffffff' }}>
+          <IonButton slot="end" fill="clear" onClick={() => triggerSync(async () => { await refresh(); await fetchMapReadings(); await fetchSiteLatestAverages(sites); await summaryCounts.refresh(); })} style={{ '--color': '#ffffff' }}>
             <IonIcon icon={refreshOutline} />
           </IonButton>
         </IonToolbar>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>
-        <IonRefresher slot="fixed" onIonRefresh={(e) => { handleRefresh(e); triggerSync(async () => { await refresh(); await fetchMapReadings(); }); }}>
+        <IonRefresher slot="fixed" onIonRefresh={(e) => { handleRefresh(e); triggerSync(async () => { await refresh(); await fetchMapReadings(); await fetchSiteLatestAverages(sites); await summaryCounts.refresh(); }); }}>
           <IonRefresherContent />
         </IonRefresher>
 
@@ -204,28 +272,94 @@ export default function Dashboard() {
             </IonCol>
           </IonRow>
 
-          {/* Environmental Compliance Overview Card */}
-          <IonRow style={{ marginTop: '12px' }}>
-            <IonCol size="12">
-              <IonCard style={{ margin: 0, borderRadius: '12px', border: '1px solid #cbd5e1', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', backgroundColor: '#ffffff' }}>
-                <IonCardContent style={{ padding: '16px 20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '17px', fontWeight: '800', color: '#1a365d' }}>
-                        Municipality of Manolo Fortich &bull; MENRO Air Quality Surveillance
-                      </h3>
-                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
-                        Continuous agricultural and industrial ammonia telemetry monitoring pursuant to municipal environmental code.
-                      </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '12px', color: '#059669', backgroundColor: '#dcfce7', padding: '4px 10px', borderRadius: '16px', fontWeight: '700' }}>
-                        Live Telemetry Online
-                      </span>
-                    </div>
-                  </div>
-                </IonCardContent>
-              </IonCard>
+          {/* Summary Section: Clean Air (<5 PPM), Poultry by Type, Chicken by Type */}
+          <IonRow style={{ marginTop: '8px' }}>
+            {/* Sites with clean air / low ppm (< 5 ppm) */}
+            <IonCol size="12" size-sm="6" size-md="3">
+              <StatsCard
+                title="Sites with Clean Air (<5 PPM)"
+                value={summaryCounts.cleanAirCount}
+                icon={shieldCheckmarkOutline}
+                color="success"
+                subtitle="Active sites, latest inspection"
+              />
+            </IonCol>
+
+            {/* Poultry Housing: Conventional */}
+            <IonCol size="4" size-sm="2" size-md="3">
+              <StatsCard
+                title="Conventional"
+                value={summaryCounts.poultryCounts.conventional}
+                icon={homeOutline}
+                color="primary"
+                subtitle="Poultry Type"
+              />
+            </IonCol>
+
+            {/* Poultry Housing: Retrofitted */}
+            <IonCol size="4" size-sm="2" size-md="3">
+              <StatsCard
+                title="Retrofitted"
+                value={summaryCounts.poultryCounts.retrofitted}
+                icon={constructOutline}
+                color="primary"
+                subtitle="Poultry Type"
+              />
+            </IonCol>
+
+            {/* Poultry Housing: Tunnel Vent */}
+            <IonCol size="4" size-sm="2" size-md="3">
+              <StatsCard
+                title="Tunnel Vent"
+                value={summaryCounts.poultryCounts.tunnelVent}
+                icon={swapHorizontalOutline}
+                color="primary"
+                subtitle="Poultry Type"
+              />
+            </IonCol>
+
+            {/* Chicken: Layer */}
+            <IonCol size="6" size-sm="3" size-md="3">
+              <StatsCard
+                title="Layer"
+                value={summaryCounts.chickenCounts.layer}
+                icon={eggOutline}
+                color="tertiary"
+                subtitle="Chicken Type"
+              />
+            </IonCol>
+
+            {/* Chicken: Broiler */}
+            <IonCol size="6" size-sm="3" size-md="3">
+              <StatsCard
+                title="Broiler"
+                value={summaryCounts.chickenCounts.broiler}
+                icon={nutritionOutline}
+                color="tertiary"
+                subtitle="Chicken Type"
+              />
+            </IonCol>
+
+            {/* Chicken: Breeder */}
+            <IonCol size="6" size-sm="3" size-md="3">
+              <StatsCard
+                title="Breeder"
+                value={summaryCounts.chickenCounts.breeder}
+                icon={heartOutline}
+                color="tertiary"
+                subtitle="Chicken Type"
+              />
+            </IonCol>
+
+            {/* Chicken: Grand Parents / GP */}
+            <IonCol size="6" size-sm="3" size-md="3">
+              <StatsCard
+                title="Grand Parents (GP)"
+                value={summaryCounts.chickenCounts.grandParents}
+                icon={ribbonOutline}
+                color="tertiary"
+                subtitle="Chicken Type"
+              />
             </IonCol>
           </IonRow>
 
@@ -256,6 +390,7 @@ export default function Dashboard() {
                       site_type: s.site_type,
                       latest_ammonia: s.latest_ammonia,
                       highest_ammonia: s.highest_ammonia ?? s.max_ammonia ?? s.latest_ammonia,
+                      avg_ammonia_latest_schedule: siteLatestScheduleAvgMap[s.id] ?? null,
                       alert_status: s.alert_status,
                       area_size_hectares: s.area_size_hectares
                     }))}
@@ -270,84 +405,6 @@ export default function Dashboard() {
                     height="380px"
                   />
                 </div>
-              )}
-            </IonCol>
-          </IonRow>
-
-          {/* Search and Filters Bar */}
-          <IonRow style={{ margin: '16px 0' }}>
-            <IonCol size="12">
-              <IonCard style={{ margin: 0, borderRadius: '12px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff' }}>
-                <IonCardContent style={{ padding: '16px' }}>
-                  <IonGrid style={{ padding: 0 }}>
-                    <IonRow className="ion-align-items-center">
-                      <IonCol size="12" size-md="4">
-                        <IonSearchbar
-                          value={searchTerm}
-                          onIonInput={(e) => setSearchTerm(e.detail.value || '')}
-                          placeholder="Search site name, code, address..."
-                          style={{ padding: 0, '--background': '#f8fafc' }}
-                        />
-                      </IonCol>
-                      <IonCol size="6" size-sm="4" size-md="2.5">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f8fafc', padding: '4px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                          <IonIcon icon={funnelOutline} style={{ color: '#64748b' }} />
-                          <IonSelect value={selectedType} onIonChange={(e) => setSelectedType(e.detail.value)} interface="popover" style={{ width: '100%', fontSize: '13px' }}>
-                            <IonSelectOption value="all">Type: All Sites</IonSelectOption>
-                            <IonSelectOption value="piggery">Piggery</IonSelectOption>
-                            <IonSelectOption value="poultry">Poultry</IonSelectOption>
-                            <IonSelectOption value="industrial">Industrial</IonSelectOption>
-                            <IonSelectOption value="ambient">Ambient</IonSelectOption>
-                          </IonSelect>
-                        </div>
-                      </IonCol>
-                      <IonCol size="6" size-sm="4" size-md="2.5">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f8fafc', padding: '4px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                          <IonIcon icon={alertCircleOutline} style={{ color: '#64748b' }} />
-                          <IonSelect value={selectedStatus} onIonChange={(e) => setSelectedStatus(e.detail.value)} interface="popover" style={{ width: '100%', fontSize: '13px' }}>
-                            <IonSelectOption value="all">Status: All Levels</IonSelectOption>
-                            <IonSelectOption value="normal">Normal (&lt;=25 PPM)</IonSelectOption>
-                            <IonSelectOption value="warning">Warning (25-35 PPM)</IonSelectOption>
-                            <IonSelectOption value="high">High (35-50 PPM)</IonSelectOption>
-                            <IonSelectOption value="critical">Critical (&gt;50 PPM)</IonSelectOption>
-                          </IonSelect>
-                        </div>
-                      </IonCol>
-                      <IonCol size="12" size-sm="4" size-md="3">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#f8fafc', padding: '4px 12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
-                          <IonIcon icon={swapVerticalOutline} style={{ color: '#64748b' }} />
-                          <IonSelect value={sortBy} onIonChange={(e) => setSortBy(e.detail.value)} interface="popover" style={{ width: '100%', fontSize: '13px' }}>
-                            <IonSelectOption value="last_reading">Sort: Latest Reading</IonSelectOption>
-                            <IonSelectOption value="site_name">Sort: Site Name (A-Z)</IonSelectOption>
-                            <IonSelectOption value="alert_level">Sort: Alert Severity</IonSelectOption>
-                          </IonSelect>
-                        </div>
-                      </IonCol>
-                    </IonRow>
-                  </IonGrid>
-                </IonCardContent>
-              </IonCard>
-            </IonCol>
-          </IonRow>
-
-          {/* Inspection Site Analytics List */}
-          <IonRow>
-            <IonCol size="12">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#1a365d', margin: 0 }}>
-                  Inspection Sites Analytics ({filteredAndSortedSites.length})
-                </h3>
-              </div>
-
-              {filteredAndSortedSites.length === 0 ? (
-                <IonCard style={{ borderRadius: '12px', margin: 0, padding: '32px', textAlign: 'center' }}>
-                  <IonIcon icon={searchOutline} style={{ fontSize: '42px', color: '#94a3b8' }} />
-                  <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#334155' }}>No Inspection Sites Found</h3>
-                </IonCard>
-              ) : (
-                filteredAndSortedSites.map((site: SiteAnalyticsData) => (
-                  <SiteAnalyticsCard key={site.id} site={site} />
-                ))
               )}
             </IonCol>
           </IonRow>

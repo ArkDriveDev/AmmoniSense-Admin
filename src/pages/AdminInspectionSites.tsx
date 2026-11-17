@@ -34,6 +34,7 @@ import {
   addOutline,
   createOutline,
   informationCircleOutline,
+  mapOutline,
 } from 'ionicons/icons';
 
 import EmptyState from '../components/EmptyState';
@@ -518,6 +519,14 @@ export default function AdminInspectionSites() {
             siteId={mapTarget.id}
             latitude={mapTarget.current_latitude || 8.3697}
             longitude={mapTarget.current_longitude || 124.8640}
+            areaHectares={mapTarget.area_size_hectares}
+            onSelectSite={(id) => {
+              const s = sites.find(x => x.id === id);
+              if (s) {
+                setSelectedSiteForDetail(s);
+                setShowDetailModal(true);
+              }
+            }}
           />
         )}
 

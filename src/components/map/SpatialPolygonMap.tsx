@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -12,7 +12,8 @@ import {
   informationCircleOutline,
   chevronDownOutline,
   chevronUpOutline,
-  closeOutline
+  closeOutline,
+  searchOutline
 } from 'ionicons/icons';
 import {
   MANOLO_FORTICH_DEFAULTS,
@@ -38,17 +39,25 @@ export interface OdorZonePolygon {
   siteName?: string;
 }
 
+export type MapScheduleSort = 'recent' | 'oldest' | 'name';
+const MAP_SCHEDULE_SORT_KEY = 'admin_map_schedule_sort';
+
 export interface SensorReadingMarker {
   id: number | string;
   latitude: number;
   longitude: number;
-  ammonia: number;
+  ammonia: number | null;
+  avg_ammonia?: number | null;
+  reading_count?: number;
   device_uid?: string;
   created_at: string;
   photo_url?: string;
   status?: string;
   site_name?: string;
   notes?: string;
+  inspection_schedule_id?: number | null;
+  scheduled_date?: string | null;
+  schedule_name?: string | null;
 }
 
 export interface InspectionSiteMarker {
@@ -61,6 +70,7 @@ export interface InspectionSiteMarker {
   latest_ammonia?: number | null;
   highest_ammonia?: number | null;
   max_ammonia?: number | null;
+  avg_ammonia_latest_schedule?: number | null;
   alert_status?: string | null;
   area_size_hectares?: number | null;
 }
@@ -79,6 +89,10 @@ interface SpatialPolygonMapProps {
   onSelectSite?: (siteId: string | number, lat: number, lng: number) => void;
   height?: string;
   showSitesList?: boolean;
+  showSearch?: boolean;
+  markerStyle?: 'default' | 'poultry';
+  showAreaCircle?: boolean;
+  hidePpmBadge?: boolean;
 }
 
 export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
@@ -92,6 +106,10 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   selectedSiteId,
   onSelectSite,
   height = '460px',
+  showSearch = true,
+  markerStyle = 'default',
+  showAreaCircle = false,
+  hidePpmBadge = false,
 }) => {
   const history = useHistory();
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -107,6 +125,89 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   const [showBoundary, setShowBoundary] = useState<boolean>(true);
   const [showOdorZones, setShowOdorZones] = useState<boolean>(true);
   const [showLegend, setShowLegend] = useState<boolean>(false);
+
+  // Search & zoom state
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showSearchDropdown, setShowSearchDropdown] = useState<boolean>(false);
+  const [highlightedSiteId, setHighlightedSiteId] = useState<string | number | undefined>(selectedSiteId);
+
+  // Schedule sorter state with localStorage persistence
+  const [scheduleSort, setScheduleSort] = useState<MapScheduleSort>(() => {
+    try {
+      const saved = localStorage.getItem(MAP_SCHEDULE_SORT_KEY);
+      if (saved === 'recent' || saved === 'oldest' || saved === 'name') {
+        return saved;
+      }
+    } catch (e) {
+      console.warn('Could not read admin_map_schedule_sort from localStorage:', e);
+    }
+    return 'recent';
+  });
+
+  const handleSortChange = (newSort: MapScheduleSort) => {
+    setScheduleSort(newSort);
+    try {
+      localStorage.setItem(MAP_SCHEDULE_SORT_KEY, newSort);
+    } catch (e) {
+      console.warn('Could not write admin_map_schedule_sort to localStorage:', e);
+    }
+  };
+
+  // Sort readings according to schedule sorter selection
+  const sortedReadings = useMemo(() => {
+    const list = [...readings];
+    return list.sort((a, b) => {
+      if (scheduleSort === 'recent') {
+        const dateA = a.scheduled_date ? new Date(a.scheduled_date).getTime() : new Date(a.created_at).getTime();
+        const dateB = b.scheduled_date ? new Date(b.scheduled_date).getTime() : new Date(b.created_at).getTime();
+        if (dateB !== dateA) return dateB - dateA;
+      } else if (scheduleSort === 'oldest') {
+        const dateA = a.scheduled_date ? new Date(a.scheduled_date).getTime() : new Date(a.created_at).getTime();
+        const dateB = b.scheduled_date ? new Date(b.scheduled_date).getTime() : new Date(b.created_at).getTime();
+        if (dateA !== dateB) return dateA - dateB;
+      } else if (scheduleSort === 'name') {
+        const nameA = (a.schedule_name || '').toLowerCase();
+        const nameB = (b.schedule_name || '').toLowerCase();
+        const cmp = nameA.localeCompare(nameB);
+        if (cmp !== 0) return cmp;
+      }
+      // Secondary sort: tag created_at descending
+      const catA = new Date(a.created_at).getTime();
+      const catB = new Date(b.created_at).getTime();
+      return catB - catA;
+    });
+  }, [readings, scheduleSort]);
+
+  useEffect(() => {
+    setHighlightedSiteId(selectedSiteId);
+  }, [selectedSiteId]);
+
+  const filteredSearchSites = useMemo(() => {
+    if (!searchQuery.trim()) return sites.slice(0, 8);
+    const q = searchQuery.toLowerCase();
+    return sites.filter((s) =>
+      s.site_name.toLowerCase().includes(q) ||
+      (s.site_type && s.site_type.toLowerCase().includes(q)) ||
+      String(s.id).includes(q)
+    ).slice(0, 8);
+  }, [sites, searchQuery]);
+
+  const handleSelectSearchedSite = (site: InspectionSiteMarker) => {
+    setSearchQuery(site.site_name);
+    setShowSearchDropdown(false);
+    setHighlightedSiteId(site.id);
+
+    if (mapRef.current && site.latitude && site.longitude) {
+      mapRef.current.setView([site.latitude, site.longitude], 16, {
+        animate: true,
+        duration: 0.8,
+      });
+    }
+
+    if (onSelectSite) {
+      onSelectSite(site.id, site.latitude, site.longitude);
+    }
+  };
 
   // Initialize Leaflet Map
   useEffect(() => {
@@ -329,47 +430,123 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       if (!site.latitude || !site.longitude) return;
 
       const pinMeta = getSiteMapPinMeta(site.site_type || undefined);
-      const isSelected = String(selectedSiteId) === String(site.id);
+      const isSelected = String(highlightedSiteId ?? selectedSiteId) === String(site.id);
       const pinColor = isSelected ? '#1a365d' : pinMeta.pinColor;
       const nh3 = site.highest_ammonia ?? site.max_ammonia ?? site.latest_ammonia;
       const statusColor = getAmmoniaColor(nh3 || 0, site.alert_status || undefined);
 
-      const siteIcon = L.divIcon({
-        className: 'custom-site-pin',
-        html: `
-          <div style="
-            position: relative;
-            background: ${pinColor};
-            width: 34px;
-            height: 34px;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            border: 2.5px solid #ffffff;
-            box-shadow: 0 4px 14px rgba(0,0,0,0.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            ${isSelected ? 'outline: 3px solid #1a365d; outline-offset: 2px;' : ''}
-          ">
-            <span style="
-              transform: rotate(45deg);
-              font-size: 16px;
-              line-height: 1;
-              display: block;
-            ">${pinMeta.emoji}</span>
-          </div>
-        `,
-        iconSize: [34, 34],
-        iconAnchor: [17, 34],
-      });
+      // Render site area circle if poultry style or showAreaCircle requested
+      if (markerStyle === 'poultry' || showAreaCircle) {
+        const areaHectares = site.area_size_hectares && site.area_size_hectares > 0 ? Number(site.area_size_hectares) : 1.0;
+        const radiusMeters = Math.max(35, Math.sqrt((areaHectares * 10000) / Math.PI));
+
+        const areaCircle = L.circle([site.latitude, site.longitude], {
+          radius: radiusMeters,
+          color: isSelected ? '#1a365d' : '#d97706',
+          weight: isSelected ? 2.5 : 1.5,
+          dashArray: '5, 5',
+          fillColor: isSelected ? '#3b82f6' : '#f59e0b',
+          fillOpacity: 0.16,
+        });
+
+        areaCircle.bindTooltip(
+          `<div style="font-family: system-ui, sans-serif; font-size: 11px;">
+            <strong style="color: #1a365d;">${site.site_name}</strong><br/>
+            Site Area: ${areaHectares.toFixed(2)} ha (~${Math.round(radiusMeters)}m radius)
+          </div>`,
+          { direction: 'top', sticky: true }
+        );
+
+        areaCircle.on('click', () => {
+          if (onSelectSite) {
+            onSelectSite(site.id, site.latitude, site.longitude);
+          }
+        });
+
+        sitesGroup.addLayer(areaCircle);
+      }
+
+      let siteIcon: L.DivIcon;
+
+      if (markerStyle === 'poultry') {
+        const poultryBadgeColor = isSelected ? '#1a365d' : '#d97706';
+        siteIcon = L.divIcon({
+          className: 'custom-poultry-pin',
+          html: `
+            <div style="
+              position: relative;
+              background: ${poultryBadgeColor};
+              width: 36px;
+              height: 36px;
+              border-radius: 50% 50% 50% 4px;
+              transform: rotate(-45deg);
+              border: 2.5px solid #ffffff;
+              box-shadow: 0 4px 14px rgba(217, 119, 6, 0.45);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              ${isSelected ? 'outline: 3px solid #1a365d; outline-offset: 3px; box-shadow: 0 0 16px rgba(26, 54, 93, 0.8);' : ''}
+            ">
+              <div style="transform: rotate(45deg); display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="#ffffff" style="display: block;">
+                  <path d="M14.5 3c-.83 0-1.54.5-1.84 1.22l-.89 2.12c-.52.27-1.07.6-1.63 1l-.89-.89a1.5 1.5 0 0 0-2.12 0l-.71.71a1.5 1.5 0 0 0 0 2.12l.62.62c-.34.62-.64 1.29-.88 2.02l-1.05-.26a1.5 1.5 0 0 0-1.78 1.12l-.24.97a1.5 1.5 0 0 0 1.12 1.78l1.37.34c.05.65.17 1.29.35 1.91l-.9.9a1.5 1.5 0 0 0 0 2.12l.71.71a1.5 1.5 0 0 0 2.12 0l.9-.9c.62.18 1.26.3 1.91.35l.34 1.37a1.5 1.5 0 0 0 1.78 1.12l.97-.24a1.5 1.5 0 0 0 1.12-1.78l-.26-1.05c.73-.24 1.4-.54 2.02-.88l.62.62a1.5 1.5 0 0 0 2.12 0l.71-.71a1.5 1.5 0 0 0 0-2.12l-.89-.89c.4-.56.73-1.11 1-1.63l2.12-.89c.72-.3 1.22-1.01 1.22-1.84v-.5a2.5 2.5 0 0 0-2.5-2.5h-.7l-.46-1.38A2.5 2.5 0 0 0 19.14 6H17V4.5A1.5 1.5 0 0 0 15.5 3h-1zm.5 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
+                </svg>
+              </div>
+            </div>
+          `,
+          iconSize: [36, 36],
+          iconAnchor: [18, 36],
+        });
+      } else {
+        siteIcon = L.divIcon({
+          className: 'custom-site-pin',
+          html: `
+            <div style="
+              position: relative;
+              background: ${pinColor};
+              width: 34px;
+              height: 34px;
+              border-radius: 50% 50% 50% 0;
+              transform: rotate(-45deg);
+              border: 2.5px solid #ffffff;
+              box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              ${isSelected ? 'outline: 3px solid #1a365d; outline-offset: 2px;' : ''}
+            ">
+              <span style="
+                transform: rotate(45deg);
+                font-size: 16px;
+                line-height: 1;
+                display: block;
+              ">${pinMeta.emoji}</span>
+            </div>
+          `,
+          iconSize: [34, 34],
+          iconAnchor: [17, 34],
+        });
+      }
+
+      const latestScheduleAvg = site.avg_ammonia_latest_schedule;
+      const hasLatestAvg = latestScheduleAvg !== null && latestScheduleAvg !== undefined && !isNaN(Number(latestScheduleAvg));
+      const siteAvgDisplay = hasLatestAvg
+        ? `Avg NH₃ (latest schedule): ${Number(latestScheduleAvg).toFixed(2)} ppm`
+        : `Avg NH₃: — <span style="font-size: 10px; color: #94a3b8;">(No readings)</span>`;
+      const siteStatusColor = hasLatestAvg ? getAmmoniaColor(Number(latestScheduleAvg), site.alert_status || undefined) : '#64748b';
 
       const marker = L.marker([site.latitude, site.longitude], { icon: siteIcon });
 
       // Show tooltip on hover
       marker.bindTooltip(
-        `<div style="font-family: system-ui, sans-serif; padding: 2px 4px; text-align: center;">
-          <strong style="color: #1a365d; font-size: 12px;">${site.site_name}</strong>
+        `<div style="font-family: system-ui, sans-serif; padding: 4px 6px; text-align: center;">
+          <strong style="color: #1a365d; font-size: 12px; display: block; margin-bottom: 2px;">${site.site_name}</strong>
+          ${!hidePpmBadge ? `
+            <div style="font-size: 11px; font-weight: 600; color: ${hasLatestAvg ? siteStatusColor : '#64748b'}; margin: 2px 0;">
+              ${siteAvgDisplay}
+            </div>` : ''}
           <div style="font-size: 10px; color: #64748b; margin-top: 2px;">Click to view site details &rarr;</div>
         </div>`,
         { direction: 'top', offset: [0, -34], opacity: 0.95 }
@@ -386,7 +563,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
 
       sitesGroup.addLayer(marker);
     });
-  }, [sites, selectedSiteId]);
+  }, [sites, selectedSiteId, highlightedSiteId, markerStyle, showAreaCircle, hidePpmBadge]);
 
   // Render Sensor Readings (Colored dots inside/around zones showing highest ppm)
   useEffect(() => {
@@ -394,10 +571,24 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     const readingsGroup = readingsLayerGroupRef.current;
     readingsGroup.clearLayers();
 
-    readings.forEach((reading) => {
+    sortedReadings.forEach((reading) => {
       if (!reading.latitude || !reading.longitude) return;
 
-      const color = getAmmoniaColor(reading.ammonia, reading.status);
+      const hasReading =
+        (reading.reading_count !== undefined && reading.reading_count !== null
+          ? reading.reading_count > 0
+          : false) ||
+        (reading.avg_ammonia !== null && reading.avg_ammonia !== undefined) ||
+        (reading.ammonia !== null && reading.ammonia !== undefined);
+
+      const avgVal = reading.avg_ammonia ?? reading.ammonia;
+      const isValidNumber = hasReading && avgVal !== null && avgVal !== undefined && !isNaN(Number(avgVal));
+      const color = isValidNumber ? getAmmoniaColor(Number(avgVal), reading.status) : '#64748b';
+      const pillVal = isValidNumber ? Number(avgVal).toFixed(1) : '—';
+      const avgText = isValidNumber
+        ? `Avg NH₃: ${Number(avgVal).toFixed(2)} ppm`
+        : `Avg NH₃: — <span style="font-size: 11px; font-weight: 500; color: #94a3b8;">(No readings)</span>`;
+
       let tagIcon: L.DivIcon;
 
       if (reading.photo_url) {
@@ -427,7 +618,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
                 font-weight: 800;
                 text-align: center;
                 line-height: 11px;
-              ">${Number(reading.ammonia || 0).toFixed(1)}</span>
+              ">${pillVal}</span>
             </div>
           `,
           iconSize: [38, 38],
@@ -453,7 +644,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
               align-items: center;
               gap: 3px;
             ">
-              <span>📍 ${Number(reading.ammonia || 0).toFixed(1)}</span>
+              <span>📍 ${pillVal}</span>
               <span style="font-size: 8px; opacity: 0.9;">PPM</span>
             </div>
           `,
@@ -467,14 +658,15 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       const popupContent = `
         <div style="font-family: system-ui, sans-serif; min-width: 170px; padding: 4px;">
           <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
-            <h4 style="margin: 0; font-size: 14px; color: ${color}; font-weight: 700;">
-              Highest NH₃: ${Number(reading.ammonia || 0).toFixed(1)} ppm
+            <h4 style="margin: 0; font-size: 14px; color: ${isValidNumber ? color : '#1e293b'}; font-weight: 700;">
+              ${avgText}
             </h4>
             <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; color: white; background: ${color}; text-transform: uppercase;">
-              ${reading.status || getAmmoniaSeverityLabel(reading.ammonia)}
+              ${isValidNumber ? (reading.status || getAmmoniaSeverityLabel(Number(avgVal))) : 'NO DATA'}
             </span>
           </div>
           ${reading.site_name ? `<div style="font-size: 12px; color: #334155; margin-bottom: 2px;"><b>Site:</b> ${reading.site_name}</div>` : ''}
+          ${reading.schedule_name ? `<div style="font-size: 11px; color: #475569; margin-bottom: 2px;"><b>Schedule:</b> ${reading.schedule_name}${reading.scheduled_date ? ` (${reading.scheduled_date})` : ''}</div>` : ''}
           <div style="font-size: 11px; color: #475569; margin-bottom: 2px;">
             <b>Device UID:</b> ${reading.device_uid || 'N/A'}
           </div>
@@ -492,7 +684,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       marker.bindPopup(popupContent);
       readingsGroup.addLayer(marker);
     });
-  }, [readings]);
+  }, [sortedReadings]);
 
   const handleFocusManolo = () => {
     if (!mapRef.current) return;
@@ -504,8 +696,159 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     <div
       onMouseDown={(e) => e.stopPropagation()}
       onTouchStart={(e) => e.stopPropagation()}
-      style={{ position: 'relative', width: '100%', height, borderRadius: '12px', overflow: 'hidden', border: '1px solid #cbd5e1', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
+      style={{ position: 'relative', width: '100%' }}
     >
+      {/* Top Bar Controls: Search Input and Schedule Sorter above map */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        marginBottom: '8px',
+        zIndex: 1100,
+        position: 'relative',
+        flexWrap: 'wrap'
+      }}>
+        {showSearch && (
+          <div style={{ flex: '1 1 240px', minWidth: '200px', position: 'relative' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              backgroundColor: '#ffffff',
+              border: '1px solid #cbd5e1',
+              borderRadius: '10px',
+              padding: '6px 12px',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
+            }}>
+              <IonIcon icon={searchOutline} style={{ color: '#64748b', fontSize: '18px', marginRight: '8px' }} />
+              <input
+                type="text"
+                placeholder="Search site name, code or location to zoom..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowSearchDropdown(true);
+                }}
+                onFocus={() => setShowSearchDropdown(true)}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  width: '100%',
+                  fontSize: '13px',
+                  color: '#1a365d',
+                  backgroundColor: 'transparent'
+                }}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setShowSearchDropdown(false);
+                  }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#94a3b8' }}
+                >
+                  <IonIcon icon={closeOutline} style={{ fontSize: '16px' }} />
+                </button>
+              )}
+            </div>
+
+            {/* Results Dropdown */}
+            {showSearchDropdown && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: '4px',
+                backgroundColor: '#ffffff',
+                borderRadius: '8px',
+                border: '1px solid #cbd5e1',
+                boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                maxHeight: '220px',
+                overflowY: 'auto',
+                zIndex: 1200
+              }}>
+                {filteredSearchSites.length === 0 ? (
+                  <div style={{ padding: '10px 14px', fontSize: '12px', color: '#94a3b8' }}>
+                    No matching sites found
+                  </div>
+                ) : (
+                  filteredSearchSites.map((site: InspectionSiteMarker) => (
+                    <div
+                      key={site.id}
+                      onClick={() => handleSelectSearchedSite(site)}
+                      style={{
+                        padding: '8px 12px',
+                        borderBottom: '1px solid #f1f5f9',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        transition: 'background-color 0.15s ease'
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8fafc')}
+                      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    >
+                      <div>
+                        <strong style={{ color: '#1a365d' }}>{site.site_name}</strong>
+                        <span style={{ fontSize: '11px', color: '#64748b', marginLeft: '6px' }}>
+                          ({site.site_type || 'Site'})
+                        </span>
+                      </div>
+                      {site.latest_ammonia !== null && site.latest_ammonia !== undefined && (
+                        <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#059669' }}>
+                          {site.latest_ammonia.toFixed(1)} PPM
+                        </span>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Schedule Sorter Control */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          backgroundColor: '#ffffff',
+          border: '1px solid #cbd5e1',
+          borderRadius: '10px',
+          padding: '6px 12px',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
+          marginLeft: showSearch ? '0' : 'auto'
+        }}>
+          <label htmlFor="map-schedule-sorter" style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Sort:
+          </label>
+          <select
+            id="map-schedule-sorter"
+            value={scheduleSort}
+            onChange={(e) => handleSortChange(e.target.value as MapScheduleSort)}
+            style={{
+              border: 'none',
+              outline: 'none',
+              backgroundColor: 'transparent',
+              fontSize: '12px',
+              fontWeight: 600,
+              color: '#1a365d',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="recent">Recent (Newest)</option>
+            <option value="oldest">Oldest</option>
+            <option value="name">Schedule Name (A–Z)</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Map Container */}
+      <div
+        style={{ position: 'relative', width: '100%', height, borderRadius: '12px', overflow: 'hidden', border: '1px solid #cbd5e1', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
+      >
       <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
 
       {/* Top Left Jurisdiction Title Badge */}
@@ -827,6 +1170,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
           <span>Legend</span>
           <IonIcon icon={showLegend ? chevronDownOutline : chevronUpOutline} style={{ fontSize: '11px', opacity: 0.7 }} />
         </button>
+      </div>
       </div>
     </div>
   );
