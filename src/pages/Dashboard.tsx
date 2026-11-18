@@ -303,36 +303,18 @@ export default function Dashboard() {
               />
             </IonCol>
 
-            {/* Poultry Housing: Conventional */}
-            <IonCol size="4" size-sm="2" size-md="3">
-              <StatsCard
-                title="Conventional"
-                value={summaryCounts.poultryCounts.conventional}
+            {/* Poultry by Type Pie Chart */}
+            <IonCol size="12" size-md="4">
+              <DashboardDoughnutCard
+                title="Poultry Housing Types"
                 icon={homeOutline}
-                color="primary"
-                subtitle="Poultry Type"
-              />
-            </IonCol>
-
-            {/* Poultry Housing: Retrofitted */}
-            <IonCol size="4" size-sm="2" size-md="3">
-              <StatsCard
-                title="Retrofitted"
-                value={summaryCounts.poultryCounts.retrofitted}
-                icon={constructOutline}
-                color="primary"
-                subtitle="Poultry Type"
-              />
-            </IonCol>
-
-            {/* Poultry Housing: Tunnel Vent */}
-            <IonCol size="4" size-sm="2" size-md="3">
-              <StatsCard
-                title="Tunnel Vent"
-                value={summaryCounts.poultryCounts.tunnelVent}
-                icon={swapHorizontalOutline}
-                color="primary"
-                subtitle="Poultry Type"
+                totalLabel="Poultry Sites"
+                slices={[
+                  { label: 'Conventional', value: summaryCounts.poultryCounts.conventional, color: '#2563eb' },
+                  { label: 'Retrofitted', value: summaryCounts.poultryCounts.retrofitted, color: '#06b6d4' },
+                  { label: 'Tunnel Vent', value: summaryCounts.poultryCounts.tunnelVent, color: '#8b5cf6' },
+                ]}
+                emptyMessage="No poultry sites recorded."
               />
             </IonCol>
 
