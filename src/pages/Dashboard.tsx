@@ -35,7 +35,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useSiteAnalytics, SiteAnalyticsData } from '../hooks/useSiteAnalytics';
 import { useDashboardSummaryCounts } from '../hooks/useDashboardSummaryCounts';
-import { StatsCard } from '../components/charts';
+import { StatsCard, DashboardDoughnutCard } from '../components/charts';
 import SpatialPolygonMap, { SensorReadingMarker } from '../components/map/SpatialPolygonMap';
 import { SiteDetailModal } from '../components/admin/SiteDetailModal';
 import { supabase } from '../services/supabase';
@@ -285,13 +285,21 @@ export default function Dashboard() {
           {/* Summary Section: Clean Air (<5 PPM), Poultry by Type, Chicken by Type */}
           <IonRow style={{ marginTop: '8px' }}>
             {/* Sites with clean air / low ppm (< 5 ppm) */}
-            <IonCol size="12" size-sm="6" size-md="3">
-              <StatsCard
+            <IonCol size="12" size-md="4">
+              <DashboardDoughnutCard
                 title="Sites with Clean Air (<5 PPM)"
-                value={summaryCounts.cleanAirCount}
                 icon={shieldCheckmarkOutline}
-                color="success"
-                subtitle="Active sites, latest inspection"
+                totalLabel="Evaluated"
+                slices={[
+                  { label: 'Clean Air', value: summaryCounts.airQuality.cleanAirSites, color: '#10b981' },
+                  { label: 'Not Clean Air', value: summaryCounts.airQuality.notCleanAirSites, color: '#ef4444' },
+                ]}
+                subtitleNote={
+                  summaryCounts.airQuality.excludedNoReadings > 0
+                    ? `${summaryCounts.airQuality.excludedNoReadings} site(s) without readings excluded`
+                    : null
+                }
+                emptyMessage="No inspection readings available."
               />
             </IonCol>
 

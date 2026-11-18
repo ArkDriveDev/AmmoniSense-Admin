@@ -1,8 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
 
+export interface AirQualitySummary {
+  cleanAirSites: number;
+  notCleanAirSites: number;
+  excludedNoReadings: number;
+  totalWithReadings: number;
+}
+
 export interface DashboardSummaryCounts {
   cleanAirCount: number;
+  airQuality: AirQualitySummary;
   poultryCounts: {
     conventional: number;
     retrofitted: number;
@@ -20,6 +28,12 @@ export interface DashboardSummaryCounts {
 
 export function useDashboardSummaryCounts(): DashboardSummaryCounts {
   const [cleanAirCount, setCleanAirCount] = useState<number>(0);
+  const [airQuality, setAirQuality] = useState<AirQualitySummary>({
+    cleanAirSites: 0,
+    notCleanAirSites: 0,
+    excludedNoReadings: 0,
+    totalWithReadings: 0,
+  });
   const [poultryCounts, setPoultryCounts] = useState({
     conventional: 0,
     retrofitted: 0,
@@ -98,6 +112,12 @@ export function useDashboardSummaryCounts(): DashboardSummaryCounts {
       const activeSiteIds = sitesList.map((s) => s.id);
       if (activeSiteIds.length === 0) {
         setCleanAirCount(0);
+        setAirQuality({
+          cleanAirSites: 0,
+          notCleanAirSites: 0,
+          excludedNoReadings: 0,
+          totalWithReadings: 0,
+        });
         return;
       }
 
@@ -122,6 +142,12 @@ export function useDashboardSummaryCounts(): DashboardSummaryCounts {
 
       if (scheduleIds.length === 0) {
         setCleanAirCount(0);
+        setAirQuality({
+          cleanAirSites: 0,
+          notCleanAirSites: 0,
+          excludedNoReadings: activeSiteIds.length,
+          totalWithReadings: 0,
+        });
         return;
       }
 
@@ -150,6 +176,12 @@ export function useDashboardSummaryCounts(): DashboardSummaryCounts {
       const latestTagIds = Array.from(latestTagPerSite.values());
       if (latestTagIds.length === 0) {
         setCleanAirCount(0);
+        setAirQuality({
+          cleanAirSites: 0,
+          notCleanAirSites: 0,
+          excludedNoReadings: activeSiteIds.length,
+          totalWithReadings: 0,
+        });
         return;
       }
 
@@ -174,18 +206,35 @@ export function useDashboardSummaryCounts(): DashboardSummaryCounts {
       });
 
       let cleanSites = 0;
-      latestTagPerSite.forEach((tagId) => {
+      let notCleanSites = 0;
+      let excludedNoReadings = 0;
+
+      activeSiteIds.forEach((siteId) => {
+        const tagId = latestTagPerSite.get(siteId);
+        if (!tagId) {
+          excludedNoReadings++;
+          return;
+        }
         const readings = ammoniaByTag.get(tagId);
-        // If a site has no readings on its latest tag, do NOT count it
-        if (readings && readings.length > 0) {
-          const avg = readings.reduce((a, b) => a + b, 0) / readings.length;
-          if (avg < 5.0) {
-            cleanSites++;
-          }
+        if (!readings || readings.length === 0) {
+          excludedNoReadings++;
+          return;
+        }
+        const avg = readings.reduce((a, b) => a + b, 0) / readings.length;
+        if (avg < 5.0) {
+          cleanSites++;
+        } else {
+          notCleanSites++;
         }
       });
 
       setCleanAirCount(cleanSites);
+      setAirQuality({
+        cleanAirSites: cleanSites,
+        notCleanAirSites: notCleanSites,
+        excludedNoReadings,
+        totalWithReadings: cleanSites + notCleanSites,
+      });
     } catch (err) {
       console.error('Error fetching dashboard summary counts:', err);
     } finally {
@@ -199,6 +248,7 @@ export function useDashboardSummaryCounts(): DashboardSummaryCounts {
 
   return {
     cleanAirCount,
+    airQuality,
     poultryCounts,
     chickenCounts,
     loading,

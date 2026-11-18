@@ -1,4 +1,5 @@
 export { default as StatsCard } from './StatsCard';
+export { default as DashboardDoughnutCard } from './DashboardDoughnutCard';
 export { default as AmmoniaTrendChart } from './AmmoniaTrendChart';
 export { default as AlertSeverityChart } from './AlertSeverityChart';
 export { default as AlertTrendChart } from './AlertTrendChart';
