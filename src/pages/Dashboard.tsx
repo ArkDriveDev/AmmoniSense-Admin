@@ -325,6 +325,7 @@ export default function Dashboard() {
                 title="Chicken by Type"
                 icon={eggOutline}
                 totalLabel="Sites"
+                allowZeroSlices={true}
                 slices={summaryCounts.chickenSlices}
                 emptyMessage="No chicken types recorded."
               />

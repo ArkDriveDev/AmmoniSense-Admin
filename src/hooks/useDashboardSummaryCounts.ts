@@ -296,7 +296,7 @@ export function useDashboardSummaryCounts(dashboardSites?: any[]): DashboardSumm
     return { poultryCounts: counts, poultrySlices: slices };
   }, [activeSites]);
 
-  // Compute Chicken Slices & Counts
+  // Compute Chicken Slices & Counts in fixed order: LAYER, BROILER, BREEDER, GRAND PARENTS/GP
   const { chickenCounts, chickenSlices } = useMemo(() => {
     const standardChicken = ['Layer', 'Broiler', 'Breeder', 'Grand Parents / GP'];
     const tally = new Map<string, number>();
@@ -304,7 +304,7 @@ export function useDashboardSummaryCounts(dashboardSites?: any[]): DashboardSumm
 
     activeSites.forEach((s) => {
       const label = normalizeChickenType(s.chicken_type);
-      if (label) {
+      if (label && tally.has(label)) {
         tally.set(label, (tally.get(label) || 0) + 1);
       }
     });
@@ -316,9 +316,10 @@ export function useDashboardSummaryCounts(dashboardSites?: any[]): DashboardSumm
       grandParents: tally.get('Grand Parents / GP') || 0,
     };
 
-    const slices: DoughnutSlice[] = Array.from(tally.entries()).map(([label, value]) => ({
+    // Always include every category in the fixed list, in this order: LAYER, BROILER, BREEDER, GRAND PARENTS/GP
+    const slices: DoughnutSlice[] = standardChicken.map((label) => ({
       label,
-      value,
+      value: tally.get(label) || 0,
       color: CHICKEN_COLOR_MAP[label] || '#64748b',
     }));
 
