@@ -24,6 +24,7 @@ import {
 } from 'ionicons/icons';
 import { supabase } from '../../services/supabase';
 import { getPoultryTypeLabel, getChickenTypeLabel } from '../../constants/siteConstants';
+import { normalizePoultryType } from '../../hooks/useDashboardSummaryCounts';
 
 export interface CategorySiteItem {
   id: number;
@@ -252,6 +253,35 @@ export default function CategorySitesModal({
           });
 
           matched.sort((a, b) => a.site_name.localeCompare(b.site_name));
+          if (isMounted) setSites(matched);
+        } else if (chartType === 'poultry') {
+          const targetPoultryNormalized = normalizePoultryType(category);
+
+          const { data: sitesData, error: sitesErr } = await supabase
+            .from('inspection_sites')
+            .select('id, site_name, site_code, poultry_type, chicken_type, address, area_size_hectares, is_active');
+
+          if (sitesErr || !sitesData) {
+            console.warn('Could not fetch inspection_sites for poultry category:', sitesErr);
+            if (isMounted) setSites([]);
+            return;
+          }
+
+          const activeSitesList = sitesData.filter((s) => s.is_active !== false);
+          const matched: CategorySiteItem[] = activeSitesList
+            .filter((s) => normalizePoultryType(s.poultry_type) === targetPoultryNormalized)
+            .map((s) => ({
+              id: s.id,
+              site_name: s.site_name,
+              site_code: s.site_code,
+              poultry_type: s.poultry_type,
+              chicken_type: s.chicken_type,
+              address: s.address,
+              area_size_hectares: s.area_size_hectares,
+              is_active: s.is_active,
+            }))
+            .sort((a, b) => a.site_name.localeCompare(b.site_name));
+
           if (isMounted) setSites(matched);
         } else {
           // Will be populated in subsequent commits per chart type
