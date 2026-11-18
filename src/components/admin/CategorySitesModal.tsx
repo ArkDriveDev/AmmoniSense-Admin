@@ -86,8 +86,177 @@ export default function CategorySitesModal({
     const fetchCategorySites = async () => {
       setLoading(true);
       try {
-        // Will be populated in subsequent commits per chart type
-        setSites([]);
+        if (chartType === 'status') {
+          const catUpper = category.toUpperCase();
+          let targetStatus: 'SAFE' | 'WARNING' | 'CRITICAL' | null = null;
+          if (catUpper.includes('SAFE')) targetStatus = 'SAFE';
+          else if (catUpper.includes('WARNING')) targetStatus = 'WARNING';
+          else if (catUpper.includes('CRITICAL')) targetStatus = 'CRITICAL';
+
+          if (!targetStatus) {
+            if (isMounted) setSites([]);
+            return;
+          }
+
+          // 1. Fetch active sites
+          const { data: sitesData, error: sitesErr } = await supabase
+            .from('inspection_sites')
+            .select('id, site_name, site_code, poultry_type, chicken_type, address, area_size_hectares, is_active');
+
+          if (sitesErr || !sitesData) {
+            console.warn('Could not fetch inspection_sites for status category:', sitesErr);
+            if (isMounted) setSites([]);
+            return;
+          }
+
+          const activeSitesList = sitesData.filter((s) => s.is_active !== false);
+          const activeSiteIds = activeSitesList.map((s) => s.id);
+
+          if (activeSiteIds.length === 0) {
+            if (isMounted) setSites([]);
+            return;
+          }
+
+          // 2. Fetch schedules for active sites
+          const { data: schedules, error: schedErr } = await supabase
+            .from('inspection_schedules')
+            .select('id, inspection_site_id, scheduled_date')
+            .in('inspection_site_id', activeSiteIds)
+            .order('scheduled_date', { ascending: false });
+
+          if (schedErr) {
+            console.warn('Could not fetch inspection_schedules for status category:', schedErr);
+          }
+
+          const scheduleToSiteMap = new Map<number, number>();
+          const latestScheduleMap = new Map<number, number>();
+          const scheduleIds: number[] = [];
+
+          (schedules || []).forEach((sc) => {
+            if (sc.id && sc.inspection_site_id) {
+              scheduleToSiteMap.set(sc.id, sc.inspection_site_id);
+              scheduleIds.push(sc.id);
+              if (!latestScheduleMap.has(sc.inspection_site_id)) {
+                latestScheduleMap.set(sc.inspection_site_id, sc.id);
+              }
+            }
+          });
+
+          // 3. Fetch tags for these schedules
+          const tagToSiteMap = new Map<number, number>();
+          const tagToScheduleMap = new Map<number, number>();
+          const tagIds: number[] = [];
+
+          if (scheduleIds.length > 0) {
+            const { data: tags, error: tagsErr } = await supabase
+              .from('inspection_tags')
+              .select('id, inspection_schedule_id')
+              .in('inspection_schedule_id', scheduleIds);
+
+            if (tagsErr) {
+              console.warn('Could not fetch inspection_tags for status category:', tagsErr);
+            }
+
+            (tags || []).forEach((t) => {
+              if (t.id && t.inspection_schedule_id) {
+                const siteId = scheduleToSiteMap.get(t.inspection_schedule_id);
+                if (siteId) {
+                  tagToSiteMap.set(t.id, siteId);
+                  tagToScheduleMap.set(t.id, t.inspection_schedule_id);
+                  tagIds.push(t.id);
+                }
+              }
+            });
+          }
+
+          // 4. Fetch sensor_data for tags and compute worst_ppm & latest average ppm per site
+          const siteMaxPpm = new Map<number, number>();
+          const siteReadingsCount = new Map<number, number>();
+          const siteAllSum = new Map<number, number>();
+          const siteLatestSchedSum = new Map<number, number>();
+          const siteLatestSchedCount = new Map<number, number>();
+
+          if (tagIds.length > 0) {
+            const { data: sensorRows, error: sensorErr } = await supabase
+              .from('sensor_data')
+              .select('inspection_tag_id, ammonia')
+              .in('inspection_tag_id', tagIds)
+              .not('ammonia', 'is', null);
+
+            if (sensorErr) {
+              console.warn('Could not fetch sensor_data for status category:', sensorErr);
+            }
+
+            (sensorRows || []).forEach((r) => {
+              const siteId = tagToSiteMap.get(r.inspection_tag_id);
+              if (siteId && r.ammonia !== null && r.ammonia !== undefined) {
+                const ppm = Number(r.ammonia);
+                const currMax = siteMaxPpm.get(siteId);
+                if (currMax === undefined || ppm > currMax) {
+                  siteMaxPpm.set(siteId, ppm);
+                }
+                siteReadingsCount.set(siteId, (siteReadingsCount.get(siteId) || 0) + 1);
+                siteAllSum.set(siteId, (siteAllSum.get(siteId) || 0) + ppm);
+
+                const schedId = tagToScheduleMap.get(r.inspection_tag_id);
+                const latestSchedId = latestScheduleMap.get(siteId);
+                if (schedId && latestSchedId && schedId === latestSchedId) {
+                  siteLatestSchedSum.set(siteId, (siteLatestSchedSum.get(siteId) || 0) + ppm);
+                  siteLatestSchedCount.set(siteId, (siteLatestSchedCount.get(siteId) || 0) + 1);
+                }
+              }
+            });
+          }
+
+          // 5. Filter active sites matching targetStatus
+          const matched: CategorySiteItem[] = [];
+
+          activeSitesList.forEach((site) => {
+            const count = siteReadingsCount.get(site.id) || 0;
+            const worstPpm = siteMaxPpm.get(site.id);
+
+            // Sites with no readings are excluded from all three slices
+            if (count === 0 || worstPpm === undefined) {
+              return;
+            }
+
+            let status: 'SAFE' | 'WARNING' | 'CRITICAL';
+            if (worstPpm >= 25) {
+              status = 'CRITICAL';
+            } else if (worstPpm >= 5) {
+              status = 'WARNING';
+            } else {
+              status = 'SAFE';
+            }
+
+            if (status === targetStatus) {
+              const latestCount = siteLatestSchedCount.get(site.id) || 0;
+              const avgPpm =
+                latestCount > 0
+                  ? (siteLatestSchedSum.get(site.id) || 0) / latestCount
+                  : (siteAllSum.get(site.id) || 0) / count;
+
+              matched.push({
+                id: site.id,
+                site_name: site.site_name,
+                site_code: site.site_code,
+                poultry_type: site.poultry_type,
+                chicken_type: site.chicken_type,
+                address: site.address,
+                area_size_hectares: site.area_size_hectares,
+                is_active: site.is_active,
+                avg_ammonia: avgPpm,
+                worst_ammonia: worstPpm,
+              });
+            }
+          });
+
+          matched.sort((a, b) => a.site_name.localeCompare(b.site_name));
+          if (isMounted) setSites(matched);
+        } else {
+          // Will be populated in subsequent commits per chart type
+          if (isMounted) setSites([]);
+        }
       } catch (err) {
         console.error('Error fetching sites for category:', err);
       } finally {
