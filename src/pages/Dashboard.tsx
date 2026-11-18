@@ -45,7 +45,6 @@ export default function Dashboard() {
 
   const [mapReadings, setMapReadings] = useState<SensorReadingMarker[]>([]);
   const [siteLatestScheduleAvgMap, setSiteLatestScheduleAvgMap] = useState<Record<number, number | null>>({});
-  const [showGlobalMap, setShowGlobalMap] = useState<boolean>(false);
   const [selectedSiteForModal, setSelectedSiteForModal] = useState<SiteAnalyticsData | null>(null);
   const [showSiteDetailModal, setShowSiteDetailModal] = useState<boolean>(false);
   const [activeSliceModal, setActiveSliceModal] = useState<{
@@ -340,10 +339,10 @@ export default function Dashboard() {
             </IonCol>
           </IonRow>
 
-          {/* Spatial Polygon Map Toggle */}
+          {/* Live Environmental Odor & Plume Spatial Map */}
           <IonRow style={{ margin: '8px 0 16px 0' }}>
             <IonCol size="12">
-              <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <IonIcon icon={mapOutline} style={{ fontSize: '22px', color: '#1a365d' }} />
                   <div>
@@ -351,38 +350,35 @@ export default function Dashboard() {
                     <span style={{ fontSize: '12px', color: '#64748b', display: 'block' }}>Spatial overview with dynamic odor buffer perimeters across Manolo Fortich</span>
                   </div>
                 </div>
-                <IonButton size="small" fill="outline" color="primary" onClick={() => setShowGlobalMap(!showGlobalMap)}>
-                  {showGlobalMap ? 'Hide Map' : 'Show Map'}
-                </IonButton>
               </div>
-              {showGlobalMap && (
-                <div style={{ marginTop: '12px' }}>
-                  <SpatialPolygonMap
-                    siteName="MENRO Manolo Fortich Environmental Spatial Overview"
-                    sites={sites.map(s => ({
-                      id: s.id,
-                      site_name: s.site_name,
-                      latitude: s.latitude,
-                      longitude: s.longitude,
-                      site_type: s.site_type,
-                      latest_ammonia: s.latest_ammonia,
-                      highest_ammonia: s.highest_ammonia ?? s.max_ammonia ?? s.latest_ammonia,
-                      avg_ammonia_latest_schedule: siteLatestScheduleAvgMap[s.id] ?? null,
-                      alert_status: s.alert_status,
-                      area_size_hectares: s.area_size_hectares
-                    }))}
-                    readings={mapReadings}
-                    onSelectSite={(siteId) => {
-                      const targetSite = sites.find(s => s.id === Number(siteId) || String(s.id) === String(siteId));
-                      if (targetSite) {
-                        setSelectedSiteForModal(targetSite);
-                        setShowSiteDetailModal(true);
-                      }
-                    }}
-                    height="380px"
-                  />
-                </div>
-              )}
+              <div style={{ width: '100%', overflow: 'hidden' }}>
+                <SpatialPolygonMap
+                  siteName="MENRO Manolo Fortich Environmental Spatial Overview"
+                  className="dashboard-map-container"
+                  height="65vh"
+                  minHeight="500px"
+                  sites={sites.map(s => ({
+                    id: s.id,
+                    site_name: s.site_name,
+                    latitude: s.latitude,
+                    longitude: s.longitude,
+                    site_type: s.site_type,
+                    latest_ammonia: s.latest_ammonia,
+                    highest_ammonia: s.highest_ammonia ?? s.max_ammonia ?? s.latest_ammonia,
+                    avg_ammonia_latest_schedule: siteLatestScheduleAvgMap[s.id] ?? null,
+                    alert_status: s.alert_status,
+                    area_size_hectares: s.area_size_hectares
+                  }))}
+                  readings={mapReadings}
+                  onSelectSite={(siteId) => {
+                    const targetSite = sites.find(s => s.id === Number(siteId) || String(s.id) === String(siteId));
+                    if (targetSite) {
+                      setSelectedSiteForModal(targetSite);
+                      setShowSiteDetailModal(true);
+                    }
+                  }}
+                />
+              </div>
             </IonCol>
           </IonRow>
         </IonGrid>
