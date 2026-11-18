@@ -266,3 +266,21 @@ export interface UserDevice {
   created_at?: string | null;
   profiles?: Profile | null;
 }
+
+// Table: activity_logs
+export interface ActivityLog {
+  id: number;
+  entity_type: string;
+  entity_id: string;
+  action: string;
+  profile_id?: string | null;
+  old_data?: Record<string, any> | null;
+  new_data?: Record<string, any> | null;
+  details?: Record<string, any> | null;
+  created_at: string;
+  profiles?: {
+    id?: string;
+    full_name?: string | null;
+    email?: string | null;
+  } | null;
+}
