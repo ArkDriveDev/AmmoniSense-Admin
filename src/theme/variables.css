@@ -27,3 +27,17 @@ ion-label {
   background: transparent !important;
   border: none !important;
 }
+
+/* Dashboard Large Permanent Map */
+.dashboard-map-container {
+  width: 100% !important;
+  height: 50vh !important;
+  min-height: 380px !important;
+}
+
+@media (min-width: 768px) {
+  .dashboard-map-container {
+    height: 65vh !important;
+    min-height: 600px !important;
+  }
+}

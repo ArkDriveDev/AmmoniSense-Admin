@@ -88,6 +88,8 @@ interface SpatialPolygonMapProps {
   selectedSiteId?: string | number;
   onSelectSite?: (siteId: string | number, lat: number, lng: number) => void;
   height?: string;
+  minHeight?: string;
+  className?: string;
   showSitesList?: boolean;
   showSearch?: boolean;
   markerStyle?: 'default' | 'poultry';
@@ -105,7 +107,9 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
   odorZones = [],
   selectedSiteId,
   onSelectSite,
-  height = '460px',
+  height = '65vh',
+  minHeight = '500px',
+  className = '',
   showSearch = true,
   markerStyle = 'default',
   showAreaCircle = false,
@@ -249,9 +253,17 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
 
     mapRef.current = map;
 
-    // Fix tile sizing / slicing issues
+    // Fix tile sizing / slicing issues on mount and resize
     const t1 = setTimeout(() => map.invalidateSize(), 100);
     const t2 = setTimeout(() => map.invalidateSize(), 300);
+    const t3 = setTimeout(() => map.invalidateSize(), 600);
+
+    const handleWindowResize = () => {
+      if (mapRef.current) {
+        mapRef.current.invalidateSize();
+      }
+    };
+    window.addEventListener('resize', handleWindowResize);
 
     let resizeTimer: ReturnType<typeof setTimeout> | null = null;
     let resizeObserver: ResizeObserver | null = null;
@@ -262,7 +274,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
           if (mapRef.current) {
             mapRef.current.invalidateSize();
           }
-        }, 200);
+        }, 150);
       });
       resizeObserver.observe(mapContainerRef.current);
     }
@@ -270,6 +282,8 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
+      clearTimeout(t3);
+      window.removeEventListener('resize', handleWindowResize);
       if (resizeTimer) clearTimeout(resizeTimer);
       if (resizeObserver) resizeObserver.disconnect();
       if (mapRef.current) {
@@ -847,7 +861,17 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
 
       {/* Map Container */}
       <div
-        style={{ position: 'relative', width: '100%', height, borderRadius: '12px', overflow: 'hidden', border: '1px solid #cbd5e1', boxShadow: '0 4px 14px rgba(0,0,0,0.08)' }}
+        className={className}
+        style={{
+          position: 'relative',
+          width: '100%',
+          height,
+          minHeight,
+          borderRadius: '12px',
+          overflow: 'hidden',
+          border: '1px solid #cbd5e1',
+          boxShadow: '0 4px 14px rgba(0,0,0,0.08)'
+        }}
       >
       <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
 
