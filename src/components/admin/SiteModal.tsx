@@ -165,6 +165,7 @@ export const SiteModal: React.FC<SiteModalProps> = ({
 
       setTimeout(() => {
         onSaved();
+        window.dispatchEvent(new CustomEvent('sites_updated'));
         onClose();
       }, 600);
     } catch (err: unknown) {

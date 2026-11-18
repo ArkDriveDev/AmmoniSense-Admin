@@ -40,7 +40,7 @@ import useSyncFeedback from '../hooks/useSyncFeedback';
 export default function Dashboard() {
   const history = useHistory();
   const { sites, globalStats, loading, refresh } = useSiteAnalytics();
-  const summaryCounts = useDashboardSummaryCounts();
+  const summaryCounts = useDashboardSummaryCounts(sites);
   const { syncToast, triggerSync, dismissSyncToast } = useSyncFeedback();
 
   const [mapReadings, setMapReadings] = useState<SensorReadingMarker[]>([]);
@@ -245,6 +245,7 @@ export default function Dashboard() {
     await refresh();
     await fetchMapReadings();
     if (sites.length > 0) await fetchSiteLatestAverages(sites);
+    await summaryCounts.refresh();
     event.detail.complete();
   };
 
@@ -294,54 +295,38 @@ export default function Dashboard() {
             </IonCol>
           </IonRow>
 
-          {/* Summary Section: Clean Air (<5 PPM), Poultry by Type, Chicken by Type */}
+          {/* Summary Section: Ammonia Readings by Status, Poultry Housing Types, Chicken by Type */}
           <IonRow style={{ marginTop: '8px' }}>
-            {/* Sites with clean air / low ppm (< 5 ppm) */}
+            {/* Chart 1: Ammonia Readings by Status */}
             <IonCol size="12" size-md="4">
               <DashboardDoughnutCard
-                title="Sites with Clean Air (<5 PPM)"
+                title="Ammonia Readings by Status"
                 icon={shieldCheckmarkOutline}
-                totalLabel="Evaluated"
-                slices={[
-                  { label: 'Clean Air', value: summaryCounts.airQuality.cleanAirSites, color: '#10b981' },
-                  { label: 'Not Clean Air', value: summaryCounts.airQuality.notCleanAirSites, color: '#ef4444' },
-                ]}
-                subtitleNote={
-                  summaryCounts.airQuality.excludedNoReadings > 0
-                    ? `${summaryCounts.airQuality.excludedNoReadings} site(s) without readings excluded`
-                    : null
-                }
-                emptyMessage="No inspection readings available."
+                totalLabel="Readings"
+                allowZeroSlices={true}
+                slices={summaryCounts.readingsStatusSlices}
+                emptyMessage="No ammonia readings recorded."
               />
             </IonCol>
 
-            {/* Poultry by Type Pie Chart */}
+            {/* Chart 2: Poultry Housing Types */}
             <IonCol size="12" size-md="4">
               <DashboardDoughnutCard
                 title="Poultry Housing Types"
                 icon={homeOutline}
                 totalLabel="Poultry Sites"
-                slices={[
-                  { label: 'Conventional', value: summaryCounts.poultryCounts.conventional, color: '#2563eb' },
-                  { label: 'Retrofitted', value: summaryCounts.poultryCounts.retrofitted, color: '#06b6d4' },
-                  { label: 'Tunnel Vent', value: summaryCounts.poultryCounts.tunnelVent, color: '#8b5cf6' },
-                ]}
+                slices={summaryCounts.poultrySlices}
                 emptyMessage="No poultry sites recorded."
               />
             </IonCol>
 
-            {/* Chicken by Type Pie Chart */}
+            {/* Chart 3: Chicken by Type */}
             <IonCol size="12" size-md="4">
               <DashboardDoughnutCard
-                title="Chicken Types Distribution"
+                title="Chicken by Type"
                 icon={eggOutline}
                 totalLabel="Sites"
-                slices={[
-                  { label: 'Layer', value: summaryCounts.chickenCounts.layer, color: '#10b981' },
-                  { label: 'Broiler', value: summaryCounts.chickenCounts.broiler, color: '#f59e0b' },
-                  { label: 'Breeder', value: summaryCounts.chickenCounts.breeder, color: '#ec4899' },
-                  { label: 'Grand Parents / GP', value: summaryCounts.chickenCounts.grandParents, color: '#6366f1' },
-                ]}
+                slices={summaryCounts.chickenSlices}
                 emptyMessage="No chicken types recorded."
               />
             </IonCol>

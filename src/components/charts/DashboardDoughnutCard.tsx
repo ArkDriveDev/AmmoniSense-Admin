@@ -23,6 +23,7 @@ export interface DashboardDoughnutCardProps {
   totalLabel?: string;
   subtitleNote?: string | null;
   emptyMessage?: string;
+  allowZeroSlices?: boolean;
 }
 
 export default function DashboardDoughnutCard({
@@ -32,10 +33,13 @@ export default function DashboardDoughnutCard({
   totalLabel = 'Total',
   subtitleNote,
   emptyMessage = 'No data recorded.',
+  allowZeroSlices = false,
 }: DashboardDoughnutCardProps) {
-  // Exclude slices with count 0 so zero-width slices are not drawn
-  const activeSlices = slices.filter((s) => s.value > 0);
-  const total = activeSlices.reduce((sum, s) => sum + s.value, 0);
+  // If allowZeroSlices is true (e.g. Ammonia Readings by Status), retain all slices
+  // so Safe, Warning, and Critical always appear in the legend even if count is 0.
+  // Otherwise (e.g. Poultry Types, Chicken Types), filter out 0-value slices.
+  const activeSlices = allowZeroSlices ? slices : slices.filter((s) => s.value > 0);
+  const total = slices.reduce((sum, s) => sum + s.value, 0);
 
   const chartData = {
     labels: activeSlices.map((s) => s.label),
@@ -44,7 +48,7 @@ export default function DashboardDoughnutCard({
         data: activeSlices.map((s) => s.value),
         backgroundColor: activeSlices.map((s) => s.color),
         borderColor: '#ffffff',
-        borderWidth: 2,
+        borderWidth: activeSlices.map((s) => (s.value > 0 ? 2 : 0)),
         hoverOffset: 4,
       },
     ],
