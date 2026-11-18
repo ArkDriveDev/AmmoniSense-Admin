@@ -35,15 +35,25 @@ export default function DashboardDoughnutCard({
   emptyMessage = 'No data recorded.',
   allowZeroSlices = false,
 }: DashboardDoughnutCardProps) {
-  // If allowZeroSlices is true (e.g. Ammonia Readings by Status), retain all slices
-  // so Safe, Warning, and Critical always appear in the legend even if count is 0.
-  // Otherwise (e.g. Poultry Types, Chicken Types), filter out 0-value slices.
+  // When allowZeroSlices is true, retain every slice (even if value is 0)
+  // so the legend displays all categories with their count: "Label (X)".
   const activeSlices = allowZeroSlices ? slices : slices.filter((s) => s.value > 0);
   const total = slices.reduce((sum, s) => sum + s.value, 0);
 
+  // If allowZeroSlices is true, do not show an empty placeholder even when total is 0
+  const showEmptyPlaceholder = !allowZeroSlices && total === 0;
+
   const chartData = {
     labels: activeSlices.map((s) => s.label),
-    datasets: [
+    datasets: total === 0 ? [
+      {
+        data: [1],
+        backgroundColor: ['#e2e8f0'],
+        borderColor: '#ffffff',
+        borderWidth: 2,
+        hoverOffset: 0,
+      },
+    ] : [
       {
         data: activeSlices.map((s) => s.value),
         backgroundColor: activeSlices.map((s) => s.color),
@@ -65,19 +75,31 @@ export default function DashboardDoughnutCard({
           boxWidth: 10,
           boxHeight: 10,
           usePointStyle: true,
-          pointStyle: 'circle',
-          padding: 12,
+          pointStyle: 'circle' as const,
+          padding: 10,
           font: {
             size: 11,
             weight: 600,
             family: 'system-ui, -apple-system, sans-serif',
           },
           color: '#334155',
+          generateLabels: () => {
+            return activeSlices.map((slice, i) => ({
+              text: `${slice.label} (${slice.value})`,
+              fillStyle: slice.color,
+              strokeStyle: slice.color,
+              lineWidth: 0,
+              pointStyle: 'circle' as const,
+              hidden: false,
+              index: i,
+            }));
+          },
         },
       },
       tooltip: {
         callbacks: {
           label: (context: any) => {
+            if (total === 0) return ' No data (0)';
             const val = Number(context.raw || 0);
             const pct = total > 0 ? Math.round((val / total) * 100) : 0;
             return ` ${context.label}: ${val} (${pct}%)`;
@@ -117,7 +139,7 @@ export default function DashboardDoughnutCard({
         </div>
 
         {/* Content Body: Chart with Center Count or Empty Placeholder */}
-        {total === 0 ? (
+        {showEmptyPlaceholder ? (
           <div
             style={{
               flex: 1,

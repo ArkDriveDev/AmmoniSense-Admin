@@ -267,7 +267,7 @@ export function useDashboardSummaryCounts(dashboardSites?: any[]): DashboardSumm
     return effectiveSites.filter((s) => s.is_active !== false);
   }, [effectiveSites]);
 
-  // Compute Poultry Slices & Counts
+  // Compute Poultry Slices & Counts in fixed order: CONVENTIONAL, RETROFITTED, TUNNEL VENT
   const { poultryCounts, poultrySlices } = useMemo(() => {
     const standardPoultry = ['Conventional', 'Retrofitted', 'Tunnel Vent'];
     const tally = new Map<string, number>();
@@ -275,7 +275,7 @@ export function useDashboardSummaryCounts(dashboardSites?: any[]): DashboardSumm
 
     activeSites.forEach((s) => {
       const label = normalizePoultryType(s.poultry_type);
-      if (label) {
+      if (label && tally.has(label)) {
         tally.set(label, (tally.get(label) || 0) + 1);
       }
     });
@@ -286,9 +286,10 @@ export function useDashboardSummaryCounts(dashboardSites?: any[]): DashboardSumm
       tunnelVent: tally.get('Tunnel Vent') || 0,
     };
 
-    const slices: DoughnutSlice[] = Array.from(tally.entries()).map(([label, value]) => ({
+    // Always include every category in the fixed list, in this order: CONVENTIONAL, RETROFITTED, TUNNEL VENT
+    const slices: DoughnutSlice[] = standardPoultry.map((label) => ({
       label,
-      value,
+      value: tally.get(label) || 0,
       color: POULTRY_COLOR_MAP[label] || '#64748b',
     }));
 

@@ -313,6 +313,7 @@ export default function Dashboard() {
                 title="Poultry Housing Types"
                 icon={homeOutline}
                 totalLabel="Poultry Sites"
+                allowZeroSlices={true}
                 slices={summaryCounts.poultrySlices}
                 emptyMessage="No poultry sites recorded."
               />
