@@ -33,6 +33,7 @@ import { useDashboardSummaryCounts } from '../hooks/useDashboardSummaryCounts';
 import { StatsCard, DashboardDoughnutCard } from '../components/charts';
 import SpatialPolygonMap, { SensorReadingMarker } from '../components/map/SpatialPolygonMap';
 import { SiteDetailModal } from '../components/admin/SiteDetailModal';
+import CategorySitesModal, { CategorySiteItem } from '../components/admin/CategorySitesModal';
 import { supabase } from '../services/supabase';
 import useSyncFeedback from '../hooks/useSyncFeedback';
 
@@ -47,6 +48,10 @@ export default function Dashboard() {
   const [showGlobalMap, setShowGlobalMap] = useState<boolean>(false);
   const [selectedSiteForModal, setSelectedSiteForModal] = useState<SiteAnalyticsData | null>(null);
   const [showSiteDetailModal, setShowSiteDetailModal] = useState<boolean>(false);
+  const [activeSliceModal, setActiveSliceModal] = useState<{
+    chartType: 'status' | 'poultry' | 'chicken';
+    category: string;
+  } | null>(null);
 
   const fetchMapReadings = useCallback(async () => {
     try {
@@ -298,6 +303,7 @@ export default function Dashboard() {
                 totalLabel="Sites"
                 allowZeroSlices={true}
                 slices={summaryCounts.siteStatusSlices}
+                onSliceClick={(slice) => setActiveSliceModal({ chartType: 'status', category: slice.label })}
                 subtitleNote={
                   summaryCounts.siteStatus.excludedNoReadings > 0
                     ? `${summaryCounts.siteStatus.excludedNoReadings} site(s) without readings excluded`
@@ -315,6 +321,7 @@ export default function Dashboard() {
                 totalLabel="Poultry Sites"
                 allowZeroSlices={true}
                 slices={summaryCounts.poultrySlices}
+                onSliceClick={(slice) => setActiveSliceModal({ chartType: 'poultry', category: slice.label })}
                 emptyMessage="No poultry sites recorded."
               />
             </IonCol>
@@ -327,6 +334,7 @@ export default function Dashboard() {
                 totalLabel="Sites"
                 allowZeroSlices={true}
                 slices={summaryCounts.chickenSlices}
+                onSliceClick={(slice) => setActiveSliceModal({ chartType: 'chicken', category: slice.label })}
                 emptyMessage="No chicken types recorded."
               />
             </IonCol>
@@ -386,6 +394,19 @@ export default function Dashboard() {
             setSelectedSiteForModal(null);
           }}
           site={selectedSiteForModal}
+        />
+
+        <CategorySitesModal
+          isOpen={!!activeSliceModal}
+          onClose={() => setActiveSliceModal(null)}
+          chartType={activeSliceModal?.chartType || null}
+          category={activeSliceModal?.category || null}
+          onSelectSite={(site) => {
+            setActiveSliceModal(null);
+            const targetSite = sites.find((s) => s.id === site.id) || (site as any);
+            setSelectedSiteForModal(targetSite);
+            setShowSiteDetailModal(true);
+          }}
         />
 
         <IonToast

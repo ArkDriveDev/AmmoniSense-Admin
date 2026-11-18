@@ -24,6 +24,7 @@ export interface DashboardDoughnutCardProps {
   subtitleNote?: string | null;
   emptyMessage?: string;
   allowZeroSlices?: boolean;
+  onSliceClick?: (slice: DoughnutSlice) => void;
 }
 
 export default function DashboardDoughnutCard({
@@ -34,6 +35,7 @@ export default function DashboardDoughnutCard({
   subtitleNote,
   emptyMessage = 'No data recorded.',
   allowZeroSlices = false,
+  onSliceClick,
 }: DashboardDoughnutCardProps) {
   // When allowZeroSlices is true, retain every slice (even if value is 0)
   // so the legend displays all categories with their count: "Label (X)".
@@ -68,9 +70,29 @@ export default function DashboardDoughnutCard({
     responsive: true,
     maintainAspectRatio: false,
     cutout: '68%',
+    onClick: (_event: any, elements: any[]) => {
+      if (elements && elements.length > 0) {
+        const index = elements[0].index;
+        const clickedSlice = activeSlices[index];
+        if (clickedSlice && onSliceClick) {
+          onSliceClick(clickedSlice);
+        }
+      }
+    },
+    onHover: (event: any, elements: any[]) => {
+      if (event?.native?.target) {
+        event.native.target.style.cursor = elements && elements.length > 0 ? 'pointer' : 'default';
+      }
+    },
     plugins: {
       legend: {
         position: 'bottom' as const,
+        onClick: (_event: any, legendItem: any) => {
+          const index = legendItem.index;
+          if (index !== undefined && activeSlices[index] && onSliceClick) {
+            onSliceClick(activeSlices[index]);
+          }
+        },
         labels: {
           boxWidth: 10,
           boxHeight: 10,
