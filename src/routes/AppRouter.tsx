@@ -13,6 +13,7 @@ import Notifications from '../pages/Notifications';
 import InspectionReport from '../pages/admin/InspectionReport';
 import SessionDetail from '../pages/admin/SessionDetail';
 import UserDevices from '../pages/admin/UserDevices';
+import ActivityLogs from '../pages/admin/ActivityLogs';
 
 import ProtectedRoute from '../components/ProtectedRoute';
 import AdminLayout from '../layouts/AdminLayout';
@@ -160,6 +161,17 @@ export default function AppRouter() {
           <ProtectedRoute>
             <AdminLayout>
               <Notifications />
+            </AdminLayout>
+          </ProtectedRoute>
+        )}
+      />
+
+      <Route
+        path={['/admin/logs', '/logs']}
+        render={() => (
+          <ProtectedRoute>
+            <AdminLayout>
+              <ActivityLogs />
             </AdminLayout>
           </ProtectedRoute>
         )}

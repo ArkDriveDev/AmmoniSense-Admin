@@ -22,6 +22,7 @@ import {
   barChartOutline,
   calendarOutline,
   notificationsOutline,
+  documentTextOutline,
   logOutOutline,
   personCircleOutline,
   menuOutline
@@ -300,6 +301,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               <IonIcon icon={notificationsOutline} slot="start" />
               <IonLabel style={{ fontSize: '13px' }}>ALERTS</IonLabel>
+            </IonItem>
+
+            <IonItem 
+              button 
+              lines="none"
+              onClick={() => handleNavigate('/admin/logs')}
+              color={isActive('/admin/logs') || isActive('/logs') ? 'primary' : undefined}
+              style={{
+                borderRadius: '8px',
+                margin: '2px 0',
+                borderLeft: (isActive('/admin/logs') || isActive('/logs')) ? '4px solid #1a365d' : 'none',
+                fontWeight: (isActive('/admin/logs') || isActive('/logs')) ? 'bold' : 'normal'
+              }}
+            >
+              <IonIcon icon={documentTextOutline} slot="start" />
+              <IonLabel style={{ fontSize: '13px' }}>LOGS</IonLabel>
             </IonItem>
 
             <IonItem 
