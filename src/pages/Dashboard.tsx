@@ -20,7 +20,6 @@ import {
 import {
   businessOutline,
   hardwareChipOutline,
-  alertCircleOutline,
   refreshOutline,
   mapOutline,
   shieldCheckmarkOutline,
@@ -279,19 +278,13 @@ export default function Dashboard() {
         </IonRefresher>
 
         <IonGrid style={{ padding: 0 }}>
-          {/* Top 4 KPI Metrics */}
+          {/* Top KPI Metrics */}
           <IonRow>
-            <IonCol size="12" size-sm="6" size-md="3">
+            <IonCol size="12" size-sm="6">
               <StatsCard title="Total Monitored Sites" value={globalStats.totalSites} icon={businessOutline} color="primary" />
             </IonCol>
-            <IonCol size="12" size-sm="6" size-md="3">
+            <IonCol size="12" size-sm="6">
               <StatsCard title="Active Hardware Devices" value={globalStats.activeDevices} icon={hardwareChipOutline} color="success" />
-            </IonCol>
-            <IonCol size="12" size-sm="6" size-md="3">
-              <StatsCard title="Sites With NH₃ Warnings" value={globalStats.sitesWithAlerts} icon={alertCircleOutline} color="warning" />
-            </IonCol>
-            <IonCol size="12" size-sm="6" size-md="3">
-              <StatsCard title="Critical NH₃ Exceedances" value={globalStats.criticalAlerts} icon={alertCircleOutline} color="danger" />
             </IonCol>
           </IonRow>
 
