@@ -10,7 +10,8 @@ import {
   IonIcon,
   IonBadge,
   IonCard,
-  IonCardContent
+  IonCardContent,
+  IonSearchbar
 } from '@ionic/react';
 import {
   refreshOutline,
@@ -31,6 +32,21 @@ export default function ActivityLogs() {
   const [totalCount, setTotalCount] = useState<number>(0);
   const [page, setPage] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+
+  // Debounce search input by 300ms
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Reset page to 0 when search changes
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch]);
 
   const fetchLogs = useCallback(async (targetPage = page) => {
     setLoading(true);
@@ -38,9 +54,32 @@ export default function ActivityLogs() {
       const from = targetPage * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
 
-      const { data, count, error } = await supabase
+      let query = supabase
         .from('activity_logs')
-        .select('*, profiles(id, full_name, email)', { count: 'exact' })
+        .select('*, profiles(id, full_name, email)', { count: 'exact' });
+
+      if (debouncedSearch) {
+        // Query matching profiles first to include profile IDs in search
+        const { data: matchingProfiles } = await supabase
+          .from('profiles')
+          .select('id')
+          .or(`full_name.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%`);
+
+        const orClauses = [
+          `entity_type.ilike.%${debouncedSearch}%`,
+          `entity_id.ilike.%${debouncedSearch}%`,
+          `action.ilike.%${debouncedSearch}%`
+        ];
+
+        if (matchingProfiles && matchingProfiles.length > 0) {
+          const profileIds = matchingProfiles.map(p => p.id).join(',');
+          orClauses.push(`profile_id.in.(${profileIds})`);
+        }
+
+        query = query.or(orClauses.join(','));
+      }
+
+      const { data, count, error } = await query
         .order('created_at', { ascending: false })
         .range(from, to);
 
@@ -55,11 +94,11 @@ export default function ActivityLogs() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, debouncedSearch]);
 
   useEffect(() => {
     fetchLogs(page);
-  }, [page, fetchLogs]);
+  }, [page, debouncedSearch, fetchLogs]);
 
   // Realtime subscription for newest logs
   useEffect(() => {
@@ -162,6 +201,18 @@ export default function ActivityLogs() {
 
       <IonContent className="ion-padding" style={{ '--background': '#f8fafc' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Search Controls */}
+          <IonCard className="premium-card" style={{ margin: 0, padding: '8px' }}>
+            <IonSearchbar
+              placeholder="Search by entity, ID, action, user name, or email..."
+              value={searchTerm}
+              onIonInput={(e: CustomEvent) => setSearchTerm(e.detail.value || '')}
+              debounce={0}
+              showClearButton="focus"
+              style={{ padding: 0 }}
+            />
+          </IonCard>
+
           {/* Main Card */}
           <IonCard className="premium-card" style={{ margin: 0, overflow: 'hidden' }}>
             <IonCardContent style={{ padding: 0 }}>
