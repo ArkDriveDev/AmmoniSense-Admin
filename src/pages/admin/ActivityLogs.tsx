@@ -11,14 +11,18 @@ import {
   IonBadge,
   IonCard,
   IonCardContent,
-  IonSearchbar
+  IonSearchbar,
+  IonSelect,
+  IonSelectOption
 } from '@ionic/react';
 import {
   refreshOutline,
   chevronBackOutline,
   chevronForwardOutline,
   eyeOutline,
-  documentTextOutline
+  documentTextOutline,
+  filterOutline,
+  closeCircleOutline
 } from 'ionicons/icons';
 import { supabase } from '../../services/supabase';
 import { ActivityLog } from '../../types/schema';
@@ -35,6 +39,48 @@ export default function ActivityLogs() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
 
+  // Filter options & selections
+  const [entityTypes, setEntityTypes] = useState<string[]>([]);
+  const [usersList, setUsersList] = useState<{ id: string; name: string }[]>([]);
+  const [selectedEntityType, setSelectedEntityType] = useState<string>('ALL');
+  const [selectedAction, setSelectedAction] = useState<string>('ALL');
+  const [selectedUser, setSelectedUser] = useState<string>('ALL');
+
+  // Load distinct filter options on mount
+  useEffect(() => {
+    const loadFilterOptions = async () => {
+      try {
+        const { data: entityData } = await supabase
+          .from('activity_logs')
+          .select('entity_type')
+          .limit(1000);
+
+        if (entityData) {
+          const types = Array.from(new Set(entityData.map((d: any) => d.entity_type).filter(Boolean))).sort();
+          setEntityTypes(types as string[]);
+        }
+
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .order('full_name');
+
+        if (profileData) {
+          setUsersList(
+            profileData.map((p: any) => ({
+              id: p.id,
+              name: p.full_name || p.email || p.id
+            }))
+          );
+        }
+      } catch (err) {
+        console.error('Error loading filter options:', err);
+      }
+    };
+
+    loadFilterOptions();
+  }, []);
+
   // Debounce search input by 300ms
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -43,10 +89,10 @@ export default function ActivityLogs() {
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Reset page to 0 when search changes
+  // Reset page to 0 when search or filters change
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, selectedEntityType, selectedAction, selectedUser]);
 
   const fetchLogs = useCallback(async (targetPage = page) => {
     setLoading(true);
@@ -58,8 +104,8 @@ export default function ActivityLogs() {
         .from('activity_logs')
         .select('*, profiles(id, full_name, email)', { count: 'exact' });
 
+      // Apply search across entity_type, entity_id, action, profile full_name & email
       if (debouncedSearch) {
-        // Query matching profiles first to include profile IDs in search
         const { data: matchingProfiles } = await supabase
           .from('profiles')
           .select('id')
@@ -79,6 +125,25 @@ export default function ActivityLogs() {
         query = query.or(orClauses.join(','));
       }
 
+      // Apply entity filter
+      if (selectedEntityType && selectedEntityType !== 'ALL') {
+        query = query.eq('entity_type', selectedEntityType);
+      }
+
+      // Apply action filter
+      if (selectedAction && selectedAction !== 'ALL') {
+        query = query.eq('action', selectedAction);
+      }
+
+      // Apply user filter
+      if (selectedUser && selectedUser !== 'ALL') {
+        if (selectedUser === 'SYSTEM') {
+          query = query.is('profile_id', null);
+        } else {
+          query = query.eq('profile_id', selectedUser);
+        }
+      }
+
       const { data, count, error } = await query
         .order('created_at', { ascending: false })
         .range(from, to);
@@ -94,11 +159,11 @@ export default function ActivityLogs() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, selectedEntityType, selectedAction, selectedUser]);
 
   useEffect(() => {
     fetchLogs(page);
-  }, [page, debouncedSearch, fetchLogs]);
+  }, [page, debouncedSearch, selectedEntityType, selectedAction, selectedUser, fetchLogs]);
 
   // Realtime subscription for newest logs
   useEffect(() => {
@@ -201,16 +266,94 @@ export default function ActivityLogs() {
 
       <IonContent className="ion-padding" style={{ '--background': '#f8fafc' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Search Controls */}
-          <IonCard className="premium-card" style={{ margin: 0, padding: '8px' }}>
+          {/* Search & Filters Controls */}
+          <IonCard className="premium-card" style={{ margin: 0, padding: '12px' }}>
             <IonSearchbar
               placeholder="Search by entity, ID, action, user name, or email..."
               value={searchTerm}
               onIonInput={(e: CustomEvent) => setSearchTerm(e.detail.value || '')}
               debounce={0}
               showClearButton="focus"
-              style={{ padding: 0 }}
+              style={{ padding: 0, marginBottom: '8px' }}
             />
+
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+              {/* Entity Type Filter */}
+              <div style={{ flex: '1 1 180px', minWidth: '150px' }}>
+                <IonSelect
+                  value={selectedEntityType}
+                  onIonChange={(e: CustomEvent) => setSelectedEntityType(e.detail.value || 'ALL')}
+                  interface="popover"
+                  label="Entity Type"
+                  labelPlacement="floating"
+                  fill="outline"
+                  style={{ fontSize: '13px' }}
+                >
+                  <IonSelectOption value="ALL">All Entity Types</IonSelectOption>
+                  {entityTypes.map(t => (
+                    <IonSelectOption key={t} value={t}>{t}</IonSelectOption>
+                  ))}
+                </IonSelect>
+              </div>
+
+              {/* Action Filter */}
+              <div style={{ flex: '1 1 150px', minWidth: '130px' }}>
+                <IonSelect
+                  value={selectedAction}
+                  onIonChange={(e: CustomEvent) => setSelectedAction(e.detail.value || 'ALL')}
+                  interface="popover"
+                  label="Action"
+                  labelPlacement="floating"
+                  fill="outline"
+                  style={{ fontSize: '13px' }}
+                >
+                  <IonSelectOption value="ALL">All Actions</IonSelectOption>
+                  <IonSelectOption value="INSERT">INSERT</IonSelectOption>
+                  <IonSelectOption value="UPDATE">UPDATE</IonSelectOption>
+                  <IonSelectOption value="DELETE">DELETE</IonSelectOption>
+                  <IonSelectOption value="LOGIN">LOGIN</IonSelectOption>
+                  <IonSelectOption value="LOGOUT">LOGOUT</IonSelectOption>
+                </IonSelect>
+              </div>
+
+              {/* User Filter */}
+              <div style={{ flex: '1 1 200px', minWidth: '170px' }}>
+                <IonSelect
+                  value={selectedUser}
+                  onIonChange={(e: CustomEvent) => setSelectedUser(e.detail.value || 'ALL')}
+                  interface="popover"
+                  label="User"
+                  labelPlacement="floating"
+                  fill="outline"
+                  style={{ fontSize: '13px' }}
+                >
+                  <IonSelectOption value="ALL">All Users</IonSelectOption>
+                  <IonSelectOption value="SYSTEM">System</IonSelectOption>
+                  {usersList.map(u => (
+                    <IonSelectOption key={u.id} value={u.id}>{u.name}</IonSelectOption>
+                  ))}
+                </IonSelect>
+              </div>
+
+              {/* Reset Filters Button if any filter active */}
+              {(selectedEntityType !== 'ALL' || selectedAction !== 'ALL' || selectedUser !== 'ALL' || searchTerm) && (
+                <IonButton
+                  size="small"
+                  fill="clear"
+                  color="medium"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setSelectedEntityType('ALL');
+                    setSelectedAction('ALL');
+                    setSelectedUser('ALL');
+                  }}
+                  style={{ fontSize: '12px', height: '42px', marginTop: '4px' }}
+                >
+                  <IonIcon icon={closeCircleOutline} slot="start" />
+                  Reset Filters
+                </IonButton>
+              )}
+            </div>
           </IonCard>
 
           {/* Main Card */}
