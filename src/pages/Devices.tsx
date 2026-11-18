@@ -88,7 +88,7 @@ export default function Devices() {
     <IonPage>
       <IonHeader>
         <IonToolbar style={{ '--background': '#1a365d', '--color': '#ffffff' }}>
-          <IonTitle style={{ fontWeight: 'bold' }}>REGISTERED BLE & IOT SENSORS</IonTitle>
+          <IonTitle style={{ fontWeight: 'bold' }}>REGISTERED BLUETOOTH & IOT SENSORS</IonTitle>
           <IonButtons slot="end">
             <IonButton onClick={() => triggerSync(refresh)}>
               <IonIcon icon={refreshOutline} />
@@ -170,8 +170,8 @@ export default function Devices() {
           <LoadingSpinner />
         ) : filteredDevices.length === 0 ? (
           <EmptyState
-            title="NO BLE SENSORS FOUND"
-            message={searchTerm || statusFilter !== 'all' ? 'TRY A DIFFERENT SEARCH OR FILTER' : 'BLE sensors auto-register when connected via the AmmoniSense mobile app'}
+            title="NO BLUETOOTH SENSORS FOUND"
+            message={searchTerm || statusFilter !== 'all' ? 'TRY A DIFFERENT SEARCH OR FILTER' : 'Bluetooth sensors auto-register when connected via the AmmoniSense mobile app'}
           />
         ) : (
           <IonList style={{ background: 'transparent' }}>

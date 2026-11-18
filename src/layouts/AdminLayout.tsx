@@ -267,7 +267,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               }}
             >
               <IonIcon icon={hardwareChipOutline} slot="start" />
-              <IonLabel style={{ fontSize: '13px' }}>BLE DEVICES</IonLabel>
+              <IonLabel style={{ fontSize: '13px' }}>BLUETOOTH DEVICES</IonLabel>
             </IonItem>
 
             <IonItem 
