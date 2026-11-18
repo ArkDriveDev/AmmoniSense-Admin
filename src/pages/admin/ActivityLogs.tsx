@@ -28,6 +28,7 @@ import { supabase } from '../../services/supabase';
 import { ActivityLog } from '../../types/schema';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import ActivityLogDetailModal from '../../components/admin/ActivityLogDetailModal';
 
 const PAGE_SIZE = 50;
 
@@ -45,6 +46,9 @@ export default function ActivityLogs() {
   const [selectedEntityType, setSelectedEntityType] = useState<string>('ALL');
   const [selectedAction, setSelectedAction] = useState<string>('ALL');
   const [selectedUser, setSelectedUser] = useState<string>('ALL');
+
+  // Detail Modal state
+  const [selectedLog, setSelectedLog] = useState<ActivityLog | null>(null);
 
   // Load distinct filter options on mount
   useEffect(() => {
@@ -436,6 +440,7 @@ export default function ActivityLogs() {
                               <IonButton
                                 size="small"
                                 fill="outline"
+                                onClick={() => setSelectedLog(log)}
                                 style={{
                                   '--border-color': '#1a365d',
                                   '--color': '#1a365d',
@@ -505,6 +510,13 @@ export default function ActivityLogs() {
             </IonCardContent>
           </IonCard>
         </div>
+
+        {/* Detail Modal */}
+        <ActivityLogDetailModal
+          isOpen={!!selectedLog}
+          log={selectedLog}
+          onClose={() => setSelectedLog(null)}
+        />
       </IonContent>
     </IonPage>
   );
