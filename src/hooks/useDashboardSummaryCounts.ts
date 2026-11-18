@@ -2,16 +2,18 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../services/supabase';
 import { DoughnutSlice } from '../components/charts/DashboardDoughnutCard';
 
-export interface ReadingsStatusSummary {
-  safe: number;
-  warning: number;
-  critical: number;
-  total: number;
+export interface SiteStatusCounts {
+  safeSites: number;
+  warningSites: number;
+  criticalSites: number;
+  sitesWithReadings: number;
+  excludedNoReadings: number;
+  totalActiveSites: number;
 }
 
 export interface DashboardSummaryCounts {
-  readingsStatus: ReadingsStatusSummary;
-  readingsStatusSlices: DoughnutSlice[];
+  siteStatus: SiteStatusCounts;
+  siteStatusSlices: DoughnutSlice[];
   poultryCounts: {
     conventional: number;
     retrofitted: number;
@@ -30,7 +32,14 @@ export interface DashboardSummaryCounts {
   loading: boolean;
   refresh: () => Promise<void>;
 
-  // Backwards compatibility for previous references
+  // Backwards compatibility aliases
+  readingsStatus: {
+    safe: number;
+    warning: number;
+    critical: number;
+    total: number;
+  };
+  readingsStatusSlices: DoughnutSlice[];
   cleanAirCount: number;
   airQuality: {
     cleanAirSites: number;
@@ -80,88 +89,170 @@ const CHICKEN_COLOR_MAP: Record<string, string> = {
 };
 
 export function useDashboardSummaryCounts(dashboardSites?: any[]): DashboardSummaryCounts {
-  const [readingsStatus, setReadingsStatus] = useState<ReadingsStatusSummary>({
-    safe: 0,
-    warning: 0,
-    critical: 0,
-    total: 0,
+  const [siteStatus, setSiteStatus] = useState<SiteStatusCounts>({
+    safeSites: 0,
+    warningSites: 0,
+    criticalSites: 0,
+    sitesWithReadings: 0,
+    excludedNoReadings: 0,
+    totalActiveSites: 0,
   });
 
   const [rawSites, setRawSites] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // 1. Fetch readings by status directly from sensor_data:
-  // SAFE (< 5), WARNING (5–24.99), CRITICAL (>= 25)
-  const fetchReadingsStatus = useCallback(async () => {
+  // 1. Fetch site-based ammonia status:
+  // SAFE: worst reading < 5
+  // WARNING: worst reading >= 5 and < 25
+  // CRITICAL: worst reading >= 25
+  // Join: inspection_sites -> inspection_schedules -> inspection_tags -> sensor_data
+  const fetchSiteStatus = useCallback(async () => {
     try {
-      const [safeRes, warningRes, criticalRes, totalRes] = await Promise.all([
-        supabase.from('sensor_data').select('*', { count: 'exact', head: true }).lt('ammonia', 5),
-        supabase.from('sensor_data').select('*', { count: 'exact', head: true }).gte('ammonia', 5).lt('ammonia', 25),
-        supabase.from('sensor_data').select('*', { count: 'exact', head: true }).gte('ammonia', 25),
-        supabase.from('sensor_data').select('*', { count: 'exact', head: true }).not('ammonia', 'is', null),
-      ]);
-
-      let safe = safeRes.count ?? 0;
-      let warning = warningRes.count ?? 0;
-      let critical = criticalRes.count ?? 0;
-      let total = totalRes.count ?? (safe + warning + critical);
-
-      if (safeRes.error || warningRes.error || criticalRes.error || totalRes.error) {
-        console.warn('Falling back to direct sensor_data select:', safeRes.error || warningRes.error || criticalRes.error);
-        const { data: readings } = await supabase
-          .from('sensor_data')
-          .select('ammonia')
-          .not('ammonia', 'is', null);
-
-        safe = 0;
-        warning = 0;
-        critical = 0;
-        (readings || []).forEach((r) => {
-          if (r.ammonia !== null && r.ammonia !== undefined) {
-            const a = Number(r.ammonia);
-            if (a < 5) safe++;
-            else if (a < 25) warning++;
-            else critical++;
-          }
-        });
-        total = safe + warning + critical;
-      }
-
-      setReadingsStatus({ safe, warning, critical, total });
-    } catch (err) {
-      console.error('Error fetching sensor_data readings by status:', err);
-    }
-  }, []);
-
-  // 2. Fetch sites if not passed from dashboard
-  const fetchSites = useCallback(async () => {
-    try {
+      // 1. Fetch active sites
       const { data: sitesData, error: sitesErr } = await supabase
         .from('inspection_sites')
         .select('id, poultry_type, chicken_type, is_active');
 
       if (sitesErr) {
-        console.warn('Could not fetch inspection_sites for summary counts:', sitesErr);
-      } else if (sitesData) {
-        setRawSites(sitesData);
+        console.warn('Could not fetch inspection_sites for site status:', sitesErr);
+        return;
       }
+
+      const activeSitesList = (sitesData || []).filter((s) => s.is_active !== false);
+      setRawSites(sitesData || []);
+
+      const activeSiteIds = activeSitesList.map((s) => s.id);
+      if (activeSiteIds.length === 0) {
+        setSiteStatus({
+          safeSites: 0,
+          warningSites: 0,
+          criticalSites: 0,
+          sitesWithReadings: 0,
+          excludedNoReadings: 0,
+          totalActiveSites: 0,
+        });
+        return;
+      }
+
+      // 2. Fetch schedules for these active sites
+      const { data: schedules, error: schedErr } = await supabase
+        .from('inspection_schedules')
+        .select('id, inspection_site_id')
+        .in('inspection_site_id', activeSiteIds);
+
+      if (schedErr) {
+        console.warn('Could not fetch inspection_schedules for site status:', schedErr);
+      }
+
+      const scheduleToSiteMap = new Map<number, number>();
+      const scheduleIds: number[] = [];
+      (schedules || []).forEach((sc) => {
+        if (sc.id && sc.inspection_site_id) {
+          scheduleToSiteMap.set(sc.id, sc.inspection_site_id);
+          scheduleIds.push(sc.id);
+        }
+      });
+
+      // 3. Fetch tags for these schedules
+      const tagToSiteMap = new Map<number, number>();
+      const tagIds: number[] = [];
+      if (scheduleIds.length > 0) {
+        const { data: tags, error: tagsErr } = await supabase
+          .from('inspection_tags')
+          .select('id, inspection_schedule_id')
+          .in('inspection_schedule_id', scheduleIds);
+
+        if (tagsErr) {
+          console.warn('Could not fetch inspection_tags for site status:', tagsErr);
+        }
+
+        (tags || []).forEach((t) => {
+          if (t.id && t.inspection_schedule_id) {
+            const siteId = scheduleToSiteMap.get(t.inspection_schedule_id);
+            if (siteId) {
+              tagToSiteMap.set(t.id, siteId);
+              tagIds.push(t.id);
+            }
+          }
+        });
+      }
+
+      // 4. Fetch sensor_data for these tags and compute worst_ppm & reading_count per site
+      const siteMaxPpm = new Map<number, number>();
+      const siteReadingCount = new Map<number, number>();
+
+      if (tagIds.length > 0) {
+        const { data: sensorRows, error: sensorErr } = await supabase
+          .from('sensor_data')
+          .select('inspection_tag_id, ammonia')
+          .in('inspection_tag_id', tagIds)
+          .not('ammonia', 'is', null);
+
+        if (sensorErr) {
+          console.warn('Could not fetch sensor_data for site status:', sensorErr);
+        }
+
+        (sensorRows || []).forEach((r) => {
+          const siteId = tagToSiteMap.get(r.inspection_tag_id);
+          if (siteId && r.ammonia !== null && r.ammonia !== undefined) {
+            const a = Number(r.ammonia);
+            const currMax = siteMaxPpm.get(siteId);
+            if (currMax === undefined || a > currMax) {
+              siteMaxPpm.set(siteId, a);
+            }
+            siteReadingCount.set(siteId, (siteReadingCount.get(siteId) || 0) + 1);
+          }
+        });
+      }
+
+      // 5. Bucket each site into exactly one category
+      let safeSites = 0;
+      let warningSites = 0;
+      let criticalSites = 0;
+      let excludedNoReadings = 0;
+
+      activeSiteIds.forEach((siteId) => {
+        const count = siteReadingCount.get(siteId) || 0;
+        const worstPpm = siteMaxPpm.get(siteId);
+
+        if (count === 0 || worstPpm === undefined) {
+          excludedNoReadings++;
+        } else if (worstPpm >= 25) {
+          criticalSites++;
+        } else if (worstPpm >= 5) {
+          warningSites++;
+        } else {
+          safeSites++;
+        }
+      });
+
+      const sitesWithReadings = safeSites + warningSites + criticalSites;
+
+      setSiteStatus({
+        safeSites,
+        warningSites,
+        criticalSites,
+        sitesWithReadings,
+        excludedNoReadings,
+        totalActiveSites: activeSiteIds.length,
+      });
     } catch (err) {
-      console.error('Error fetching inspection sites for summary counts:', err);
+      console.error('Error fetching site ammonia status summary:', err);
     }
   }, []);
 
-  const fetchSummaryCounts = useCallback(async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      await Promise.all([fetchReadingsStatus(), fetchSites()]);
+      await fetchSiteStatus();
     } finally {
       setLoading(false);
     }
-  }, [fetchReadingsStatus, fetchSites]);
+  }, [fetchSiteStatus]);
 
   useEffect(() => {
-    fetchSummaryCounts();
-  }, [fetchSummaryCounts]);
+    refresh();
+  }, [refresh]);
 
   // Use sites from props if available and non-empty, otherwise use fetched sites
   const effectiveSites = useMemo(() => {
@@ -233,33 +324,40 @@ export function useDashboardSummaryCounts(dashboardSites?: any[]): DashboardSumm
     return { chickenCounts: counts, chickenSlices: slices };
   }, [activeSites]);
 
-  // Chart 1: Ammonia Readings by Status Slices
+  // Chart 1: Sites by Ammonia Status Slices
   // All three slices must always be present, even if one is zero
-  const readingsStatusSlices: DoughnutSlice[] = useMemo(() => {
+  const siteStatusSlices: DoughnutSlice[] = useMemo(() => {
     return [
-      { label: 'Safe (<5 PPM)', value: readingsStatus.safe, color: '#10b981' },
-      { label: 'Warning (5–24.99 PPM)', value: readingsStatus.warning, color: '#f59e0b' },
-      { label: 'Critical (≥25 PPM)', value: readingsStatus.critical, color: '#ef4444' },
+      { label: 'Safe (<5 PPM)', value: siteStatus.safeSites, color: '#10b981' },
+      { label: 'Warning (5–24.99 PPM)', value: siteStatus.warningSites, color: '#f59e0b' },
+      { label: 'Critical (≥25 PPM)', value: siteStatus.criticalSites, color: '#ef4444' },
     ];
-  }, [readingsStatus]);
+  }, [siteStatus]);
 
   return {
-    readingsStatus,
-    readingsStatusSlices,
+    siteStatus,
+    siteStatusSlices,
     poultryCounts,
     poultrySlices,
     chickenCounts,
     chickenSlices,
     loading,
-    refresh: fetchSummaryCounts,
+    refresh,
 
     // Deprecated compatibility fields
-    cleanAirCount: readingsStatus.safe,
+    readingsStatus: {
+      safe: siteStatus.safeSites,
+      warning: siteStatus.warningSites,
+      critical: siteStatus.criticalSites,
+      total: siteStatus.sitesWithReadings,
+    },
+    readingsStatusSlices: siteStatusSlices,
+    cleanAirCount: siteStatus.safeSites,
     airQuality: {
-      cleanAirSites: readingsStatus.safe,
-      notCleanAirSites: readingsStatus.warning + readingsStatus.critical,
-      excludedNoReadings: 0,
-      totalWithReadings: readingsStatus.total,
+      cleanAirSites: siteStatus.safeSites,
+      notCleanAirSites: siteStatus.warningSites + siteStatus.criticalSites,
+      excludedNoReadings: siteStatus.excludedNoReadings,
+      totalWithReadings: siteStatus.sitesWithReadings,
     },
   };
 }

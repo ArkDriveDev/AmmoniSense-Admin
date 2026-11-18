@@ -295,17 +295,22 @@ export default function Dashboard() {
             </IonCol>
           </IonRow>
 
-          {/* Summary Section: Ammonia Readings by Status, Poultry Housing Types, Chicken by Type */}
+          {/* Summary Section: Sites by Ammonia Status, Poultry Housing Types, Chicken by Type */}
           <IonRow style={{ marginTop: '8px' }}>
-            {/* Chart 1: Ammonia Readings by Status */}
+            {/* Chart 1: Sites by Ammonia Status */}
             <IonCol size="12" size-md="4">
               <DashboardDoughnutCard
-                title="Ammonia Readings by Status"
+                title="Sites by Ammonia Status"
                 icon={shieldCheckmarkOutline}
-                totalLabel="Readings"
+                totalLabel="Sites"
                 allowZeroSlices={true}
-                slices={summaryCounts.readingsStatusSlices}
-                emptyMessage="No ammonia readings recorded."
+                slices={summaryCounts.siteStatusSlices}
+                subtitleNote={
+                  summaryCounts.siteStatus.excludedNoReadings > 0
+                    ? `${summaryCounts.siteStatus.excludedNoReadings} site(s) without readings excluded`
+                    : null
+                }
+                emptyMessage="No inspection readings available."
               />
             </IonCol>
 
