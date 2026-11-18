@@ -503,6 +503,7 @@ export default function AdminInspectionSites() {
           site={selectedSiteForEdit}
           onSaved={() => {
             fetchInspectionSites();
+            window.dispatchEvent(new CustomEvent('sites_updated'));
           }}
         />
 

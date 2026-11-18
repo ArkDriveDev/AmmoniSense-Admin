@@ -14,7 +14,8 @@ import {
   IonButton,
   IonCard,
   IonCardContent,
-  IonToast
+  IonToast,
+  useIonViewWillEnter
 } from '@ionic/react';
 import {
   businessOutline,
@@ -24,12 +25,7 @@ import {
   mapOutline,
   shieldCheckmarkOutline,
   homeOutline,
-  constructOutline,
-  swapHorizontalOutline,
-  eggOutline,
-  nutritionOutline,
-  heartOutline,
-  ribbonOutline
+  eggOutline
 } from 'ionicons/icons';
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
@@ -229,6 +225,22 @@ export default function Dashboard() {
     }
   }, [sites, fetchSiteLatestAverages]);
 
+  useIonViewWillEnter(() => {
+    refresh();
+    summaryCounts.refresh();
+  });
+
+  useEffect(() => {
+    const handleSitesUpdated = () => {
+      summaryCounts.refresh();
+      refresh();
+    };
+    window.addEventListener('sites_updated', handleSitesUpdated);
+    return () => {
+      window.removeEventListener('sites_updated', handleSitesUpdated);
+    };
+  }, [summaryCounts, refresh]);
+
   const handleRefresh = async (event: CustomEvent) => {
     await refresh();
     await fetchMapReadings();
@@ -318,47 +330,19 @@ export default function Dashboard() {
               />
             </IonCol>
 
-            {/* Chicken: Layer */}
-            <IonCol size="6" size-sm="3" size-md="3">
-              <StatsCard
-                title="Layer"
-                value={summaryCounts.chickenCounts.layer}
+            {/* Chicken by Type Pie Chart */}
+            <IonCol size="12" size-md="4">
+              <DashboardDoughnutCard
+                title="Chicken Types Distribution"
                 icon={eggOutline}
-                color="tertiary"
-                subtitle="Chicken Type"
-              />
-            </IonCol>
-
-            {/* Chicken: Broiler */}
-            <IonCol size="6" size-sm="3" size-md="3">
-              <StatsCard
-                title="Broiler"
-                value={summaryCounts.chickenCounts.broiler}
-                icon={nutritionOutline}
-                color="tertiary"
-                subtitle="Chicken Type"
-              />
-            </IonCol>
-
-            {/* Chicken: Breeder */}
-            <IonCol size="6" size-sm="3" size-md="3">
-              <StatsCard
-                title="Breeder"
-                value={summaryCounts.chickenCounts.breeder}
-                icon={heartOutline}
-                color="tertiary"
-                subtitle="Chicken Type"
-              />
-            </IonCol>
-
-            {/* Chicken: Grand Parents / GP */}
-            <IonCol size="6" size-sm="3" size-md="3">
-              <StatsCard
-                title="Grand Parents (GP)"
-                value={summaryCounts.chickenCounts.grandParents}
-                icon={ribbonOutline}
-                color="tertiary"
-                subtitle="Chicken Type"
+                totalLabel="Sites"
+                slices={[
+                  { label: 'Layer', value: summaryCounts.chickenCounts.layer, color: '#10b981' },
+                  { label: 'Broiler', value: summaryCounts.chickenCounts.broiler, color: '#f59e0b' },
+                  { label: 'Breeder', value: summaryCounts.chickenCounts.breeder, color: '#ec4899' },
+                  { label: 'Grand Parents / GP', value: summaryCounts.chickenCounts.grandParents, color: '#6366f1' },
+                ]}
+                emptyMessage="No chicken types recorded."
               />
             </IonCol>
           </IonRow>
