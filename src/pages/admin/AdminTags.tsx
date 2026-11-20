@@ -441,11 +441,11 @@ export default function AdminTags() {
           sortBy={ammoniaFilter}
           onSortChange={(val) => setAmmoniaFilter(val)}
           sortOptions={[
-            { value: 'all', label: 'All Levels' },
-            { value: 'NORMAL', label: 'Normal' },
-            { value: 'WARNING', label: 'Warning' },
-            { value: 'HIGH', label: 'High' },
-            { value: 'CRITICAL', label: 'Critical' }
+            { value: 'all', label: 'All Ammonia' },
+            { value: 'NORMAL', label: 'Normal (<=25)' },
+            { value: 'WARNING', label: 'Warning (25-35)' },
+            { value: 'HIGH', label: 'High (35-50)' },
+            { value: 'CRITICAL', label: 'Critical (>50)' }
           ]}
           sortPlaceholder="Ammonia"
         >
@@ -489,7 +489,7 @@ export default function AdminTags() {
               className="sort-select-chip"
             >
               <IonSelectOption value="all">All Violations</IonSelectOption>
-              <IonSelectOption value="HAS_VIOLATION">Any Violation</IonSelectOption>
+              <IonSelectOption value="HAS_VIOLATION">Has Violation</IonSelectOption>
               <IonSelectOption value="NONE">No Violation</IonSelectOption>
               {VIOLATION_CATEGORIES.map((cat) => (
                 <IonSelectOption key={cat.value} value={cat.value}>
