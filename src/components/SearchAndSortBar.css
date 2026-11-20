@@ -26,7 +26,7 @@
   max-width: 620px;
 }
 
-/* Search Bar (Left Side) */
+/* Search Bar (Left Side) - Prominent heavy border */
 .search-input-wrapper {
   flex: 1;
   min-width: 0;
@@ -34,24 +34,29 @@
   display: flex;
   align-items: center;
   height: 46px;
-  background-color: #F2F3F5;
+  background-color: #ffffff;
   border-radius: 24px;
   box-sizing: border-box;
   transition: all 0.2s ease-in-out;
-  border: 1px solid transparent;
+  border: 2px solid #64748b;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.search-input-wrapper:hover {
+  border-color: #1a365d;
 }
 
 .search-input-wrapper:focus-within {
   background-color: #ffffff;
   border-color: #1D5D9B;
-  box-shadow: 0 0 0 3px rgba(29, 93, 155, 0.15);
+  box-shadow: 0 0 0 3px rgba(29, 93, 155, 0.2);
 }
 
 .search-icon-left {
   position: absolute;
   left: 14px;
-  font-size: 18px;
-  color: #64748b;
+  font-size: 19px;
+  color: #475569;
   pointer-events: none;
   display: flex;
   align-items: center;
@@ -67,7 +72,7 @@
   background: transparent;
   padding: 0 40px 0 42px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: #0f172a;
   border-radius: 24px;
   box-sizing: border-box;
@@ -77,6 +82,7 @@
 .search-inner-input::placeholder {
   color: #64748b;
   opacity: 0.85;
+  font-weight: 500;
 }
 
 .search-clear-btn {
@@ -89,36 +95,40 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: #64748b;
   transition: color 0.15s ease;
 }
 
 .search-clear-btn:hover {
-  color: #64748b;
+  color: #1a365d;
 }
 
-/* Sort Control (Right Side) - 150px width for readable labels */
+/* Sort Control (Right Side) - Prominent heavy border matching search bar */
 .sort-control-wrapper {
   width: 150px;
   flex: 0 0 150px;
   height: 46px;
-  background-color: #F2F3F5;
+  background-color: #ffffff;
   border-radius: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  border: 1px solid transparent;
+  border: 2px solid #64748b;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   transition: all 0.2s ease-in-out;
   position: relative;
   overflow: hidden;
 }
 
-.sort-control-wrapper:hover,
+.sort-control-wrapper:hover {
+  border-color: #1a365d;
+}
+
 .sort-control-wrapper:focus-within {
-  border-color: #cbd5e1;
+  border-color: #1D5D9B;
   background-color: #ffffff;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 0 3px rgba(29, 93, 155, 0.2);
 }
 
 /* Ionic Select styling */
@@ -130,8 +140,8 @@ ion-select.sort-select-chip {
   --padding-top: 0;
   --padding-bottom: 0;
   font-size: 12px;
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: 700;
+  color: #0f172a;
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
@@ -146,14 +156,14 @@ select.sort-select-chip,
   background: transparent;
   padding: 0 28px 0 14px;
   font-size: 12px;
-  font-weight: 600;
-  color: #1e293b;
+  font-weight: 700;
+  color: #0f172a;
   cursor: pointer;
   text-transform: uppercase;
   letter-spacing: 0.3px;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2.8' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 12px;
@@ -190,18 +200,18 @@ select.sort-select-chip,
 
 .sub-filter-chip {
   height: 34px;
-  background-color: #F2F3F5;
+  background-color: #ffffff;
   border-radius: 17px;
   font-size: 12px;
   font-weight: 600;
-  color: #334155;
+  color: #1e293b;
   --padding-start: 12px;
   --padding-end: 12px;
-  border: 1px solid transparent;
+  border: 1.5px solid #94a3b8;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   transition: all 0.15s ease-in-out;
 }
 
 .sub-filter-chip:hover {
-  border-color: #cbd5e1;
-  background-color: #ffffff;
+  border-color: #1a365d;
 }
