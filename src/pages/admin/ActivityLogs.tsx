@@ -280,48 +280,52 @@ export default function ActivityLogs() {
             { value: 'asc', label: 'Oldest' }
           ]}
           sortPlaceholder="Order"
-        />
+        >
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={selectedEntityType}
+              onIonChange={(e: CustomEvent) => setSelectedEntityType(e.detail.value || 'ALL')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="ALL">All Entities</IonSelectOption>
+              {entityTypes.map(t => (
+                <IonSelectOption key={t} value={t}>{t}</IonSelectOption>
+              ))}
+            </IonSelect>
+          </div>
 
-        <div className="sub-filter-row">
-          <IonSelect
-            value={selectedEntityType}
-            onIonChange={(e: CustomEvent) => setSelectedEntityType(e.detail.value || 'ALL')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="ALL">All Entity Types</IonSelectOption>
-            {entityTypes.map(t => (
-              <IonSelectOption key={t} value={t}>{t}</IonSelectOption>
-            ))}
-          </IonSelect>
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={selectedAction}
+              onIonChange={(e: CustomEvent) => setSelectedAction(e.detail.value || 'ALL')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="ALL">All Actions</IonSelectOption>
+              <IonSelectOption value="INSERT">INSERT</IonSelectOption>
+              <IonSelectOption value="UPDATE">UPDATE</IonSelectOption>
+              <IonSelectOption value="DELETE">DELETE</IonSelectOption>
+              <IonSelectOption value="LOGIN">LOGIN</IonSelectOption>
+              <IonSelectOption value="LOGOUT">LOGOUT</IonSelectOption>
+            </IonSelect>
+          </div>
 
-          <IonSelect
-            value={selectedAction}
-            onIonChange={(e: CustomEvent) => setSelectedAction(e.detail.value || 'ALL')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="ALL">All Actions</IonSelectOption>
-            <IonSelectOption value="INSERT">INSERT</IonSelectOption>
-            <IonSelectOption value="UPDATE">UPDATE</IonSelectOption>
-            <IonSelectOption value="DELETE">DELETE</IonSelectOption>
-            <IonSelectOption value="LOGIN">LOGIN</IonSelectOption>
-            <IonSelectOption value="LOGOUT">LOGOUT</IonSelectOption>
-          </IonSelect>
-
-          <IonSelect
-            value={selectedUser}
-            onIonChange={(e: CustomEvent) => setSelectedUser(e.detail.value || 'ALL')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="ALL">All Users</IonSelectOption>
-            <IonSelectOption value="SYSTEM">System</IonSelectOption>
-            {usersList.map(u => (
-              <IonSelectOption key={u.id} value={u.id}>{u.name}</IonSelectOption>
-            ))}
-          </IonSelect>
-        </div>
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={selectedUser}
+              onIonChange={(e: CustomEvent) => setSelectedUser(e.detail.value || 'ALL')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="ALL">All Users</IonSelectOption>
+              <IonSelectOption value="SYSTEM">System</IonSelectOption>
+              {usersList.map(u => (
+                <IonSelectOption key={u.id} value={u.id}>{u.name}</IonSelectOption>
+              ))}
+            </IonSelect>
+          </div>
+        </SearchAndSortBar>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f8fafc' }}>

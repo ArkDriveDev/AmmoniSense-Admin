@@ -116,22 +116,22 @@ export default function Devices() {
             { value: 'installed_at', label: 'Date' }
           ]}
           sortPlaceholder="Sort"
-        />
-
-        <div className="sub-filter-row">
-          <IonSelect
-            value={statusFilter}
-            onIonChange={(e: SelectCustomEvent) => setStatusFilter(e.detail.value || 'all')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="all">All Statuses</IonSelectOption>
-            <IonSelectOption value="ACTIVE">Active</IonSelectOption>
-            <IonSelectOption value="OFFLINE">Offline</IonSelectOption>
-            <IonSelectOption value="INACTIVE">Inactive</IonSelectOption>
-            <IonSelectOption value="MAINTENANCE">Maintenance</IonSelectOption>
-          </IonSelect>
-        </div>
+        >
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={statusFilter}
+              onIonChange={(e: SelectCustomEvent) => setStatusFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="all">All Statuses</IonSelectOption>
+              <IonSelectOption value="ACTIVE">Active</IonSelectOption>
+              <IonSelectOption value="OFFLINE">Offline</IonSelectOption>
+              <IonSelectOption value="INACTIVE">Inactive</IonSelectOption>
+              <IonSelectOption value="MAINTENANCE">Maintenance</IonSelectOption>
+            </IonSelect>
+          </div>
+        </SearchAndSortBar>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>

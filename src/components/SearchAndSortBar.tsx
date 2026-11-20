@@ -20,6 +20,9 @@ export interface SearchAndSortBarProps {
   sortOptions?: SortOption[];
   sortPlaceholder?: string;
 
+  // Additional sort/filter controls placed next to each other
+  children?: React.ReactNode;
+
   className?: string;
   style?: React.CSSProperties;
 }
@@ -32,6 +35,7 @@ export const SearchAndSortBar: React.FC<SearchAndSortBarProps> = ({
   onSortChange,
   sortOptions,
   sortPlaceholder = 'Sort',
+  children,
   className = '',
   style
 }) => {
@@ -59,7 +63,7 @@ export const SearchAndSortBar: React.FC<SearchAndSortBarProps> = ({
         )}
       </div>
 
-      {/* Sort Control (Right Side) - 100px to 120px fixed compact chip */}
+      {/* Primary Sort Control (Right Side) */}
       {sortOptions && onSortChange && (
         <div className="sort-control-wrapper">
           <IonSelect
@@ -77,6 +81,9 @@ export const SearchAndSortBar: React.FC<SearchAndSortBarProps> = ({
           </IonSelect>
         </div>
       )}
+
+      {/* Additional sort and filter controls placed next to each other */}
+      {children}
     </div>
   );
 };

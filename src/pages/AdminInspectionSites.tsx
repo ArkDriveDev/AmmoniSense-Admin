@@ -200,45 +200,49 @@ export default function AdminInspectionSites() {
             { value: 'type', label: 'Type' }
           ]}
           sortPlaceholder="Sort"
-        />
+        >
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={typeFilter}
+              onIonChange={(e: SelectCustomEvent) => setTypeFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="all">All Types</IonSelectOption>
+              {SITE_TYPES.map(t => (
+                <IonSelectOption key={t.value} value={t.value}>{t.label}</IonSelectOption>
+              ))}
+            </IonSelect>
+          </div>
 
-        <div className="sub-filter-row">
-          <IonSelect
-            value={typeFilter}
-            onIonChange={(e: SelectCustomEvent) => setTypeFilter(e.detail.value || 'all')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="all">All Types</IonSelectOption>
-            {SITE_TYPES.map(t => (
-              <IonSelectOption key={t.value} value={t.value}>{t.label}</IonSelectOption>
-            ))}
-          </IonSelect>
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={poultryTypeFilter}
+              onIonChange={(e: SelectCustomEvent) => setPoultryTypeFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="all">All Poultry</IonSelectOption>
+              {POULTRY_TYPES.map(p => (
+                <IonSelectOption key={p.value} value={p.value}>{p.label}</IonSelectOption>
+              ))}
+            </IonSelect>
+          </div>
 
-          <IonSelect
-            value={poultryTypeFilter}
-            onIonChange={(e: SelectCustomEvent) => setPoultryTypeFilter(e.detail.value || 'all')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="all">All Poultry</IonSelectOption>
-            {POULTRY_TYPES.map(p => (
-              <IonSelectOption key={p.value} value={p.value}>{p.label}</IonSelectOption>
-            ))}
-          </IonSelect>
-
-          <IonSelect
-            value={chickenTypeFilter}
-            onIonChange={(e: SelectCustomEvent) => setChickenTypeFilter(e.detail.value || 'all')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="all">All Chickens</IonSelectOption>
-            {CHICKEN_TYPES.map(c => (
-              <IonSelectOption key={c.value} value={c.value}>{c.label}</IonSelectOption>
-            ))}
-          </IonSelect>
-        </div>
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={chickenTypeFilter}
+              onIonChange={(e: SelectCustomEvent) => setChickenTypeFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="all">All Chickens</IonSelectOption>
+              {CHICKEN_TYPES.map(c => (
+                <IonSelectOption key={c.value} value={c.value}>{c.label}</IonSelectOption>
+              ))}
+            </IonSelect>
+          </div>
+        </SearchAndSortBar>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>

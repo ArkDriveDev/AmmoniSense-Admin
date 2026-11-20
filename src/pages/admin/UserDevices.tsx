@@ -274,21 +274,21 @@ export default function UserDevices() {
             { value: 'status', label: 'Status' }
           ]}
           sortPlaceholder="Sort"
-        />
-
-        <div className="sub-filter-row">
-          <IonSelect
-            value={statusFilter}
-            onIonChange={(e: SelectCustomEvent) => setStatusFilter(e.detail.value || 'all')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="all">All Statuses ({metrics.total})</IonSelectOption>
-            <IonSelectOption value="APPROVED">Approved ({metrics.approved})</IonSelectOption>
-            <IonSelectOption value="PENDING">Pending ({metrics.pending})</IonSelectOption>
-            <IonSelectOption value="BLOCKED">Blocked ({metrics.blocked})</IonSelectOption>
-          </IonSelect>
-        </div>
+        >
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={statusFilter}
+              onIonChange={(e: SelectCustomEvent) => setStatusFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="all">All Statuses ({metrics.total})</IonSelectOption>
+              <IonSelectOption value="APPROVED">Approved ({metrics.approved})</IonSelectOption>
+              <IonSelectOption value="PENDING">Pending ({metrics.pending})</IonSelectOption>
+              <IonSelectOption value="BLOCKED">Blocked ({metrics.blocked})</IonSelectOption>
+            </IonSelect>
+          </div>
+        </SearchAndSortBar>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }} scrollY={true}>

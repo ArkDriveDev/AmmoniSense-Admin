@@ -135,32 +135,34 @@ export default function InspectionSchedules() {
             { value: 'CANCELLED', label: 'Cancelled' }
           ]}
           sortPlaceholder="Status"
-        />
+        >
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={siteFilter}
+              onIonChange={(e: SelectCustomEvent) => setSiteFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="all">All Sites</IonSelectOption>
+              {sites.map(s => (
+                <IonSelectOption key={s.id} value={s.id.toString()}>{s.site_name}</IonSelectOption>
+              ))}
+            </IonSelect>
+          </div>
 
-        <div className="sub-filter-row">
-          <IonSelect
-            value={siteFilter}
-            onIonChange={(e: SelectCustomEvent) => setSiteFilter(e.detail.value || 'all')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="all">All Sites</IonSelectOption>
-            {sites.map(s => (
-              <IonSelectOption key={s.id} value={s.id.toString()}>{s.site_name}</IonSelectOption>
-            ))}
-          </IonSelect>
-
-          <IonSelect
-            value={confirmedFilter}
-            onIonChange={(e: SelectCustomEvent) => setConfirmedFilter(e.detail.value || 'all')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="all">All Confirmation</IonSelectOption>
-            <IonSelectOption value="confirmed">Confirmed Only</IonSelectOption>
-            <IonSelectOption value="unconfirmed">Not Confirmed</IonSelectOption>
-          </IonSelect>
-        </div>
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={confirmedFilter}
+              onIonChange={(e: SelectCustomEvent) => setConfirmedFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="all">All Confirmation</IonSelectOption>
+              <IonSelectOption value="confirmed">Confirmed</IonSelectOption>
+              <IonSelectOption value="unconfirmed">Unconfirmed</IonSelectOption>
+            </IonSelect>
+          </div>
+        </SearchAndSortBar>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>

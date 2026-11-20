@@ -448,53 +448,56 @@ export default function AdminTags() {
             { value: 'CRITICAL', label: 'Critical' }
           ]}
           sortPlaceholder="Ammonia"
-        />
+        >
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={siteFilter}
+              onIonChange={(e: SelectCustomEvent) => setSiteFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="all">All Sites</IonSelectOption>
+              {sites.map((s) => (
+                <IonSelectOption key={s.id} value={s.id.toString()}>
+                  {s.site_name}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
+          </div>
 
-        {/* Sub-filter row */}
-        <div className="sub-filter-row">
-          <IonSelect
-            value={siteFilter}
-            onIonChange={(e: SelectCustomEvent) => setSiteFilter(e.detail.value || 'all')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="all">All Sites</IonSelectOption>
-            {sites.map((s) => (
-              <IonSelectOption key={s.id} value={s.id.toString()}>
-                {s.site_name}
-              </IonSelectOption>
-            ))}
-          </IonSelect>
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={scheduleFilter}
+              onIonChange={(e: SelectCustomEvent) => setScheduleFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="all">All Schedules</IonSelectOption>
+              {availableSchedules.map((sc) => (
+                <IonSelectOption key={sc.schedule_id} value={sc.schedule_id.toString()}>
+                  {sc.schedule_name}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
+          </div>
 
-          <IonSelect
-            value={scheduleFilter}
-            onIonChange={(e: SelectCustomEvent) => setScheduleFilter(e.detail.value || 'all')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="all">All Schedules</IonSelectOption>
-            {availableSchedules.map((sc) => (
-              <IonSelectOption key={sc.schedule_id} value={sc.schedule_id.toString()}>
-                {sc.schedule_name}
-              </IonSelectOption>
-            ))}
-          </IonSelect>
-
-          <IonSelect
-            value={violationFilter}
-            onIonChange={(e: SelectCustomEvent) => setViolationFilter(e.detail.value || 'all')}
-            interface="popover"
-            className="sub-filter-chip"
-          >
-            <IonSelectOption value="all">All Violations</IonSelectOption>
-            <IonSelectOption value="HAS_VIOLATION">Any Violation</IonSelectOption>
-            <IonSelectOption value="NONE">No Violation</IonSelectOption>
-            {VIOLATION_CATEGORIES.map((cat) => (
-              <IonSelectOption key={cat.value} value={cat.value}>
-                {cat.label}
-              </IonSelectOption>
-            ))}
-          </IonSelect>
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={violationFilter}
+              onIonChange={(e: SelectCustomEvent) => setViolationFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="all">All Violations</IonSelectOption>
+              <IonSelectOption value="HAS_VIOLATION">Any Violation</IonSelectOption>
+              <IonSelectOption value="NONE">No Violation</IonSelectOption>
+              {VIOLATION_CATEGORIES.map((cat) => (
+                <IonSelectOption key={cat.value} value={cat.value}>
+                  {cat.label}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
+          </div>
 
           {hasActiveFilters && (
             <IonButton
@@ -502,13 +505,13 @@ export default function AdminTags() {
               fill="clear"
               color="danger"
               onClick={clearAllFilters}
-              style={{ fontWeight: 600, fontSize: '11px', height: '32px' }}
+              style={{ fontWeight: 700, fontSize: '11px', height: '36px' }}
             >
               <IonIcon icon={closeCircleOutline} slot="start" />
               Reset
             </IonButton>
           )}
-        </div>
+        </SearchAndSortBar>
       </IonHeader>
 
       {/* ====================================================================
