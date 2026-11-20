@@ -1,22 +1,29 @@
 /* ==========================================================================
-   Constrained, Centered, Side-by-Side Search and Sort Container
+   Constrained, Left-Aligned, Side-by-Side Search and Sort Container
    Specification:
-   - max-width: 420px
-   - centered (margin: 16px auto)
+   - Starts on the left (margin-left: 0, margin-right: auto)
+   - Longer width (max-width: 620px) so labels can be read
    - padding: 0 16px (never touches screen edges)
-   - side-by-side with 8px gap
+   - side-by-side with 10px gap
    ========================================================================== */
 
 .search-sort-container {
-  max-width: 420px;
+  max-width: 620px;
   width: 100%;
-  margin: 16px auto;
+  margin: 14px 0 10px 0;
   padding: 0 16px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+/* Map specific styling above the spatial map */
+.search-sort-container.map-search-sort {
+  margin: 4px 0 12px 0;
+  padding: 0;
+  max-width: 620px;
 }
 
 /* Search Bar (Left Side) */
@@ -51,13 +58,14 @@
   justify-content: center;
 }
 
-.search-text-input {
+.search-text-input,
+.search-inner-input {
   width: 100%;
   height: 100%;
   border: none;
   outline: none;
   background: transparent;
-  padding: 0 40px 0 40px;
+  padding: 0 40px 0 42px;
   font-size: 14px;
   font-weight: 500;
   color: #0f172a;
@@ -65,7 +73,8 @@
   box-sizing: border-box;
 }
 
-.search-text-input::placeholder {
+.search-text-input::placeholder,
+.search-inner-input::placeholder {
   color: #64748b;
   opacity: 0.85;
 }
@@ -88,10 +97,10 @@
   color: #64748b;
 }
 
-/* Sort Control (Right Side) */
+/* Sort Control (Right Side) - 150px width for readable labels */
 .sort-control-wrapper {
-  width: 110px;
-  flex: 0 0 110px;
+  width: 150px;
+  flex: 0 0 150px;
   height: 46px;
   background-color: #F2F3F5;
   border-radius: 24px;
@@ -109,14 +118,15 @@
 .sort-control-wrapper:focus-within {
   border-color: #cbd5e1;
   background-color: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 
-.sort-select-chip {
+/* Ionic Select styling */
+ion-select.sort-select-chip {
   width: 100%;
   height: 100%;
-  --padding-start: 12px;
-  --padding-end: 12px;
+  --padding-start: 14px;
+  --padding-end: 26px;
   --padding-top: 0;
   --padding-bottom: 0;
   font-size: 12px;
@@ -126,8 +136,31 @@
   letter-spacing: 0.3px;
 }
 
-/* Responsive Wrap on very small mobile screens (<= 360px) */
-@media (max-width: 360px) {
+/* Native HTML select styling (used in SpatialPolygonMap) */
+select.sort-select-chip,
+.sort-control-wrapper select {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0 28px 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+}
+
+/* Responsive Wrap on very small mobile screens (<= 380px) */
+@media (max-width: 380px) {
   .search-sort-container {
     flex-wrap: wrap;
     gap: 8px;
@@ -141,11 +174,11 @@
   }
 }
 
-/* Secondary Filter Chips Row (also constrained to 420px, centered) */
+/* Secondary Filter Chips Row (also left-aligned, max-width: 620px) */
 .sub-filter-row {
-  max-width: 420px;
+  max-width: 620px;
   width: 100%;
-  margin: 0 auto 12px auto;
+  margin: 0 0 12px 0;
   padding: 0 16px;
   box-sizing: border-box;
   display: flex;
@@ -156,14 +189,14 @@
 }
 
 .sub-filter-chip {
-  height: 32px;
+  height: 34px;
   background-color: #F2F3F5;
-  border-radius: 16px;
-  font-size: 11px;
+  border-radius: 17px;
+  font-size: 12px;
   font-weight: 600;
   color: #334155;
-  --padding-start: 10px;
-  --padding-end: 10px;
+  --padding-start: 12px;
+  --padding-end: 12px;
   border: 1px solid transparent;
   transition: all 0.15s ease-in-out;
 }

@@ -714,8 +714,8 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       onTouchStart={(e) => e.stopPropagation()}
       style={{ position: 'relative', width: '100%' }}
     >
-      {/* Top Bar Controls: Constrained Centered Search Input and Schedule Sorter above map */}
-      <div className="search-sort-container" style={{ zIndex: 1100, position: 'relative' }}>
+      {/* Top Bar Controls: Constrained Left-Aligned Search Input and Schedule Sorter above map */}
+      <div className="search-sort-container map-search-sort" style={{ zIndex: 1100, position: 'relative' }}>
         {showSearch && (
           <div className="search-input-wrapper">
             <IonIcon icon={searchOutline} className="search-icon-left" />
@@ -728,7 +728,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
                 setShowSearchDropdown(true);
               }}
               onFocus={() => setShowSearchDropdown(true)}
-              className="search-inner-input"
+              className="search-text-input"
             />
             {searchQuery && (
               <button
@@ -740,7 +740,7 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
                 className="search-clear-btn"
                 aria-label="Clear search"
               >
-                <IonIcon icon={closeCircle} />
+                <IonIcon icon={closeCircle} style={{ fontSize: '18px' }} />
               </button>
             )}
 
@@ -810,9 +810,9 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
             className="sort-select-chip"
             aria-label="Sort schedules"
           >
-            <option value="recent">Recent</option>
+            <option value="recent">Recent (Newest)</option>
             <option value="oldest">Oldest</option>
-            <option value="name">Name A–Z</option>
+            <option value="name">Name (A–Z)</option>
           </select>
         </div>
       </div>
