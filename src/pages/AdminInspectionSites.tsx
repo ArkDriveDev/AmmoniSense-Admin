@@ -20,6 +20,7 @@ import {
 } from '@ionic/react';
 
 import { useState, useMemo, useEffect } from 'react';
+import SearchAndSortBar, { SortOption } from '../components/SearchAndSortBar';
 import { useHistory, useLocation, useParams } from 'react-router-dom';
 import {
   businessOutline,
@@ -181,96 +182,63 @@ export default function AdminInspectionSites() {
           </IonButtons>
         </IonToolbar>
 
-        <IonToolbar style={{ '--background': '#f8fafc' }}>
-          <IonSearchbar
-            placeholder="SEARCH SITES BY NAME, CODE, OR LOCATION..."
-            value={searchTerm}
-            onIonInput={(e: SearchbarCustomEvent) => setSearchTerm(e.detail.value || '')}
-            animated
-          />
-        </IonToolbar>
+        <SearchAndSortBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder="Search sites..."
+          sortBy={sortBy === 'site_name' ? (sortOrder === 'asc' ? 'name_asc' : 'name_desc') : sortBy === 'site_code' ? 'code' : 'type'}
+          onSortChange={(val) => {
+            if (val === 'name_asc') { setSortBy('site_name'); setSortOrder('asc'); }
+            else if (val === 'name_desc') { setSortBy('site_name'); setSortOrder('desc'); }
+            else if (val === 'code') { setSortBy('site_code'); setSortOrder('asc'); }
+            else if (val === 'type') { setSortBy('site_type'); setSortOrder('asc'); }
+          }}
+          sortOptions={[
+            { value: 'name_asc', label: 'Name (A-Z)' },
+            { value: 'name_desc', label: 'Name (Z-A)' },
+            { value: 'code', label: 'Code' },
+            { value: 'type', label: 'Type' }
+          ]}
+          sortPlaceholder="Sort"
+        />
 
-        <IonToolbar style={{ '--background': '#ffffff' }}>
-          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <IonSelect
-              value={typeFilter}
-              onIonChange={(e: SelectCustomEvent) => setTypeFilter(e.detail.value || 'all')}
-              interface="popover"
-              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
-            >
-              <IonSelectOption value="all">All Site Types</IonSelectOption>
-              {SITE_TYPES.map(t => (
-                <IonSelectOption key={t.value} value={t.value}>{t.label}</IonSelectOption>
-              ))}
-            </IonSelect>
+        <div className="sub-filter-row">
+          <IonSelect
+            value={typeFilter}
+            onIonChange={(e: SelectCustomEvent) => setTypeFilter(e.detail.value || 'all')}
+            interface="popover"
+            className="sub-filter-chip"
+          >
+            <IonSelectOption value="all">All Types</IonSelectOption>
+            {SITE_TYPES.map(t => (
+              <IonSelectOption key={t.value} value={t.value}>{t.label}</IonSelectOption>
+            ))}
+          </IonSelect>
 
-            <IonSelect
-              value={poultryTypeFilter}
-              onIonChange={(e: SelectCustomEvent) => setPoultryTypeFilter(e.detail.value || 'all')}
-              interface="popover"
-              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
-            >
-              <IonSelectOption value="all">All Poultry Types</IonSelectOption>
-              {POULTRY_TYPES.map(p => (
-                <IonSelectOption key={p.value} value={p.value}>{p.label}</IonSelectOption>
-              ))}
-            </IonSelect>
+          <IonSelect
+            value={poultryTypeFilter}
+            onIonChange={(e: SelectCustomEvent) => setPoultryTypeFilter(e.detail.value || 'all')}
+            interface="popover"
+            className="sub-filter-chip"
+          >
+            <IonSelectOption value="all">All Poultry</IonSelectOption>
+            {POULTRY_TYPES.map(p => (
+              <IonSelectOption key={p.value} value={p.value}>{p.label}</IonSelectOption>
+            ))}
+          </IonSelect>
 
-            <IonSelect
-              value={chickenTypeFilter}
-              onIonChange={(e: SelectCustomEvent) => setChickenTypeFilter(e.detail.value || 'all')}
-              interface="popover"
-              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
-            >
-              <IonSelectOption value="all">All Chicken Types</IonSelectOption>
-              {CHICKEN_TYPES.map(c => (
-                <IonSelectOption key={c.value} value={c.value}>{c.label}</IonSelectOption>
-              ))}
-            </IonSelect>
-
-            <IonButton 
-              size="small" 
-              fill={sortBy === 'site_name' ? 'solid' : 'outline'}
-              onClick={() => handleSort('site_name')}
-            >
-              NAME
-              {sortBy === 'site_name' && (
-                <IonIcon 
-                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
-                  style={{ marginLeft: '4px' }} 
-                />
-              )}
-            </IonButton>
-
-            <IonButton 
-              size="small" 
-              fill={sortBy === 'site_code' ? 'solid' : 'outline'}
-              onClick={() => handleSort('site_code')}
-            >
-              CODE
-              {sortBy === 'site_code' && (
-                <IonIcon 
-                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
-                  style={{ marginLeft: '4px' }} 
-                />
-              )}
-            </IonButton>
-
-            <IonButton 
-              size="small" 
-              fill={sortBy === 'site_type' ? 'solid' : 'outline'}
-              onClick={() => handleSort('site_type')}
-            >
-              TYPE
-              {sortBy === 'site_type' && (
-                <IonIcon 
-                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
-                  style={{ marginLeft: '4px' }} 
-                />
-              )}
-            </IonButton>
-          </div>
-        </IonToolbar>
+          <IonSelect
+            value={chickenTypeFilter}
+            onIonChange={(e: SelectCustomEvent) => setChickenTypeFilter(e.detail.value || 'all')}
+            interface="popover"
+            className="sub-filter-chip"
+          >
+            <IonSelectOption value="all">All Chickens</IonSelectOption>
+            {CHICKEN_TYPES.map(c => (
+              <IonSelectOption key={c.value} value={c.value}>{c.label}</IonSelectOption>
+            ))}
+          </IonSelect>
+        </div>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>

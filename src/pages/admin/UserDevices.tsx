@@ -39,6 +39,7 @@ import { UserDevice, UserDeviceStatus } from '../../types/schema';
 import useSyncFeedback from '../../hooks/useSyncFeedback';
 import EmptyState from '../../components/EmptyState';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { SearchAndSortBar } from '../../components/SearchAndSortBar';
 
 export default function UserDevices() {
   const { userDevices, loading, refresh, updateStatus, updatingId } = useUserDevices();
@@ -253,92 +254,41 @@ export default function UserDevices() {
           </IonButtons>
         </IonToolbar>
 
-        {/* Search Bar */}
-        <IonToolbar style={{ '--background': '#f8fafc' }}>
-          <IonSearchbar
-            placeholder="Search user, device name, identifier, or IP address..."
-            value={searchTerm}
-            onIonInput={(e: SearchbarCustomEvent) => setSearchTerm(e.detail.value || '')}
-            animated
-          />
-        </IonToolbar>
+        <SearchAndSortBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder="Search user, device..."
+          sortBy={sortBy}
+          onSortChange={(val) => {
+            if (val === sortBy) {
+              setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+            } else {
+              setSortBy(val as any);
+              setSortOrder(val === 'last_seen_at' ? 'desc' : 'asc');
+            }
+          }}
+          sortOptions={[
+            { value: 'last_seen_at', label: 'Recent' },
+            { value: 'user', label: 'User' },
+            { value: 'device_name', label: 'Device' },
+            { value: 'status', label: 'Status' }
+          ]}
+          sortPlaceholder="Sort"
+        />
 
-        {/* Filter and Sort Toolbar */}
-        <IonToolbar style={{ '--background': '#ffffff', borderBottom: '1px solid #e2e8f0' }}>
-          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <IonSelect
-              value={statusFilter}
-              onIonChange={(e: SelectCustomEvent) => setStatusFilter(e.detail.value || 'all')}
-              interface="popover"
-              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
-            >
-              <IonSelectOption value="all">All Statuses ({metrics.total})</IonSelectOption>
-              <IonSelectOption value="APPROVED">Approved ({metrics.approved})</IonSelectOption>
-              <IonSelectOption value="PENDING">Pending ({metrics.pending})</IonSelectOption>
-              <IonSelectOption value="BLOCKED">Blocked ({metrics.blocked})</IonSelectOption>
-            </IonSelect>
-
-            <IonButton
-              size="small"
-              fill={sortBy === 'user' ? 'solid' : 'outline'}
-              color="dark"
-              onClick={() => handleSort('user')}
-            >
-              User
-              {sortBy === 'user' && (
-                <IonIcon
-                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline}
-                  style={{ marginLeft: '4px' }}
-                />
-              )}
-            </IonButton>
-
-            <IonButton
-              size="small"
-              fill={sortBy === 'device_name' ? 'solid' : 'outline'}
-              color="dark"
-              onClick={() => handleSort('device_name')}
-            >
-              Device
-              {sortBy === 'device_name' && (
-                <IonIcon
-                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline}
-                  style={{ marginLeft: '4px' }}
-                />
-              )}
-            </IonButton>
-
-            <IonButton
-              size="small"
-              fill={sortBy === 'status' ? 'solid' : 'outline'}
-              color="dark"
-              onClick={() => handleSort('status')}
-            >
-              Status
-              {sortBy === 'status' && (
-                <IonIcon
-                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline}
-                  style={{ marginLeft: '4px' }}
-                />
-              )}
-            </IonButton>
-
-            <IonButton
-              size="small"
-              fill={sortBy === 'last_seen_at' ? 'solid' : 'outline'}
-              color="dark"
-              onClick={() => handleSort('last_seen_at')}
-            >
-              Last Seen
-              {sortBy === 'last_seen_at' && (
-                <IonIcon
-                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline}
-                  style={{ marginLeft: '4px' }}
-                />
-              )}
-            </IonButton>
-          </div>
-        </IonToolbar>
+        <div className="sub-filter-row">
+          <IonSelect
+            value={statusFilter}
+            onIonChange={(e: SelectCustomEvent) => setStatusFilter(e.detail.value || 'all')}
+            interface="popover"
+            className="sub-filter-chip"
+          >
+            <IonSelectOption value="all">All Statuses ({metrics.total})</IonSelectOption>
+            <IonSelectOption value="APPROVED">Approved ({metrics.approved})</IonSelectOption>
+            <IonSelectOption value="PENDING">Pending ({metrics.pending})</IonSelectOption>
+            <IonSelectOption value="BLOCKED">Blocked ({metrics.blocked})</IonSelectOption>
+          </IonSelect>
+        </div>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }} scrollY={true}>

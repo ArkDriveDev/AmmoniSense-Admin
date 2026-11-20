@@ -22,6 +22,7 @@ import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { InspectionTagDetails, InspectionTag } from '../types/schema';
 import useSyncFeedback from '../hooks/useSyncFeedback';
+import { SearchAndSortBar } from '../components/SearchAndSortBar';
 
 import { getViolationCategoryLabel, getViolationCategoryLaw } from '../constants/violationCategories';
 
@@ -192,50 +193,20 @@ export default function Notifications() {
           </IonButtons>
         </IonToolbar>
 
-        <IonToolbar style={{ '--background': '#f8fafc' }}>
-          <IonSearchbar
-            placeholder="SEARCH ALERTS, TAGS, DEVICES, SITES..."
-            value={searchTerm}
-            onIonInput={(e) => setSearchTerm(e.detail.value || '')}
-            animated
-          />
-        </IonToolbar>
-
-        <IonToolbar style={{ '--background': '#ffffff' }}>
-          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap' }}>
-            <IonButton 
-              size="small" 
-              fill={filterSeverity === 'all' ? 'solid' : 'outline'}
-              onClick={() => setFilterSeverity('all')}
-            >
-              ALL
-            </IonButton>
-            <IonButton 
-              size="small" 
-              fill={filterSeverity === 'CRITICAL' ? 'solid' : 'outline'}
-              color="danger"
-              onClick={() => setFilterSeverity('CRITICAL')}
-            >
-              {"CRITICAL (>50 PPM)"}
-            </IonButton>
-            <IonButton 
-              size="small" 
-              fill={filterSeverity === 'HIGH' ? 'solid' : 'outline'}
-              color="warning"
-              onClick={() => setFilterSeverity('HIGH')}
-            >
-              {"HIGH (35-50 PPM)"}
-            </IonButton>
-            <IonButton 
-              size="small" 
-              fill={filterSeverity === 'WARNING' ? 'solid' : 'outline'}
-              color="warning"
-              onClick={() => setFilterSeverity('WARNING')}
-            >
-              {"WARNING (25-35 PPM)"}
-            </IonButton>
-          </div>
-        </IonToolbar>
+        <SearchAndSortBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder="Search alerts..."
+          sortBy={filterSeverity}
+          onSortChange={(val) => setFilterSeverity(val as any)}
+          sortOptions={[
+            { value: 'all', label: 'All Alerts' },
+            { value: 'CRITICAL', label: 'Critical' },
+            { value: 'HIGH', label: 'High' },
+            { value: 'WARNING', label: 'Warning' }
+          ]}
+          sortPlaceholder="Filter"
+        />
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>

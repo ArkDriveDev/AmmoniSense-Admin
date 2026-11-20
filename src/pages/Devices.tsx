@@ -33,6 +33,7 @@ import {
 
 import EmptyState from '../components/EmptyState';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { SearchAndSortBar } from '../components/SearchAndSortBar';
 import { useDevices } from '../hooks/useDevices';
 import { Device } from '../types/schema';
 import useSyncFeedback from '../hooks/useSyncFeedback';
@@ -96,73 +97,41 @@ export default function Devices() {
           </IonButtons>
         </IonToolbar>
 
-        <IonToolbar style={{ '--background': '#f8fafc' }}>
-          <IonSearchbar
-            placeholder="SEARCH SENSOR UID, NAME, SITE..."
-            value={searchTerm}
-            onIonInput={(e: SearchbarCustomEvent) => setSearchTerm(e.detail.value || '')}
-            animated
-          />
-        </IonToolbar>
+        <SearchAndSortBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder="Search devices..."
+          sortBy={sortBy}
+          onSortChange={(val) => {
+            if (val === sortBy) {
+              setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+            } else {
+              setSortBy(val as any);
+              setSortOrder('asc');
+            }
+          }}
+          sortOptions={[
+            { value: 'device_uid', label: 'UID' },
+            { value: 'battery_level', label: 'Battery' },
+            { value: 'installed_at', label: 'Date' }
+          ]}
+          sortPlaceholder="Sort"
+        />
 
-        <IonToolbar style={{ '--background': '#ffffff' }}>
-          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <IonSelect
-              value={statusFilter}
-              onIonChange={(e: SelectCustomEvent) => setStatusFilter(e.detail.value || 'all')}
-              interface="popover"
-              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
-            >
-              <IonSelectOption value="all">All Statuses</IonSelectOption>
-              <IonSelectOption value="ACTIVE">Active</IonSelectOption>
-              <IonSelectOption value="OFFLINE">Offline</IonSelectOption>
-              <IonSelectOption value="INACTIVE">Inactive</IonSelectOption>
-              <IonSelectOption value="MAINTENANCE">Maintenance</IonSelectOption>
-            </IonSelect>
-
-            <IonButton 
-              size="small" 
-              fill={sortBy === 'device_uid' ? 'solid' : 'outline'}
-              onClick={() => handleSort('device_uid')}
-            >
-              UID
-              {sortBy === 'device_uid' && (
-                <IonIcon 
-                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
-                  style={{ marginLeft: '4px' }} 
-                />
-              )}
-            </IonButton>
-
-            <IonButton 
-              size="small" 
-              fill={sortBy === 'battery_level' ? 'solid' : 'outline'}
-              onClick={() => handleSort('battery_level')}
-            >
-              BATTERY
-              {sortBy === 'battery_level' && (
-                <IonIcon 
-                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
-                  style={{ marginLeft: '4px' }} 
-                />
-              )}
-            </IonButton>
-
-            <IonButton 
-              size="small" 
-              fill={sortBy === 'installed_at' ? 'solid' : 'outline'}
-              onClick={() => handleSort('installed_at')}
-            >
-              REGISTERED
-              {sortBy === 'installed_at' && (
-                <IonIcon 
-                  icon={sortOrder === 'asc' ? arrowUpOutline : arrowDownOutline} 
-                  style={{ marginLeft: '4px' }} 
-                />
-              )}
-            </IonButton>
-          </div>
-        </IonToolbar>
+        <div className="sub-filter-row">
+          <IonSelect
+            value={statusFilter}
+            onIonChange={(e: SelectCustomEvent) => setStatusFilter(e.detail.value || 'all')}
+            interface="popover"
+            className="sub-filter-chip"
+          >
+            <IonSelectOption value="all">All Statuses</IonSelectOption>
+            <IonSelectOption value="ACTIVE">Active</IonSelectOption>
+            <IonSelectOption value="OFFLINE">Offline</IonSelectOption>
+            <IonSelectOption value="INACTIVE">Inactive</IonSelectOption>
+            <IonSelectOption value="MAINTENANCE">Maintenance</IonSelectOption>
+          </IonSelect>
+        </div>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>

@@ -28,6 +28,7 @@ import { supabase } from '../../services/supabase';
 import { ActivityLog } from '../../types/schema';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import EmptyState from '../../components/EmptyState';
+import { SearchAndSortBar } from '../../components/SearchAndSortBar';
 import ActivityLogDetailModal from '../../components/admin/ActivityLogDetailModal';
 
 const PAGE_SIZE = 50;
@@ -39,6 +40,7 @@ export default function ActivityLogs() {
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [debouncedSearch, setDebouncedSearch] = useState<string>('');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   // Filter options & selections
   const [entityTypes, setEntityTypes] = useState<string[]>([]);
@@ -96,7 +98,7 @@ export default function ActivityLogs() {
   // Reset page to 0 when search or filters change
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearch, selectedEntityType, selectedAction, selectedUser]);
+  }, [debouncedSearch, selectedEntityType, selectedAction, selectedUser, sortOrder]);
 
   const fetchLogs = useCallback(async (targetPage = page) => {
     setLoading(true);
@@ -149,7 +151,7 @@ export default function ActivityLogs() {
       }
 
       const { data, count, error } = await query
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: sortOrder === 'asc' })
         .range(from, to);
 
       if (error) {
@@ -266,100 +268,64 @@ export default function ActivityLogs() {
             </IonButton>
           </IonButtons>
         </IonToolbar>
+
+        <SearchAndSortBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder="Search logs..."
+          sortBy={sortOrder}
+          onSortChange={(val) => setSortOrder(val as 'desc' | 'asc')}
+          sortOptions={[
+            { value: 'desc', label: 'Newest' },
+            { value: 'asc', label: 'Oldest' }
+          ]}
+          sortPlaceholder="Order"
+        />
+
+        <div className="sub-filter-row">
+          <IonSelect
+            value={selectedEntityType}
+            onIonChange={(e: CustomEvent) => setSelectedEntityType(e.detail.value || 'ALL')}
+            interface="popover"
+            className="sub-filter-chip"
+          >
+            <IonSelectOption value="ALL">All Entity Types</IonSelectOption>
+            {entityTypes.map(t => (
+              <IonSelectOption key={t} value={t}>{t}</IonSelectOption>
+            ))}
+          </IonSelect>
+
+          <IonSelect
+            value={selectedAction}
+            onIonChange={(e: CustomEvent) => setSelectedAction(e.detail.value || 'ALL')}
+            interface="popover"
+            className="sub-filter-chip"
+          >
+            <IonSelectOption value="ALL">All Actions</IonSelectOption>
+            <IonSelectOption value="INSERT">INSERT</IonSelectOption>
+            <IonSelectOption value="UPDATE">UPDATE</IonSelectOption>
+            <IonSelectOption value="DELETE">DELETE</IonSelectOption>
+            <IonSelectOption value="LOGIN">LOGIN</IonSelectOption>
+            <IonSelectOption value="LOGOUT">LOGOUT</IonSelectOption>
+          </IonSelect>
+
+          <IonSelect
+            value={selectedUser}
+            onIonChange={(e: CustomEvent) => setSelectedUser(e.detail.value || 'ALL')}
+            interface="popover"
+            className="sub-filter-chip"
+          >
+            <IonSelectOption value="ALL">All Users</IonSelectOption>
+            <IonSelectOption value="SYSTEM">System</IonSelectOption>
+            {usersList.map(u => (
+              <IonSelectOption key={u.id} value={u.id}>{u.name}</IonSelectOption>
+            ))}
+          </IonSelect>
+        </div>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f8fafc' }}>
         <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Search & Filters Controls */}
-          <IonCard className="premium-card" style={{ margin: 0, padding: '12px' }}>
-            <IonSearchbar
-              placeholder="Search by entity, ID, action, user name, or email..."
-              value={searchTerm}
-              onIonInput={(e: CustomEvent) => setSearchTerm(e.detail.value || '')}
-              debounce={0}
-              showClearButton="focus"
-              style={{ padding: 0, marginBottom: '8px' }}
-            />
-
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-              {/* Entity Type Filter */}
-              <div style={{ flex: '1 1 180px', minWidth: '150px' }}>
-                <IonSelect
-                  value={selectedEntityType}
-                  onIonChange={(e: CustomEvent) => setSelectedEntityType(e.detail.value || 'ALL')}
-                  interface="popover"
-                  label="Entity Type"
-                  labelPlacement="floating"
-                  fill="outline"
-                  style={{ fontSize: '13px' }}
-                >
-                  <IonSelectOption value="ALL">All Entity Types</IonSelectOption>
-                  {entityTypes.map(t => (
-                    <IonSelectOption key={t} value={t}>{t}</IonSelectOption>
-                  ))}
-                </IonSelect>
-              </div>
-
-              {/* Action Filter */}
-              <div style={{ flex: '1 1 150px', minWidth: '130px' }}>
-                <IonSelect
-                  value={selectedAction}
-                  onIonChange={(e: CustomEvent) => setSelectedAction(e.detail.value || 'ALL')}
-                  interface="popover"
-                  label="Action"
-                  labelPlacement="floating"
-                  fill="outline"
-                  style={{ fontSize: '13px' }}
-                >
-                  <IonSelectOption value="ALL">All Actions</IonSelectOption>
-                  <IonSelectOption value="INSERT">INSERT</IonSelectOption>
-                  <IonSelectOption value="UPDATE">UPDATE</IonSelectOption>
-                  <IonSelectOption value="DELETE">DELETE</IonSelectOption>
-                  <IonSelectOption value="LOGIN">LOGIN</IonSelectOption>
-                  <IonSelectOption value="LOGOUT">LOGOUT</IonSelectOption>
-                </IonSelect>
-              </div>
-
-              {/* User Filter */}
-              <div style={{ flex: '1 1 200px', minWidth: '170px' }}>
-                <IonSelect
-                  value={selectedUser}
-                  onIonChange={(e: CustomEvent) => setSelectedUser(e.detail.value || 'ALL')}
-                  interface="popover"
-                  label="User"
-                  labelPlacement="floating"
-                  fill="outline"
-                  style={{ fontSize: '13px' }}
-                >
-                  <IonSelectOption value="ALL">All Users</IonSelectOption>
-                  <IonSelectOption value="SYSTEM">System</IonSelectOption>
-                  {usersList.map(u => (
-                    <IonSelectOption key={u.id} value={u.id}>{u.name}</IonSelectOption>
-                  ))}
-                </IonSelect>
-              </div>
-
-              {/* Reset Filters Button if any filter active */}
-              {(selectedEntityType !== 'ALL' || selectedAction !== 'ALL' || selectedUser !== 'ALL' || searchTerm) && (
-                <IonButton
-                  size="small"
-                  fill="clear"
-                  color="medium"
-                  onClick={() => {
-                    setSearchTerm('');
-                    setSelectedEntityType('ALL');
-                    setSelectedAction('ALL');
-                    setSelectedUser('ALL');
-                  }}
-                  style={{ fontSize: '12px', height: '42px', marginTop: '4px' }}
-                >
-                  <IonIcon icon={closeCircleOutline} slot="start" />
-                  Reset Filters
-                </IonButton>
-              )}
-            </div>
-          </IonCard>
-
           {/* Main Card */}
           <IonCard className="premium-card" style={{ margin: 0, overflow: 'hidden' }}>
             <IonCardContent style={{ padding: 0 }}>
