@@ -33,6 +33,7 @@ import LoadingSpinner from '../../components/LoadingSpinner';
 import TagTable from '../../components/admin/TagTable';
 import TagDetail from './TagDetail';
 import { InspectionTagDetails, InspectionSite, InspectionScheduleSummary } from '../../types/schema';
+import { SearchAndSortBar } from '../../components/SearchAndSortBar';
 import useSyncFeedback from '../../hooks/useSyncFeedback';
 import { useInspectionSites } from '../../hooks/useInspectionSites';
 import { useInspectionSchedules } from '../../hooks/useInspectionSchedules';
@@ -433,195 +434,84 @@ export default function AdminTags() {
           </IonButtons>
         </IonToolbar>
 
-        {/* Search Bar */}
-        <IonToolbar style={{ '--background': '#f8fafc', padding: '0 8px' }}>
-          <IonSearchbar
-            placeholder="SEARCH BY TAG NAME, SITE, SCHEDULE, OR DATE..."
-            value={searchTerm}
-            onIonInput={(e: SearchbarCustomEvent) => setSearchTerm(e.detail.value || '')}
-            animated
-            style={{ padding: '4px 0' }}
-          />
-        </IonToolbar>
-
-        {/* Filter Controls Row */}
-        <IonToolbar style={{ '--background': '#ffffff', borderBottom: '1px solid #e2e8f0' }}>
-          <div
-            style={{
-              display: 'flex',
-              gap: '10px',
-              padding: '8px 16px',
-              flexWrap: 'wrap',
-              alignItems: 'center'
-            }}
-          >
-            {/* Filter by Site */}
-            <div style={{ display: 'flex', alignItems: 'center', minWidth: '180px', flex: '1 1 auto' }}>
-              <IonSelect
-                value={siteFilter}
-                onIonChange={(e: SelectCustomEvent) => setSiteFilter(e.detail.value || 'all')}
-                interface="popover"
-                placeholder="Filter By Site"
-                style={{
-                  width: '100%',
-                  fontSize: '13px',
-                  backgroundColor: '#f1f5f9',
-                  borderRadius: '8px',
-                  padding: '4px 12px',
-                  color: '#1e293b'
-                }}
-              >
-                <IonSelectOption value="all">ALL INSPECTION SITES</IonSelectOption>
-                {sites.map((s) => (
-                  <IonSelectOption key={s.id} value={s.id.toString()}>
-                    {s.site_name} {s.site_code ? `(${s.site_code})` : ''}
-                  </IonSelectOption>
-                ))}
-              </IonSelect>
-            </div>
-
-            {/* Filter by Schedule */}
-            <div style={{ display: 'flex', alignItems: 'center', minWidth: '180px', flex: '1 1 auto' }}>
-              <IonSelect
-                value={scheduleFilter}
-                onIonChange={(e: SelectCustomEvent) => setScheduleFilter(e.detail.value || 'all')}
-                interface="popover"
-                placeholder="Filter By Schedule"
-                style={{
-                  width: '100%',
-                  fontSize: '13px',
-                  backgroundColor: '#f1f5f9',
-                  borderRadius: '8px',
-                  padding: '4px 12px',
-                  color: '#1e293b'
-                }}
-              >
-                <IonSelectOption value="all">ALL SCHEDULES</IonSelectOption>
-                {availableSchedules.map((sc) => (
-                  <IonSelectOption key={sc.schedule_id} value={sc.schedule_id.toString()}>
-                    {sc.schedule_name} {sc.scheduled_date ? `(${new Date(sc.scheduled_date).toLocaleDateString()})` : ''}
-                  </IonSelectOption>
-                ))}
-              </IonSelect>
-            </div>
-
-            {/* Filter by Ammonia Level */}
-            <div style={{ display: 'flex', alignItems: 'center', minWidth: '160px', flex: '1 1 auto' }}>
-              <IonSelect
-                value={ammoniaFilter}
-                onIonChange={(e: SelectCustomEvent) => setAmmoniaFilter(e.detail.value || 'all')}
-                interface="popover"
-                placeholder="Ammonia Level"
-                style={{
-                  width: '100%',
-                  fontSize: '13px',
-                  backgroundColor: '#f1f5f9',
-                  borderRadius: '8px',
-                  padding: '4px 12px',
-                  color: '#1e293b'
-                }}
-              >
-                <IonSelectOption value="all">ALL AMMONIA LEVELS</IonSelectOption>
-                <IonSelectOption value="NORMAL">NORMAL (&lt;= 25 PPM)</IonSelectOption>
-                <IonSelectOption value="WARNING">WARNING (25 - 35 PPM)</IonSelectOption>
-                <IonSelectOption value="HIGH">HIGH (35 - 50 PPM)</IonSelectOption>
-                <IonSelectOption value="CRITICAL">CRITICAL (&gt; 50 PPM)</IonSelectOption>
-              </IonSelect>
-            </div>
-
-            {/* Filter by Violation Category */}
-            <div style={{ display: 'flex', alignItems: 'center', minWidth: '180px', flex: '1 1 auto' }}>
-              <IonSelect
-                value={violationFilter}
-                onIonChange={(e: SelectCustomEvent) => setViolationFilter(e.detail.value || 'all')}
-                interface="popover"
-                placeholder="Violation Category"
-                style={{
-                  width: '100%',
-                  fontSize: '13px',
-                  backgroundColor: '#f1f5f9',
-                  borderRadius: '8px',
-                  padding: '4px 12px',
-                  color: '#1e293b'
-                }}
-              >
-                <IonSelectOption value="all">ALL VIOLATIONS</IonSelectOption>
-                <IonSelectOption value="HAS_VIOLATION">ANY VIOLATION (FLAGGED)</IonSelectOption>
-                <IonSelectOption value="NONE">NO VIOLATION (CLEAN)</IonSelectOption>
-                {VIOLATION_CATEGORIES.map((cat) => (
-                  <IonSelectOption key={cat.value} value={cat.value}>
-                    {cat.label} ({cat.lawReference})
-                  </IonSelectOption>
-                ))}
-              </IonSelect>
-            </div>
-
-            {/* Date Range Inputs */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                flex: '1 1 auto',
-                minWidth: '260px'
-              }}
+        <SearchAndSortBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder="Search tags..."
+          sortBy={ammoniaFilter}
+          onSortChange={(val) => setAmmoniaFilter(val)}
+          sortOptions={[
+            { value: 'all', label: 'All Ammonia' },
+            { value: 'NORMAL', label: 'Normal (<=25)' },
+            { value: 'WARNING', label: 'Warning (25-35)' },
+            { value: 'HIGH', label: 'High (35-50)' },
+            { value: 'CRITICAL', label: 'Critical (>50)' }
+          ]}
+          sortPlaceholder="Ammonia"
+        >
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={siteFilter}
+              onIonChange={(e: SelectCustomEvent) => setSiteFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap' }}>
-                  From:
-                </span>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '6px 8px',
-                    fontSize: '12px',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    backgroundColor: '#f8fafc',
-                    color: '#1e293b'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
-                <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', whiteSpace: 'nowrap' }}>
-                  To:
-                </span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '6px 8px',
-                    fontSize: '12px',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: '6px',
-                    backgroundColor: '#f8fafc',
-                    color: '#1e293b'
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Clear Filters Button */}
-            {hasActiveFilters && (
-              <IonButton
-                size="small"
-                fill="clear"
-                color="danger"
-                onClick={clearAllFilters}
-                style={{ fontWeight: 600, fontSize: '12px', height: '32px' }}
-              >
-                <IonIcon icon={closeCircleOutline} slot="start" />
-                Clear Filters
-              </IonButton>
-            )}
+              <IonSelectOption value="all">All Sites</IonSelectOption>
+              {sites.map((s) => (
+                <IonSelectOption key={s.id} value={s.id.toString()}>
+                  {s.site_name}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
           </div>
-        </IonToolbar>
+
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={scheduleFilter}
+              onIonChange={(e: SelectCustomEvent) => setScheduleFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="all">All Schedules</IonSelectOption>
+              {availableSchedules.map((sc) => (
+                <IonSelectOption key={sc.schedule_id} value={sc.schedule_id.toString()}>
+                  {sc.schedule_name}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
+          </div>
+
+          <div className="sort-control-wrapper">
+            <IonSelect
+              value={violationFilter}
+              onIonChange={(e: SelectCustomEvent) => setViolationFilter(e.detail.value || 'all')}
+              interface="popover"
+              className="sort-select-chip"
+            >
+              <IonSelectOption value="all">All Violations</IonSelectOption>
+              <IonSelectOption value="HAS_VIOLATION">Has Violation</IonSelectOption>
+              <IonSelectOption value="NONE">No Violation</IonSelectOption>
+              {VIOLATION_CATEGORIES.map((cat) => (
+                <IonSelectOption key={cat.value} value={cat.value}>
+                  {cat.label}
+                </IonSelectOption>
+              ))}
+            </IonSelect>
+          </div>
+
+          {hasActiveFilters && (
+            <IonButton
+              size="small"
+              fill="clear"
+              color="danger"
+              onClick={clearAllFilters}
+              style={{ fontWeight: 700, fontSize: '11px', height: '36px' }}
+            >
+              <IonIcon icon={closeCircleOutline} slot="start" />
+              Reset
+            </IonButton>
+          )}
+        </SearchAndSortBar>
       </IonHeader>
 
       {/* ====================================================================

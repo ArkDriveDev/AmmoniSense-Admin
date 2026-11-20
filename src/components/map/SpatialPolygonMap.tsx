@@ -13,8 +13,10 @@ import {
   chevronDownOutline,
   chevronUpOutline,
   closeOutline,
+  closeCircle,
   searchOutline
 } from 'ionicons/icons';
+import '../SearchAndSortBar.css';
 import {
   MANOLO_FORTICH_DEFAULTS,
   MANOLO_FORTICH_BOUNDARY,
@@ -712,59 +714,35 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
       onTouchStart={(e) => e.stopPropagation()}
       style={{ position: 'relative', width: '100%' }}
     >
-      {/* Top Bar Controls: Search Input and Schedule Sorter above map */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-        marginBottom: '8px',
-        zIndex: 1100,
-        position: 'relative',
-        flexWrap: 'wrap'
-      }}>
+      {/* Top Bar Controls: Constrained Left-Aligned Search Input and Schedule Sorter above map */}
+      <div className="search-sort-container map-search-sort" style={{ zIndex: 1100, position: 'relative' }}>
         {showSearch && (
-          <div style={{ flex: '1 1 240px', minWidth: '200px', position: 'relative' }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              backgroundColor: '#ffffff',
-              border: '1px solid #cbd5e1',
-              borderRadius: '10px',
-              padding: '6px 12px',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.05)'
-            }}>
-              <IonIcon icon={searchOutline} style={{ color: '#64748b', fontSize: '18px', marginRight: '8px' }} />
-              <input
-                type="text"
-                placeholder="Search site name, code or location to zoom..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setShowSearchDropdown(true);
+          <div className="search-input-wrapper">
+            <IonIcon icon={searchOutline} className="search-icon-left" />
+            <input
+              type="text"
+              placeholder="Search site to zoom..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSearchDropdown(true);
+              }}
+              onFocus={() => setShowSearchDropdown(true)}
+              className="search-text-input"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setShowSearchDropdown(false);
                 }}
-                onFocus={() => setShowSearchDropdown(true)}
-                style={{
-                  border: 'none',
-                  outline: 'none',
-                  width: '100%',
-                  fontSize: '13px',
-                  color: '#1a365d',
-                  backgroundColor: 'transparent'
-                }}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setShowSearchDropdown(false);
-                  }}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#94a3b8' }}
-                >
-                  <IonIcon icon={closeOutline} style={{ fontSize: '16px' }} />
-                </button>
-              )}
-            </div>
+                className="search-clear-btn"
+                aria-label="Clear search"
+              >
+                <IonIcon icon={closeCircle} style={{ fontSize: '18px' }} />
+              </button>
+            )}
 
             {/* Results Dropdown */}
             {showSearchDropdown && (
@@ -824,37 +802,17 @@ export const SpatialPolygonMap: React.FC<SpatialPolygonMapProps> = ({
         )}
 
         {/* Schedule Sorter Control */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          backgroundColor: '#ffffff',
-          border: '1px solid #cbd5e1',
-          borderRadius: '10px',
-          padding: '6px 12px',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
-          marginLeft: showSearch ? '0' : 'auto'
-        }}>
-          <label htmlFor="map-schedule-sorter" style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            Sort:
-          </label>
+        <div className="sort-control-wrapper">
           <select
             id="map-schedule-sorter"
             value={scheduleSort}
             onChange={(e) => handleSortChange(e.target.value as MapScheduleSort)}
-            style={{
-              border: 'none',
-              outline: 'none',
-              backgroundColor: 'transparent',
-              fontSize: '12px',
-              fontWeight: 600,
-              color: '#1a365d',
-              cursor: 'pointer'
-            }}
+            className="sort-select-chip"
+            aria-label="Sort schedules"
           >
             <option value="recent">Recent (Newest)</option>
             <option value="oldest">Oldest</option>
-            <option value="name">Schedule Name (A–Z)</option>
+            <option value="name">Name (A–Z)</option>
           </select>
         </div>
       </div>

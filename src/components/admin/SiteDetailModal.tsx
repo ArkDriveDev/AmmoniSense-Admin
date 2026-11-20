@@ -413,13 +413,8 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '16px', marginBottom: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <IonIcon icon={analyticsOutline} style={{ color: '#1a365d', fontSize: '18px' }} />
-              <strong style={{ color: '#1a365d', fontSize: '14px' }}>Sensor Telemetry & Inspection Analytics</strong>
+              <strong style={{ color: '#1a365d', fontSize: '14px' }}>Inspection Summary</strong>
             </div>
-            {loadingAnalytics && (
-              <span style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <IonSpinner name="dots" style={{ width: '16px', height: '16px' }} /> Loading sensor data...
-              </span>
-            )}
           </div>
 
           {/* Real Analytics Metrics Grid computed from sensor_data */}
@@ -445,7 +440,7 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
                 <IonIcon icon={calendarOutline} style={{ color: '#2563eb' }} /> Schedules
               </span>
               <div style={{ fontSize: '18px', fontWeight: 800, color: '#1a365d', marginTop: '2px' }}>
-                {siteAnalytics ? siteAnalytics.schedulesCount : schedulesCount}
+                {schedulesCount}
               </div>
             </div>
 
@@ -463,104 +458,7 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
                 <IonIcon icon={pricetagOutline} style={{ color: '#0891b2' }} /> Field Tags
               </span>
               <div style={{ fontSize: '18px', fontWeight: 800, color: '#1a365d', marginTop: '2px' }}>
-                {siteAnalytics ? siteAnalytics.tagsCount : tagsCount}
-              </div>
-            </div>
-
-            {/* Total Sensor Readings */}
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                padding: '12px 14px',
-                borderRadius: '10px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-              }}
-            >
-              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <IonIcon icon={pulseOutline} style={{ color: '#059669' }} /> Total Readings
-              </span>
-              <div style={{ fontSize: '18px', fontWeight: 800, color: '#1a365d', marginTop: '2px' }}>
-                {siteAnalytics ? siteAnalytics.readingsCount : 0}
-              </div>
-            </div>
-
-            {/* Average Ammonia */}
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                padding: '12px 14px',
-                borderRadius: '10px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-              }}
-            >
-              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <IonIcon icon={analyticsOutline} style={{ color: '#2563eb' }} /> Avg NH₃
-              </span>
-              <div
-                style={{
-                  fontSize: '18px',
-                  fontWeight: 800,
-                  color: siteAnalytics?.avgPpm && siteAnalytics.avgPpm >= 25 ? '#dc2626' : '#1a365d',
-                  marginTop: '2px',
-                }}
-              >
-                {siteAnalytics?.avgPpm != null ? `${siteAnalytics.avgPpm.toFixed(1)} ppm` : '—'}
-              </div>
-            </div>
-
-            {/* Max / Peak Ammonia */}
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                padding: '12px 14px',
-                borderRadius: '10px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-              }}
-            >
-              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <IonIcon icon={warningOutline} style={{ color: '#d97706' }} /> Max NH₃
-              </span>
-              <div
-                style={{
-                  fontSize: '18px',
-                  fontWeight: 800,
-                  color: siteAnalytics?.maxPpm && siteAnalytics.maxPpm >= 25 ? '#dc2626' : '#15803d',
-                  marginTop: '2px',
-                }}
-              >
-                {siteAnalytics?.maxPpm != null
-                  ? `${siteAnalytics.maxPpm.toFixed(1)} ppm`
-                  : highestAmmonia != null
-                  ? `${Number(highestAmmonia).toFixed(1)} ppm`
-                  : '—'}
-              </div>
-            </div>
-
-            {/* Critical Readings (>= 25 ppm) */}
-            <div
-              style={{
-                backgroundColor: '#ffffff',
-                padding: '12px 14px',
-                borderRadius: '10px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-              }}
-            >
-              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <IonIcon icon={warningOutline} style={{ color: '#dc2626' }} /> Critical (&ge;25)
-              </span>
-              <div
-                style={{
-                  fontSize: '18px',
-                  fontWeight: 800,
-                  color: (siteAnalytics?.criticalCount || criticalCount) > 0 ? '#dc2626' : '#15803d',
-                  marginTop: '2px',
-                }}
-              >
-                {siteAnalytics ? siteAnalytics.criticalCount : criticalCount}
+                {tagsCount}
               </div>
             </div>
           </div>
@@ -698,7 +596,7 @@ export const SiteDetailModal: React.FC<SiteDetailModalProps> = ({
               style={{ '--background': '#1a365d', fontWeight: 700 }}
               onClick={handleNavigateToSites}
             >
-              Open in Sites <IonIcon icon={openOutline} slot="end" />
+              View full details <IonIcon icon={openOutline} slot="end" />
             </IonButton>
           </div>
         </div>

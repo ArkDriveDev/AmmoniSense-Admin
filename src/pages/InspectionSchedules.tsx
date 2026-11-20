@@ -22,6 +22,7 @@ import {
 } from '@ionic/react';
 
 import { useState } from 'react';
+import SearchAndSortBar from '../components/SearchAndSortBar';
 import { useHistory } from 'react-router-dom';
 import {
   calendarOutline,
@@ -120,54 +121,48 @@ export default function InspectionSchedules() {
           </IonButtons>
         </IonToolbar>
 
-        <IonToolbar style={{ '--background': '#f8fafc' }}>
-          <IonSearchbar
-            placeholder="SEARCH SCHEDULES, INSPECTORS, SITES..."
-            value={searchTerm}
-            onIonInput={(e: SearchbarCustomEvent) => setSearchTerm(e.detail.value || '')}
-            animated
-          />
-        </IonToolbar>
-
-        <IonToolbar style={{ '--background': '#ffffff' }}>
-          <div style={{ display: 'flex', gap: '8px', padding: '0 16px 8px 16px', flexWrap: 'wrap', alignItems: 'center' }}>
-            <IonSelect
-              value={statusFilter}
-              onIonChange={(e: SelectCustomEvent) => setStatusFilter(e.detail.value || 'all')}
-              interface="popover"
-              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
-            >
-              <IonSelectOption value="all">All Statuses</IonSelectOption>
-              <IonSelectOption value="SCHEDULED">Scheduled</IonSelectOption>
-              <IonSelectOption value="IN_PROGRESS">In Progress</IonSelectOption>
-              <IonSelectOption value="COMPLETED">Completed</IonSelectOption>
-              <IonSelectOption value="CANCELLED">Cancelled</IonSelectOption>
-            </IonSelect>
-
+        <SearchAndSortBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          placeholder="Search schedules..."
+          sortBy={statusFilter}
+          onSortChange={setStatusFilter}
+          sortOptions={[
+            { value: 'all', label: 'All Status' },
+            { value: 'SCHEDULED', label: 'Scheduled' },
+            { value: 'IN_PROGRESS', label: 'In Progress' },
+            { value: 'COMPLETED', label: 'Completed' },
+            { value: 'CANCELLED', label: 'Cancelled' }
+          ]}
+          sortPlaceholder="Status"
+        >
+          <div className="sort-control-wrapper">
             <IonSelect
               value={siteFilter}
               onIonChange={(e: SelectCustomEvent) => setSiteFilter(e.detail.value || 'all')}
               interface="popover"
-              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
+              className="sort-select-chip"
             >
               <IonSelectOption value="all">All Sites</IonSelectOption>
               {sites.map(s => (
                 <IonSelectOption key={s.id} value={s.id.toString()}>{s.site_name}</IonSelectOption>
               ))}
             </IonSelect>
+          </div>
 
+          <div className="sort-control-wrapper">
             <IonSelect
               value={confirmedFilter}
               onIonChange={(e: SelectCustomEvent) => setConfirmedFilter(e.detail.value || 'all')}
               interface="popover"
-              style={{ fontSize: '13px', backgroundColor: '#f1f5f9', borderRadius: '6px', padding: '2px 8px' }}
+              className="sort-select-chip"
             >
               <IonSelectOption value="all">All Confirmation</IonSelectOption>
-              <IonSelectOption value="confirmed">Confirmed Only</IonSelectOption>
-              <IonSelectOption value="unconfirmed">Not Confirmed</IonSelectOption>
+              <IonSelectOption value="confirmed">Confirmed</IonSelectOption>
+              <IonSelectOption value="unconfirmed">Unconfirmed</IonSelectOption>
             </IonSelect>
           </div>
-        </IonToolbar>
+        </SearchAndSortBar>
       </IonHeader>
 
       <IonContent className="ion-padding" style={{ '--background': '#f1f5f9' }}>
