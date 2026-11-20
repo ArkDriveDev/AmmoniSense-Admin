@@ -1,0 +1,174 @@
+/* ==========================================================================
+   Constrained, Centered, Side-by-Side Search and Sort Container
+   Specification:
+   - max-width: 420px
+   - centered (margin: 16px auto)
+   - padding: 0 16px (never touches screen edges)
+   - side-by-side with 8px gap
+   ========================================================================== */
+
+.search-sort-container {
+  max-width: 420px;
+  width: 100%;
+  margin: 16px auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Search Bar (Left Side) */
+.search-input-wrapper {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 46px;
+  background-color: #F2F3F5;
+  border-radius: 24px;
+  box-sizing: border-box;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid transparent;
+}
+
+.search-input-wrapper:focus-within {
+  background-color: #ffffff;
+  border-color: #1D5D9B;
+  box-shadow: 0 0 0 3px rgba(29, 93, 155, 0.15);
+}
+
+.search-icon-left {
+  position: absolute;
+  left: 14px;
+  font-size: 18px;
+  color: #64748b;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-text-input {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0 40px 0 40px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  border-radius: 24px;
+  box-sizing: border-box;
+}
+
+.search-text-input::placeholder {
+  color: #64748b;
+  opacity: 0.85;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  transition: color 0.15s ease;
+}
+
+.search-clear-btn:hover {
+  color: #64748b;
+}
+
+/* Sort Control (Right Side) */
+.sort-control-wrapper {
+  width: 110px;
+  flex: 0 0 110px;
+  height: 46px;
+  background-color: #F2F3F5;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.sort-control-wrapper:hover,
+.sort-control-wrapper:focus-within {
+  border-color: #cbd5e1;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.sort-select-chip {
+  width: 100%;
+  height: 100%;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Responsive Wrap on very small mobile screens (<= 360px) */
+@media (max-width: 360px) {
+  .search-sort-container {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .search-input-wrapper {
+    flex: 1 1 100%;
+  }
+  .sort-control-wrapper {
+    width: 100%;
+    flex: 1 1 100%;
+  }
+}
+
+/* Secondary Filter Chips Row (also constrained to 420px, centered) */
+.sub-filter-row {
+  max-width: 420px;
+  width: 100%;
+  margin: 0 auto 12px auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sub-filter-chip {
+  height: 32px;
+  background-color: #F2F3F5;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+  --padding-start: 10px;
+  --padding-end: 10px;
+  border: 1px solid transparent;
+  transition: all 0.15s ease-in-out;
+}
+
+.sub-filter-chip:hover {
+  border-color: #cbd5e1;
+  background-color: #ffffff;
+}
