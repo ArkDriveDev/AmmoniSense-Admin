@@ -18,7 +18,7 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({ violations, readings
   // Violations per category
   const catCounts: Record<string, number> = {};
   violations.forEach((v) => {
-    const label = getViolationCategoryLabel(v.violation_category);
+    const label = getViolationCategoryLabel(v.findings);
     catCounts[label] = (catCounts[label] || 0) + 1;
   });
 

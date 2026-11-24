@@ -51,11 +51,11 @@ export const ReportViolationsTable: React.FC<ReportViolationsTableProps> = ({ vi
                   <td style={tdStyle}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: 4, fontWeight: 700, fontSize: 10 }}>
-                        {getViolationCategoryLabel(v.violation_category)}
+                        {getViolationCategoryLabel(v.findings)}
                       </span>
-                      {getViolationCategoryLaw(v.violation_category) && (
+                      {getViolationCategoryLaw(v.findings) && (
                         <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 600, fontSize: 9 }}>
-                          {getViolationCategoryLaw(v.violation_category)}
+                          {getViolationCategoryLaw(v.findings)}
                         </span>
                       )}
                     </div>
