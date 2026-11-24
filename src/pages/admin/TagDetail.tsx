@@ -51,7 +51,7 @@ export const TagDetail: React.FC<TagDetailProps> = ({ tag, onClose }) => {
   const batVal = tag.battery !== null && tag.battery !== undefined ? Number(tag.battery) : null;
   const latVal = tag.latitude ?? tag.tag_latitude ?? tag.reading_latitude;
   const lngVal = tag.longitude ?? tag.tag_longitude ?? tag.reading_longitude;
-  const badge = getAmmoniaBadgeStyle(ammoniaVal, tag.status, tag.violation_category);
+  const badge = getAmmoniaBadgeStyle(ammoniaVal, tag.status, tag.findings);
 
   const formattedDate = tag.created_at
     ? new Date(tag.created_at).toLocaleString(undefined, {
@@ -182,7 +182,7 @@ export const TagDetail: React.FC<TagDetailProps> = ({ tag, onClose }) => {
                   {formattedDate}
                 </span>
 
-                {tag.violation_category && (
+                {tag.findings && (
                   <span
                     style={{
                       display: 'inline-flex',
@@ -198,8 +198,8 @@ export const TagDetail: React.FC<TagDetailProps> = ({ tag, onClose }) => {
                     }}
                   >
                     <IonIcon icon={alertCircleOutline} style={{ color: '#dc2626', fontSize: '15px' }} />
-                    Violation: {getViolationCategoryLabel(tag.violation_category)}
-                    {getViolationCategoryLaw(tag.violation_category) && ` (${getViolationCategoryLaw(tag.violation_category)})`}
+                    Findings: {getViolationCategoryLabel(tag.findings)}
+                    {getViolationCategoryLaw(tag.findings) && ` (${getViolationCategoryLaw(tag.findings)})`}
                   </span>
                 )}
               </div>
@@ -566,12 +566,12 @@ export const TagDetail: React.FC<TagDetailProps> = ({ tag, onClose }) => {
 
             <div>
               <span style={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
-                <IonIcon icon={alertCircleOutline} style={{ color: tag.violation_category ? '#dc2626' : '#64748b' }} />
-                Violation Category
+                <IonIcon icon={alertCircleOutline} style={{ color: tag.findings ? '#dc2626' : '#64748b' }} />
+                Findings
               </span>
-              <b style={{ color: tag.violation_category ? '#b91c1c' : '#0f172a', display: 'block', marginTop: '2px' }}>
-                {tag.violation_category
-                  ? `${getViolationCategoryLabel(tag.violation_category)}${getViolationCategoryLaw(tag.violation_category) ? ` [${getViolationCategoryLaw(tag.violation_category)}]` : ''}`
+              <b style={{ color: tag.findings ? '#b91c1c' : '#0f172a', display: 'block', marginTop: '2px' }}>
+                {tag.findings
+                  ? `${getViolationCategoryLabel(tag.findings)}${getViolationCategoryLaw(tag.findings) ? ` [${getViolationCategoryLaw(tag.findings)}]` : ''}`
                   : 'No Violation Tagged (Compliant)'}
               </b>
             </div>
