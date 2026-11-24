@@ -15,7 +15,7 @@ export const ReportSummaryCards: React.FC<ReportSummaryCardsProps> = ({ stats })
 
   const cards = [
     { label: 'Overall Status', val: complianceStatus.label, color: complianceStatus.color, bg: complianceStatus.bg },
-    { label: 'Total Violations', val: String(stats.violationCount), color: stats.violationCount > 0 ? '#dc2626' : '#16a34a', bg: stats.violationCount > 0 ? '#fee2e2' : undefined },
+    { label: 'Total Findings', val: String(stats.violationCount), color: stats.violationCount > 0 ? '#dc2626' : '#16a34a', bg: stats.violationCount > 0 ? '#fee2e2' : undefined },
     { label: 'Highest NH₃', val: stats.highestPpm !== null ? `${stats.highestPpm.toFixed(1)} ppm` : 'None', color: stats.criticalCount > 0 ? '#dc2626' : '#0f172a' },
     { label: 'Average NH₃', val: stats.averagePpm !== null ? `${stats.averagePpm.toFixed(1)} ppm` : 'None', color: '#0f172a' },
   ];

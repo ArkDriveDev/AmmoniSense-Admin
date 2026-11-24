@@ -15,7 +15,7 @@ interface ReportChartsProps {
 }
 
 export const ReportCharts: React.FC<ReportChartsProps> = ({ violations, readings }) => {
-  // Violations per category
+  // Findings per category
   const catCounts: Record<string, number> = {};
   violations.forEach((v) => {
     const label = getViolationCategoryLabel(v.findings);
@@ -25,7 +25,7 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({ violations, readings
   const violChartData = {
     labels: Object.keys(catCounts),
     datasets: [{
-      label: 'Violations',
+      label: 'Findings',
       data: Object.values(catCounts),
       backgroundColor: 'rgba(239, 68, 68, 0.75)',
       borderColor: '#dc2626',
@@ -68,9 +68,9 @@ export const ReportCharts: React.FC<ReportChartsProps> = ({ violations, readings
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14 }}>
         <div style={chartBox}>
           {Object.keys(catCounts).length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: 12 }}>No violation data for chart</div>
+            <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: 12 }}>No findings data for chart</div>
           ) : (
-            <div style={{ height: 190 }}><Bar data={violChartData} options={commonOptions('Violations by Category')} /></div>
+            <div style={{ height: 190 }}><Bar data={violChartData} options={commonOptions('Findings by Category')} /></div>
           )}
         </div>
         <div style={chartBox}>
