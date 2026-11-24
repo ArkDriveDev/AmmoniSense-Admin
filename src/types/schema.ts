@@ -77,7 +77,7 @@ export interface InspectionTag {
   photo_thumbnail_url?: string | null;
   inspection_photo_id?: number | null;
   notes?: string | null;
-  violation_category?: ViolationCategory | string | null;
+  findings?: ViolationCategory | string | null;
   session_id?: string | null;
   offline_temp_id?: string | null;
   created_at?: string;
@@ -216,7 +216,7 @@ export interface InspectionTagDetails {
   photo_thumbnail_storage_path?: string | null;
   created_at: string;
   notes: string | null;
-  violation_category?: ViolationCategory | string | null;
+  findings?: ViolationCategory | string | null;
   offline_temp_id?: string | null;
   created_by: string | null;
   ammonia: number | null;

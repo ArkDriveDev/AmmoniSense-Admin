@@ -112,13 +112,13 @@ export async function fetchInspectionReportData(scheduleId: number): Promise<Ins
         photo_thumbnail_storage_path: t.photo_thumbnail_storage_path,
         created_at: t.created_at,
         notes: t.notes,
-        violation_category: t.violation_category ?? null,
+        findings: t.findings ?? null,
         created_by: t.created_by,
         ammonia: s?.ammonia !== null && s?.ammonia !== undefined ? Number(s.ammonia) : null,
         temperature: s?.temperature !== null && s?.temperature !== undefined ? Number(s.temperature) : null,
         humidity: s?.humidity !== null && s?.humidity !== undefined ? Number(s.humidity) : null,
         battery: s?.battery !== null && s?.battery !== undefined ? Number(s.battery) : null,
-        status: s?.status ?? (t.violation_category ? 'NON-COMPLIANT' : 'NORMAL'),
+        status: s?.status ?? (t.findings ? 'NON-COMPLIANT' : 'NORMAL'),
         reading_latitude: s?.latitude ?? null,
         reading_longitude: s?.longitude ?? null,
         reading_at: s?.created_at ?? s?.submitted_at ?? null,
@@ -139,21 +139,21 @@ export async function fetchInspectionReportData(scheduleId: number): Promise<Ins
   }
 
   // 5. Violations, Readings & Stats
-  // A tag is a violation if it has an explicit violation_category OR an ammonia exceedance (>25 PPM / Critical / High)
+  // A tag is a violation if it has an explicit findings OR an ammonia exceedance (>25 PPM / Critical / High)
   const violations: ReportViolation[] = tags
     .filter((t) => {
-      const hasExplicitViolation = !!t.violation_category && t.violation_category.trim() !== '';
+      const hasExplicitViolation = !!t.findings && t.findings.trim() !== '';
       const nh3 = t.ammonia !== null && t.ammonia !== undefined ? Number(t.ammonia) : null;
       const isExceedance = (nh3 !== null && nh3 > 25) || ['CRITICAL', 'HIGH', 'WARNING', 'NON-COMPLIANT'].includes((t.status || '').toUpperCase());
       return hasExplicitViolation || isExceedance;
     })
     .map((t) => {
-      const hasExplicitViolation = !!t.violation_category && t.violation_category.trim() !== '';
+      const hasExplicitViolation = !!t.findings && t.findings.trim() !== '';
       const nh3 = t.ammonia !== null && t.ammonia !== undefined ? Number(t.ammonia) : null;
 
       // Default category if not set on tag but triggered by sensor ammonia reading
       const category: string = hasExplicitViolation
-        ? (t.violation_category as string)
+        ? (t.findings as string)
         : 'FOUL_ODOR';
 
       const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (nh3 !== null && nh3 > 50) || ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes(category);
@@ -163,7 +163,7 @@ export async function fetchInspectionReportData(scheduleId: number): Promise<Ins
       return {
         tag_id: t.tag_id,
         tag_name: t.tag_name,
-        violation_category: category,
+        findings: category,
         severity: t.status || severity,
         status: t.status || severity,
         latitude: t.tag_latitude ?? t.reading_latitude ?? null,

@@ -70,7 +70,7 @@ export const TagTable: React.FC<TagTableProps> = ({
               <th style={{ minWidth: '45px', textAlign: 'right' }}>Bat (%)</th>
               <th style={{ minWidth: '70px' }}>Device</th>
               <th style={{ minWidth: '65px', textAlign: 'center' }}>Status</th>
-              <th style={{ minWidth: '110px' }}>Violation Category</th>
+              <th style={{ minWidth: '110px' }}>Findings</th>
               <th style={{ minWidth: '85px' }}>Date/Time</th>
               <th>Notes</th>
             </tr>
@@ -88,8 +88,8 @@ export const TagTable: React.FC<TagTableProps> = ({
                 const tempVal = tag.temperature !== null && tag.temperature !== undefined ? Number(tag.temperature) : null;
                 const humVal = tag.humidity !== null && tag.humidity !== undefined ? Number(tag.humidity) : null;
                 const batVal = tag.battery !== null && tag.battery !== undefined ? Number(tag.battery) : null;
-                const categoryLabel = getViolationCategoryLabel(tag.violation_category);
-                const categoryLaw = getViolationCategoryLaw(tag.violation_category);
+                const categoryLabel = getViolationCategoryLabel(tag.findings);
+                const categoryLaw = getViolationCategoryLaw(tag.findings);
 
                 const dateStr = tag.created_at
                   ? new Date(tag.created_at).toLocaleDateString(undefined, {
@@ -126,7 +126,7 @@ export const TagTable: React.FC<TagTableProps> = ({
                     <td>{tag.device_name || tag.device_uid || '--'}</td>
                     <td style={{ textAlign: 'center' }}>
                       <span className="print-badge">
-                        {tag.status || (tag.violation_category ? 'NON-COMPLIANT' : 'NORMAL')}
+                        {tag.status || (tag.findings ? 'NON-COMPLIANT' : 'NORMAL')}
                       </span>
                     </td>
                     <td>

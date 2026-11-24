@@ -88,7 +88,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, onClick }) => {
   const batVal = tag.battery !== null && tag.battery !== undefined ? Number(tag.battery) : null;
   const latVal = tag.latitude ?? tag.tag_latitude ?? tag.reading_latitude;
   const lngVal = tag.longitude ?? tag.tag_longitude ?? tag.reading_longitude;
-  const badge = getAmmoniaBadgeStyle(ammoniaVal, tag.status, tag.violation_category);
+  const badge = getAmmoniaBadgeStyle(ammoniaVal, tag.status, tag.findings);
 
   const formattedDate = tag.created_at
     ? new Date(tag.created_at).toLocaleString(undefined, {
@@ -210,7 +210,7 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, onClick }) => {
                     </span>
                   )}
 
-                  {tag.violation_category && (
+                  {tag.findings && (
                     <span
                       style={{
                         display: 'inline-flex',
@@ -226,10 +226,10 @@ export const TagCard: React.FC<TagCardProps> = ({ tag, onClick }) => {
                       }}
                     >
                       <IonIcon icon={alertCircleOutline} style={{ color: '#dc2626', fontSize: '13px' }} />
-                      <span>{getViolationCategoryLabel(tag.violation_category)}</span>
-                      {getViolationCategoryLaw(tag.violation_category) && (
+                      <span>{getViolationCategoryLabel(tag.findings)}</span>
+                      {getViolationCategoryLaw(tag.findings) && (
                         <span style={{ fontSize: '10px', color: '#b91c1c' }}>
-                          [{getViolationCategoryLaw(tag.violation_category)}]
+                          [{getViolationCategoryLaw(tag.findings)}]
                         </span>
                       )}
                     </span>

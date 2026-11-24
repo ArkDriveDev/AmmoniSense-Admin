@@ -80,24 +80,24 @@ export function useDashboardData() {
     };
 
     // 2. Alert Severity
-    const isCriticalItem = (d: { status?: string | null; ammonia?: number | null; violation_category?: string | null }) => {
+    const isCriticalItem = (d: { status?: string | null; ammonia?: number | null; findings?: string | null }) => {
       const s = (d.status || '').toUpperCase();
       const ppm = d.ammonia || 0;
-      const v = (d.violation_category || '').trim().toUpperCase();
+      const v = (d.findings || '').trim().toUpperCase();
       return s === 'CRITICAL' || ppm > 50 || ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes(v);
     };
 
-    const isHighItem = (d: { status?: string | null; ammonia?: number | null; violation_category?: string | null }) => {
+    const isHighItem = (d: { status?: string | null; ammonia?: number | null; findings?: string | null }) => {
       const s = (d.status || '').toUpperCase();
       const ppm = d.ammonia || 0;
-      const v = (d.violation_category || '').trim().toUpperCase();
+      const v = (d.findings || '').trim().toUpperCase();
       return s === 'HIGH' || (ppm > 35 && ppm <= 50) || ['FOUL_ODOR', 'IMPROPER_WASTE_DISPOSAL', 'MANURE_PILING'].includes(v);
     };
 
-    const isWarningItem = (d: { status?: string | null; ammonia?: number | null; violation_category?: string | null }) => {
+    const isWarningItem = (d: { status?: string | null; ammonia?: number | null; findings?: string | null }) => {
       const s = (d.status || '').toUpperCase();
       const ppm = d.ammonia || 0;
-      const v = (d.violation_category || '').trim().toUpperCase();
+      const v = (d.findings || '').trim().toUpperCase();
       return s === 'WARNING' || (ppm > 25 && ppm <= 35) || (v !== '' && !isCriticalItem(d) && !isHighItem(d));
     };
 
@@ -225,16 +225,16 @@ export function useDashboardData() {
         const { count: viewAlerts, error: viewAlertsErr } = await supabase
           .from('inspection_tag_details')
           .select('tag_id', { count: 'exact', head: true })
-          .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25,not.violation_category.is.null');
+          .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25,not.findings.is.null');
 
         if (!viewAlertsErr && viewAlerts !== null) {
           alertsCount = viewAlerts;
         } else {
-          // Fallback: count violations directly from inspection_tags where violation_category is not null
+          // Fallback: count violations directly from inspection_tags where findings is not null
           const { count: violCount } = await supabase
             .from('inspection_tags')
             .select('id', { count: 'exact', head: true })
-            .not('violation_category', 'is', null);
+            .not('findings', 'is', null);
           alertsCount = violCount || 0;
         }
       } catch {
@@ -264,16 +264,16 @@ export function useDashboardData() {
         .order('created_at', { ascending: true })
         .limit(1000);
 
-      // 3. Fetch alert severity / status distribution from inspection_tag_details (includes violation_category)
+      // 3. Fetch alert severity / status distribution from inspection_tag_details (includes findings)
       const { data: severityData } = await supabase
         .from('inspection_tag_details')
-        .select('status, ammonia, violation_category');
+        .select('status, ammonia, findings');
 
       // 4. Fetch reading timestamp trend for alerts / violations
       const { data: alertTrendData } = await supabase
         .from('inspection_tag_details')
-        .select('created_at, status, ammonia, violation_category')
-        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25,not.violation_category.is.null');
+        .select('created_at, status, ammonia, findings')
+        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25,not.findings.is.null');
 
       // 5. Fetch device status distribution
       const { data: deviceStatusData } = await supabase
@@ -284,7 +284,7 @@ export function useDashboardData() {
       const { data: topDevices } = await supabase
         .from('inspection_tag_details')
         .select('device_uid')
-        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25,not.violation_category.is.null')
+        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25,not.findings.is.null')
         .not('device_uid', 'is', null)
         .limit(1000);
 

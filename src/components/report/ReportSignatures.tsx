@@ -30,7 +30,7 @@ export const ReportSignatures: React.FC<ReportSignaturesProps> = ({
       }}>
         Based on the field inspection conducted on <strong>{formattedDate}</strong>,{' '}
         <strong>{site.site_name}</strong> was recorded with{' '}
-        <strong>{stats.violationCount}</strong> violation{stats.violationCount !== 1 ? 's' : ''}
+        <strong>{stats.violationCount}</strong> finding{stats.violationCount !== 1 ? 's' : ''}
         {stats.highestPpm !== null ? ` and ${stats.criticalCount} critical ammonia reading(s)` : ''}.
         {stats.violationCount > 0
           ? ' The site is marked NON-COMPLIANT. Corrective action and follow-up field monitoring are required by MENRO.'

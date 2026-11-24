@@ -26,19 +26,20 @@ export const ReportViolationsTable: React.FC<ReportViolationsTableProps> = ({ vi
   return (
     <div style={{ marginBottom: 24 }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: '#1a365d', textTransform: 'uppercase', marginBottom: 8 }}>
-        Violations Summary ({violations.length})
+        Findings Summary ({violations.length})
       </div>
       {violations.length === 0 ? (
         <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: 6, padding: '12px', textAlign: 'center', fontSize: 12, color: '#64748b' }}>
-          No violations recorded during this inspection schedule.
+          No findings recorded during this inspection schedule.
         </div>
       ) : (
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', minWidth: '540px', borderCollapse: 'collapse', border: '1px solid #cbd5e1', borderRadius: 6, overflow: 'hidden' }}>
             <thead>
               <tr>
+                <th style={{ ...thStyle, width: 35, textAlign: 'center' }}>No.</th>
                 <th style={thStyle}>Tag</th>
-                <th style={thStyle}>Category</th>
+                <th style={thStyle}>Findings</th>
                 <th style={thStyle}>Location</th>
                 <th style={thStyle}>Notes</th>
                 <th style={{ ...thStyle, width: 60, textAlign: 'center' }}>Photo</th>
@@ -47,15 +48,16 @@ export const ReportViolationsTable: React.FC<ReportViolationsTableProps> = ({ vi
             <tbody>
               {violations.map((v, i) => (
                 <tr key={i} style={{ background: i % 2 === 0 ? '#ffffff' : '#f8fafc' }}>
+                  <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 'bold' }}>{i + 1}</td>
                   <td style={tdStyle}><strong>{v.tag_name}</strong></td>
                   <td style={tdStyle}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <span style={{ background: '#fee2e2', color: '#b91c1c', padding: '2px 6px', borderRadius: 4, fontWeight: 700, fontSize: 10 }}>
-                        {getViolationCategoryLabel(v.violation_category)}
+                        {getViolationCategoryLabel(v.findings)}
                       </span>
-                      {getViolationCategoryLaw(v.violation_category) && (
+                      {getViolationCategoryLaw(v.findings) && (
                         <span style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '1px 5px', borderRadius: 4, fontWeight: 600, fontSize: 9 }}>
-                          {getViolationCategoryLaw(v.violation_category)}
+                          {getViolationCategoryLaw(v.findings)}
                         </span>
                       )}
                     </div>
@@ -66,7 +68,7 @@ export const ReportViolationsTable: React.FC<ReportViolationsTableProps> = ({ vi
                   <td style={tdStyle}>{v.notes || '—'}</td>
                   <td style={{ ...tdStyle, textAlign: 'center' }}>
                     {v.photo_thumbnail_url ? (
-                      <img src={v.photo_thumbnail_url} alt="Violation" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #cbd5e1' }} />
+                      <img src={v.photo_thumbnail_url} alt="Finding" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid #cbd5e1' }} />
                     ) : '—'}
                   </td>
                 </tr>
