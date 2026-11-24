@@ -115,7 +115,7 @@ export default function AdminTags() {
           photo_thumbnail_storage_path: null,
           created_at: t.created_at,
           notes: t.notes,
-          violation_category: t.violation_category || null,
+          findings: t.findings || null,
           offline_temp_id: t.offline_temp_id,
           created_by: t.created_by,
           ammonia: t.ammonia,
@@ -143,19 +143,19 @@ export default function AdminTags() {
 
         setTags(mapped);
       } else {
-        // If view in remote DB has not yet been migrated to include violation_category, fetch it directly
+        // If view in remote DB has not yet been migrated to include findings, fetch it directly
         const violationMap = new Map<number, string | null>();
-        if (data && data.length > 0 && !('violation_category' in data[0])) {
+        if (data && data.length > 0 && !('findings' in data[0])) {
           try {
             const { data: vTags } = await supabase
               .from('inspection_tags')
-              .select('id, violation_category')
+              .select('id, findings')
               .in('id', data.map((d: any) => d.tag_id));
             if (vTags) {
-              vTags.forEach((vt: any) => violationMap.set(vt.id, vt.violation_category));
+              vTags.forEach((vt: any) => violationMap.set(vt.id, vt.findings));
             }
           } catch (err) {
-            console.warn('Could not fetch fallback violation_category:', err);
+            console.warn('Could not fetch fallback findings:', err);
           }
         }
 
@@ -165,7 +165,7 @@ export default function AdminTags() {
         })[]).map((t) => ({
           ...t,
           session_id: t.session_id || null,
-          violation_category: t.violation_category || violationMap.get(t.tag_id) || null,
+          findings: t.findings || violationMap.get(t.tag_id) || null,
           latitude: t.tag_latitude ?? t.reading_latitude ?? t.latitude,
           longitude: t.tag_longitude ?? t.reading_longitude ?? t.longitude,
           schedule_id: t.inspection_schedule_id ?? t.schedule_id
@@ -245,14 +245,14 @@ export default function AdminTags() {
       });
     }
 
-    // Filter by violation category
+    // Filter by findings
     if (violationFilter !== 'all') {
       if (violationFilter === 'NONE') {
-        result = result.filter((t) => !t.violation_category);
+        result = result.filter((t) => !t.findings);
       } else if (violationFilter === 'HAS_VIOLATION') {
-        result = result.filter((t) => !!t.violation_category);
+        result = result.filter((t) => !!t.findings);
       } else {
-        result = result.filter((t) => t.violation_category === violationFilter);
+        result = result.filter((t) => t.findings === violationFilter);
       }
     }
 
@@ -292,10 +292,10 @@ export default function AdminTags() {
         const notesMatch = t.notes?.toLowerCase().includes(term);
         const statusMatch = t.status?.toLowerCase().includes(term);
 
-        // Violation category search
-        const violationLabel = getViolationCategoryLabel(t.violation_category).toLowerCase();
-        const violationCode = (t.violation_category || '').toLowerCase();
-        const violationLaw = getViolationCategoryLaw(t.violation_category).toLowerCase();
+        // Findings search
+        const violationLabel = getViolationCategoryLabel(t.findings).toLowerCase();
+        const violationCode = (t.findings || '').toLowerCase();
+        const violationLaw = getViolationCategoryLaw(t.findings).toLowerCase();
         const violationMatch =
           violationLabel.includes(term) ||
           violationCode.includes(term) ||
@@ -373,12 +373,12 @@ export default function AdminTags() {
     if (ammoniaFilter !== 'all') parts.push(`Ammonia Level: ${ammoniaFilter}`);
     if (violationFilter !== 'all') {
       if (violationFilter === 'NONE') {
-        parts.push('Violation: No Violation (Clean)');
+        parts.push('Findings: No Violation (Clean)');
       } else if (violationFilter === 'HAS_VIOLATION') {
-        parts.push('Violation: Any Violation Tagged');
+        parts.push('Findings: Any Violation Tagged');
       } else {
         const opt = VIOLATION_CATEGORIES.find((v) => v.value === violationFilter);
-        parts.push(`Violation: ${opt ? `${opt.label} (${opt.lawReference})` : violationFilter}`);
+        parts.push(`Findings: ${opt ? `${opt.label} (${opt.lawReference})` : violationFilter}`);
       }
     }
     if (startDate) parts.push(`From: ${startDate}`);
@@ -488,7 +488,7 @@ export default function AdminTags() {
               interface="popover"
               className="sort-select-chip"
             >
-              <IonSelectOption value="all">All Violations</IonSelectOption>
+              <IonSelectOption value="all">All Findings</IonSelectOption>
               <IonSelectOption value="HAS_VIOLATION">Has Violation</IonSelectOption>
               <IonSelectOption value="NONE">No Violation</IonSelectOption>
               {VIOLATION_CATEGORIES.map((cat) => (

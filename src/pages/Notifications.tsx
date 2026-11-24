@@ -34,7 +34,7 @@ export interface AlertItem {
   site_code: string | null;
   schedule_name: string | null;
   ammonia: number | null;
-  violation_category?: string | null;
+  findings?: string | null;
   severity: 'CRITICAL' | 'HIGH' | 'WARNING';
   created_at: string;
   photo_url: string | null;
@@ -56,13 +56,13 @@ export default function Notifications() {
       const { data, error } = await supabase
         .from('inspection_tag_details')
         .select('*')
-        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25,not.violation_category.is.null')
+        .or('status.eq.CRITICAL,status.eq.HIGH,status.eq.WARNING,ammonia.gt.25,not.findings.is.null')
         .order('created_at', { ascending: false })
         .limit(100);
 
       if (!error && data) {
         const formatted: AlertItem[] = data.map((t: InspectionTagDetails) => {
-          const vCat = (t.violation_category || '').trim();
+          const vCat = (t.findings || '').trim();
           const isCriticalViolation = ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes(vCat);
           const isHighViolation = ['FOUL_ODOR', 'IMPROPER_WASTE_DISPOSAL', 'MANURE_PILING'].includes(vCat);
           const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (t.ammonia || 0) > 50 || isCriticalViolation;
@@ -76,7 +76,7 @@ export default function Notifications() {
             site_code: t.site_code,
             schedule_name: t.schedule_name,
             ammonia: t.ammonia,
-            violation_category: t.violation_category || null,
+            findings: t.findings || null,
             severity: isCritical ? 'CRITICAL' : isHigh ? 'HIGH' : 'WARNING',
             created_at: t.created_at,
             photo_url: t.photo_thumbnail_url || t.photo_url,
@@ -85,7 +85,7 @@ export default function Notifications() {
         });
         setAlerts(formatted);
       } else {
-        // Fallback: direct query to inspection_tags with violation_category or join
+        // Fallback: direct query to inspection_tags with findings or join
         const { data: rawTags } = await supabase
           .from('inspection_tags')
           .select(`
@@ -98,13 +98,13 @@ export default function Notifications() {
               schedule_name
             )
           `)
-          .not('violation_category', 'is', null)
+          .not('findings', 'is', null)
           .order('created_at', { ascending: false })
           .limit(100);
 
         if (rawTags) {
           const formatted: AlertItem[] = rawTags.map((t: any) => {
-            const vCat = (t.violation_category || '').trim();
+            const vCat = (t.findings || '').trim();
             const isCriticalViolation = ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes(vCat);
             const isHighViolation = ['FOUL_ODOR', 'IMPROPER_WASTE_DISPOSAL', 'MANURE_PILING'].includes(vCat);
             const isCritical = (t.status || '').toUpperCase() === 'CRITICAL' || (t.ammonia || 0) > 50 || isCriticalViolation;
@@ -118,7 +118,7 @@ export default function Notifications() {
               site_code: t.inspection_sites?.site_code || null,
               schedule_name: t.inspection_schedules?.schedule_name || null,
               ammonia: t.ammonia ?? null,
-              violation_category: t.violation_category || null,
+              findings: t.findings || null,
               severity: isCritical ? 'CRITICAL' : isHigh ? 'HIGH' : 'WARNING',
               created_at: t.created_at || new Date().toISOString(),
               photo_url: t.photo_thumbnail_url || t.photo_url || null,
@@ -236,13 +236,13 @@ export default function Notifications() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                     <IonIcon icon={alertCircleOutline} style={{ color: a.severity === 'CRITICAL' ? '#dc2626' : '#f59e0b', fontSize: '18px' }} />
                     <h2 style={{ color: a.severity === 'CRITICAL' ? '#dc2626' : '#d97706', fontWeight: 'bold', margin: 0, fontSize: '16px' }}>
-                      {a.violation_category
-                        ? `${a.severity} VIOLATION: ${getViolationCategoryLabel(a.violation_category)}`
+                      {a.findings
+                        ? `${a.severity} VIOLATION: ${getViolationCategoryLabel(a.findings)}`
                         : `${a.severity} AMMONIA EXCEEDANCE`}
                     </h2>
                   </div>
 
-                  {a.violation_category && (
+                  {a.findings && (
                     <div style={{ margin: '4px 0 6px 0' }}>
                       <span
                         style={{
@@ -258,8 +258,8 @@ export default function Notifications() {
                           borderRadius: '6px'
                         }}
                       >
-                        Violation: {getViolationCategoryLabel(a.violation_category)}
-                        {getViolationCategoryLaw(a.violation_category) && ` [${getViolationCategoryLaw(a.violation_category)}]`}
+                        Violation: {getViolationCategoryLabel(a.findings)}
+                        {getViolationCategoryLaw(a.findings) && ` [${getViolationCategoryLaw(a.findings)}]`}
                       </span>
                     </div>
                   )}

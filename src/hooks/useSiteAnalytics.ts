@@ -162,14 +162,14 @@ export function useSiteAnalytics() {
         let alertStatus: 'normal' | 'warning' | 'high' | 'critical' = 'normal';
         const nh3 = latestTag?.ammonia;
         const tagStatusUpper = (latestTag?.status || '').toUpperCase();
-        const latestViolation = (latestTag?.violation_category || '').trim().toUpperCase();
+        const latestViolation = (latestTag?.findings || '').trim().toUpperCase();
         const hasRecentCriticalViolation = tags7Days.some(t =>
-          ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes((t.violation_category || '').toUpperCase())
+          ['ILLEGAL_DUMPING', 'OPEN_BURNING', 'WATER_POLLUTION', 'WASTEWATER_DISCHARGE'].includes((t.findings || '').toUpperCase())
         );
         const hasRecentHighViolation = tags7Days.some(t =>
-          ['FOUL_ODOR', 'IMPROPER_WASTE_DISPOSAL', 'MANURE_PILING'].includes((t.violation_category || '').toUpperCase())
+          ['FOUL_ODOR', 'IMPROPER_WASTE_DISPOSAL', 'MANURE_PILING'].includes((t.findings || '').toUpperCase())
         );
-        const hasRecentAnyViolation = tags7Days.some(t => !!t.violation_category);
+        const hasRecentAnyViolation = tags7Days.some(t => !!t.findings);
 
         if (
           tagStatusUpper === 'CRITICAL' ||
@@ -245,7 +245,7 @@ export function useSiteAnalytics() {
           tag_count: sum?.tag_count || siteTags.length,
           photo_count: sum?.photo_count || 0,
           avg_ammonia: sum?.avg_ammonia ?? (latestTag?.ammonia ?? null),
-          critical_readings: sum?.critical_readings || siteTags.filter(t => (t.ammonia || 0) > 25 || !!t.violation_category).length,
+          critical_readings: sum?.critical_readings || siteTags.filter(t => (t.ammonia || 0) > 25 || !!t.findings).length,
           last_inspection_at: sum?.last_inspection_at || latestTag?.created_at || null,
 
           latest_ammonia: latestTag?.ammonia ?? null,
@@ -278,8 +278,8 @@ export function useSiteAnalytics() {
             temperature: t.temperature || 0,
             humidity: t.humidity || 0,
             battery: t.battery || 0,
-            status: t.status || (t.violation_category ? 'NON-COMPLIANT' : 'NORMAL'),
-            violation_category: t.violation_category || null,
+            status: t.status || (t.findings ? 'NON-COMPLIANT' : 'NORMAL'),
+            findings: t.findings || null,
             created_at: t.created_at || new Date().toISOString(),
             photo_url: t.photo_url || null,
             photo_thumbnail_url: t.photo_thumbnail_url || null,
