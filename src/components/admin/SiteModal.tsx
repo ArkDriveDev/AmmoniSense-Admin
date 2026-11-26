@@ -85,22 +85,15 @@ export const SiteModal: React.FC<SiteModalProps> = ({
   }, [site, isOpen]);
 
   const handleSubmit = async () => {
-    if (!form.site_code.trim() || !form.site_name.trim()) {
-      setToastMessage('Please fill in both Site Code and Site Name.');
+    if (!form.site_name.trim()) {
+      setToastMessage('Please fill in the Site Name.');
       setToastColor('danger');
       setShowToast(true);
       return;
     }
 
-    if (!form.poultry_type) {
-      setToastMessage('Please select a Poultry Type.');
-      setToastColor('danger');
-      setShowToast(true);
-      return;
-    }
-
-    if (!form.chicken_type) {
-      setToastMessage('Please select a Chicken Type.');
+    if (isEdit && !form.site_code.trim()) {
+      setToastMessage('Please fill in the Site Code.');
       setToastColor('danger');
       setShowToast(true);
       return;
@@ -115,9 +108,9 @@ export const SiteModal: React.FC<SiteModalProps> = ({
         const payload = {
           site_code: form.site_code.trim().toUpperCase(),
           site_name: form.site_name.trim().toUpperCase(),
-          site_type: form.site_type.trim().toUpperCase(),
-          poultry_type: form.poultry_type.trim().toUpperCase(),
-          chicken_type: form.chicken_type.trim().toUpperCase(),
+          site_type: form.site_type ? form.site_type.trim().toUpperCase() : 'POULTRY',
+          poultry_type: form.poultry_type ? form.poultry_type.trim().toUpperCase() : null,
+          chicken_type: form.chicken_type ? form.chicken_type.trim().toUpperCase() : null,
           address: form.address ? form.address.trim().toUpperCase() : null,
           current_latitude: form.current_latitude ? parseFloat(form.current_latitude) : null,
           current_longitude: form.current_longitude ? parseFloat(form.current_longitude) : null,
@@ -141,9 +134,9 @@ export const SiteModal: React.FC<SiteModalProps> = ({
         const payload = {
           site_code: form.site_code.trim().toUpperCase(),
           site_name: form.site_name.trim().toUpperCase(),
-          site_type: form.site_type.trim().toUpperCase(),
-          poultry_type: form.poultry_type.trim().toUpperCase(),
-          chicken_type: form.chicken_type.trim().toUpperCase(),
+          site_type: form.site_type ? form.site_type.trim().toUpperCase() : 'POULTRY',
+          poultry_type: form.poultry_type ? form.poultry_type.trim().toUpperCase() : null,
+          chicken_type: form.chicken_type ? form.chicken_type.trim().toUpperCase() : null,
           address: form.address ? form.address.trim().toUpperCase() : null,
           current_latitude: form.current_latitude ? parseFloat(form.current_latitude) : null,
           current_longitude: form.current_longitude ? parseFloat(form.current_longitude) : null,
@@ -204,7 +197,7 @@ export const SiteModal: React.FC<SiteModalProps> = ({
 
               <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
                 <IonInput
-                  label="Site Code *"
+                  label={isEdit ? "Site Code *" : "Site Code"}
                   labelPlacement="floating"
                   placeholder="E.G. SITE-POULTRY-001"
                   value={form.site_code}
@@ -233,7 +226,7 @@ export const SiteModal: React.FC<SiteModalProps> = ({
               {/* Site Type Dropdown: limited to SITE_TYPES, default POULTRY */}
               <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
                 <IonSelect
-                  label="Site Type *"
+                  label="Site Type"
                   labelPlacement="floating"
                   value={form.site_type}
                   onIonChange={(e) => setForm({ ...form, site_type: e.detail.value })}
@@ -247,10 +240,10 @@ export const SiteModal: React.FC<SiteModalProps> = ({
                 </IonSelect>
               </IonItem>
 
-              {/* Poultry Type Dropdown: required POULTRY_TYPES */}
+              {/* Poultry Type Dropdown */}
               <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
                 <IonSelect
-                  label="Poultry Type *"
+                  label="Poultry Type"
                   labelPlacement="floating"
                   value={form.poultry_type}
                   onIonChange={(e) => setForm({ ...form, poultry_type: e.detail.value })}
@@ -264,10 +257,10 @@ export const SiteModal: React.FC<SiteModalProps> = ({
                 </IonSelect>
               </IonItem>
 
-              {/* Chicken Type Dropdown: required CHICKEN_TYPES */}
+              {/* Chicken Type Dropdown */}
               <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
                 <IonSelect
-                  label="Chicken Type *"
+                  label="Chicken Type"
                   labelPlacement="floating"
                   value={form.chicken_type}
                   onIonChange={(e) => setForm({ ...form, chicken_type: e.detail.value })}
