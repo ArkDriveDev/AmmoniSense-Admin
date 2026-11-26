@@ -21,12 +21,17 @@ import { supabase } from '../../services/supabase';
 import { InspectionSiteWithSummary } from '../../hooks/useInspectionSites';
 import { SITE_TYPES, POULTRY_TYPES, CHICKEN_TYPES } from '../../constants/siteConstants';
 
-interface SiteModalProps {
+export interface SiteModalProps {
   isOpen: boolean;
   onClose: () => void;
   site?: InspectionSiteWithSummary | null;
   onSaved: () => void;
 }
+
+export const generateSiteCode = (): string => {
+  const digits = Math.floor(1000 + Math.random() * 9000);
+  return `SITE-${digits}`;
+};
 
 export const SiteModal: React.FC<SiteModalProps> = ({
   isOpen,
@@ -131,25 +136,46 @@ export const SiteModal: React.FC<SiteModalProps> = ({
         setToastColor('success');
         setShowToast(true);
       } else {
-        const payload = {
-          site_code: form.site_code.trim().toUpperCase(),
-          site_name: form.site_name.trim().toUpperCase(),
-          site_type: form.site_type ? form.site_type.trim().toUpperCase() : 'POULTRY',
-          poultry_type: form.poultry_type ? form.poultry_type.trim().toUpperCase() : null,
-          chicken_type: form.chicken_type ? form.chicken_type.trim().toUpperCase() : null,
-          address: form.address ? form.address.trim().toUpperCase() : null,
-          current_latitude: form.current_latitude ? parseFloat(form.current_latitude) : null,
-          current_longitude: form.current_longitude ? parseFloat(form.current_longitude) : null,
-          area_size_hectares: form.area_size_hectares ? parseFloat(form.area_size_hectares) : null,
-          is_active: form.is_active,
-          created_by: currentUserId,
-        };
+        let inserted = false;
+        let lastError: any = null;
 
-        const { error } = await supabase
-          .from('inspection_sites')
-          .insert([payload]);
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const autoCode = generateSiteCode();
+          const payload = {
+            site_code: autoCode,
+            site_name: form.site_name.trim().toUpperCase(),
+            site_type: form.site_type ? form.site_type.trim().toUpperCase() : 'POULTRY',
+            poultry_type: form.poultry_type ? form.poultry_type.trim().toUpperCase() : null,
+            chicken_type: form.chicken_type ? form.chicken_type.trim().toUpperCase() : null,
+            address: form.address ? form.address.trim().toUpperCase() : null,
+            current_latitude: form.current_latitude ? parseFloat(form.current_latitude) : null,
+            current_longitude: form.current_longitude ? parseFloat(form.current_longitude) : null,
+            area_size_hectares: form.area_size_hectares ? parseFloat(form.area_size_hectares) : null,
+            is_active: form.is_active,
+            created_by: currentUserId,
+          };
 
-        if (error) throw error;
+          const { error } = await supabase
+            .from('inspection_sites')
+            .insert([payload]);
+
+          if (!error) {
+            inserted = true;
+            break;
+          }
+
+          lastError = error;
+          if (error.code === '23505' || error.message?.toLowerCase().includes('site_code')) {
+            console.warn(`site_code collision on attempt ${attempt + 1}, retrying with a new code...`);
+            continue;
+          } else {
+            throw error;
+          }
+        }
+
+        if (!inserted) {
+          throw lastError || new Error('Failed to create inspection site after retries.');
+        }
 
         setToastMessage('Inspection site created successfully!');
         setToastColor('success');
