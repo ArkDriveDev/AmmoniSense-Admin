@@ -16,7 +16,7 @@ import {
   IonToast,
   IonIcon,
 } from '@ionic/react';
-import { closeOutline, saveOutline, businessOutline } from 'ionicons/icons';
+import { closeOutline, saveOutline, businessOutline, chevronDownOutline, chevronUpOutline } from 'ionicons/icons';
 import { supabase } from '../../services/supabase';
 import { InspectionSiteWithSummary } from '../../hooks/useInspectionSites';
 import { SITE_TYPES, POULTRY_TYPES, CHICKEN_TYPES } from '../../constants/siteConstants';
@@ -55,11 +55,13 @@ export const SiteModal: React.FC<SiteModalProps> = ({
   });
 
   const [saving, setSaving] = useState(false);
+  const [showAdditionalDetails, setShowAdditionalDetails] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [toastColor, setToastColor] = useState<'success' | 'danger'>('success');
   const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
+    setShowAdditionalDetails(false);
     if (site) {
       setForm({
         site_code: site.site_code || '',
@@ -216,147 +218,306 @@ export const SiteModal: React.FC<SiteModalProps> = ({
 
         <IonContent className="ion-padding" style={{ '--background': '#f8fafc' }}>
           <div style={{ maxWidth: '640px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
-                Site Identification
-              </h3>
+            {isEdit ? (
+              /* ==========================================================
+                 EDIT MODE: Full layout intact, with site_code shown
+                 ========================================================== */
+              <>
+                <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
+                    Site Identification
+                  </h3>
 
-              <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
-                <IonInput
-                  label={isEdit ? "Site Code *" : "Site Code"}
-                  labelPlacement="floating"
-                  placeholder="E.G. SITE-POULTRY-001"
-                  value={form.site_code}
-                  onIonInput={(e) => setForm({ ...form, site_code: (e.detail.value || '').toUpperCase() })}
-                  style={{ textTransform: 'uppercase', fontWeight: 600 }}
-                />
-              </IonItem>
+                  <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
+                    <IonInput
+                      label="Site Code"
+                      labelPlacement="floating"
+                      value={form.site_code}
+                      readonly={true}
+                      style={{ textTransform: 'uppercase', fontWeight: 600, opacity: 0.85 }}
+                    />
+                  </IonItem>
 
-              <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
-                <IonInput
-                  label="Site Name *"
-                  labelPlacement="floating"
-                  placeholder="E.G. SAN JOSE POULTRY COMPLEX"
-                  value={form.site_name}
-                  onIonInput={(e) => setForm({ ...form, site_name: (e.detail.value || '').toUpperCase() })}
-                  style={{ textTransform: 'uppercase', fontWeight: 600 }}
-                />
-              </IonItem>
-            </div>
+                  <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
+                    <IonInput
+                      label="Site Name *"
+                      labelPlacement="floating"
+                      placeholder="E.G. SAN JOSE POULTRY COMPLEX"
+                      value={form.site_name}
+                      onIonInput={(e) => setForm({ ...form, site_name: (e.detail.value || '').toUpperCase() })}
+                      style={{ textTransform: 'uppercase', fontWeight: 600 }}
+                    />
+                  </IonItem>
+                </div>
 
-            <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
-                Poultry Classification
-              </h3>
+                <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
+                    Poultry Classification
+                  </h3>
 
-              {/* Site Type Dropdown: limited to SITE_TYPES, default POULTRY */}
-              <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
-                <IonSelect
-                  label="Site Type"
-                  labelPlacement="floating"
-                  value={form.site_type}
-                  onIonChange={(e) => setForm({ ...form, site_type: e.detail.value })}
-                  interface="popover"
-                >
-                  {SITE_TYPES.map((t) => (
-                    <IonSelectOption key={t.value} value={t.value}>
-                      {t.label}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
+                  {/* Site Type Dropdown: limited to SITE_TYPES, default POULTRY */}
+                  <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
+                    <IonSelect
+                      label="Site Type"
+                      labelPlacement="floating"
+                      value={form.site_type}
+                      onIonChange={(e) => setForm({ ...form, site_type: e.detail.value })}
+                      interface="popover"
+                    >
+                      {SITE_TYPES.map((t) => (
+                        <IonSelectOption key={t.value} value={t.value}>
+                          {t.label}
+                        </IonSelectOption>
+                      ))}
+                    </IonSelect>
+                  </IonItem>
 
-              {/* Poultry Type Dropdown */}
-              <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
-                <IonSelect
-                  label="Poultry Type"
-                  labelPlacement="floating"
-                  value={form.poultry_type}
-                  onIonChange={(e) => setForm({ ...form, poultry_type: e.detail.value })}
-                  interface="popover"
-                >
-                  {POULTRY_TYPES.map((p) => (
-                    <IonSelectOption key={p.value} value={p.value}>
-                      {p.label}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
+                  {/* Poultry Type Dropdown */}
+                  <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
+                    <IonSelect
+                      label="Poultry Type"
+                      labelPlacement="floating"
+                      value={form.poultry_type}
+                      onIonChange={(e) => setForm({ ...form, poultry_type: e.detail.value })}
+                      interface="popover"
+                    >
+                      {POULTRY_TYPES.map((p) => (
+                        <IonSelectOption key={p.value} value={p.value}>
+                          {p.label}
+                        </IonSelectOption>
+                      ))}
+                    </IonSelect>
+                  </IonItem>
 
-              {/* Chicken Type Dropdown */}
-              <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
-                <IonSelect
-                  label="Chicken Type"
-                  labelPlacement="floating"
-                  value={form.chicken_type}
-                  onIonChange={(e) => setForm({ ...form, chicken_type: e.detail.value })}
-                  interface="popover"
-                >
-                  {CHICKEN_TYPES.map((c) => (
-                    <IonSelectOption key={c.value} value={c.value}>
-                      {c.label}
-                    </IonSelectOption>
-                  ))}
-                </IonSelect>
-              </IonItem>
-            </div>
+                  {/* Chicken Type Dropdown */}
+                  <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
+                    <IonSelect
+                      label="Chicken Type"
+                      labelPlacement="floating"
+                      value={form.chicken_type}
+                      onIonChange={(e) => setForm({ ...form, chicken_type: e.detail.value })}
+                      interface="popover"
+                    >
+                      {CHICKEN_TYPES.map((c) => (
+                        <IonSelectOption key={c.value} value={c.value}>
+                          {c.label}
+                        </IonSelectOption>
+                      ))}
+                    </IonSelect>
+                  </IonItem>
+                </div>
 
-            <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
-              <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
-                Location &amp; Geography
-              </h3>
+                <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                  <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
+                    Location &amp; Geography
+                  </h3>
 
-              <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
-                <IonInput
-                  label="Address / Barangay"
-                  labelPlacement="floating"
-                  placeholder="E.G. BRGY. SAN JOSE, MALAYBALAY CITY"
-                  value={form.address}
-                  onIonInput={(e) => setForm({ ...form, address: (e.detail.value || '').toUpperCase() })}
-                  style={{ textTransform: 'uppercase' }}
-                />
-              </IonItem>
+                  <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
+                    <IonInput
+                      label="Address / Barangay"
+                      labelPlacement="floating"
+                      placeholder="E.G. BRGY. SAN JOSE, MALAYBALAY CITY"
+                      value={form.address}
+                      onIonInput={(e) => setForm({ ...form, address: (e.detail.value || '').toUpperCase() })}
+                      style={{ textTransform: 'uppercase' }}
+                    />
+                  </IonItem>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
-                  <IonInput
-                    label="Latitude"
-                    labelPlacement="floating"
-                    type="number"
-                    value={form.current_latitude}
-                    onIonInput={(e) => setForm({ ...form, current_latitude: e.detail.value || '' })}
-                  />
-                </IonItem>
-                <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
-                  <IonInput
-                    label="Longitude"
-                    labelPlacement="floating"
-                    type="number"
-                    value={form.current_longitude}
-                    onIonInput={(e) => setForm({ ...form, current_longitude: e.detail.value || '' })}
-                  />
-                </IonItem>
-              </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                    <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
+                      <IonInput
+                        label="Latitude"
+                        labelPlacement="floating"
+                        type="number"
+                        value={form.current_latitude}
+                        onIonInput={(e) => setForm({ ...form, current_latitude: e.detail.value || '' })}
+                      />
+                    </IonItem>
+                    <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
+                      <IonInput
+                        label="Longitude"
+                        labelPlacement="floating"
+                        type="number"
+                        value={form.current_longitude}
+                        onIonInput={(e) => setForm({ ...form, current_longitude: e.detail.value || '' })}
+                      />
+                    </IonItem>
+                  </div>
 
-              <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
-                <IonInput
-                  label="Area Size (Hectares)"
-                  labelPlacement="floating"
-                  type="number"
-                  value={form.area_size_hectares}
-                  onIonInput={(e) => setForm({ ...form, area_size_hectares: e.detail.value || '' })}
-                />
-              </IonItem>
+                  <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
+                    <IonInput
+                      label="Area Size (Hectares)"
+                      labelPlacement="floating"
+                      type="number"
+                      value={form.area_size_hectares}
+                      onIonInput={(e) => setForm({ ...form, area_size_hectares: e.detail.value || '' })}
+                    />
+                  </IonItem>
 
-              <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
-                <IonLabel style={{ fontSize: '14px', fontWeight: 600 }}>Active Status</IonLabel>
-                <IonToggle
-                  slot="end"
-                  checked={form.is_active}
-                  onIonChange={(e) => setForm({ ...form, is_active: e.detail.checked })}
-                />
-              </IonItem>
-            </div>
+                  <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
+                    <IonLabel style={{ fontSize: '14px', fontWeight: 600 }}>Active Status</IonLabel>
+                    <IonToggle
+                      slot="end"
+                      checked={form.is_active}
+                      onIonChange={(e) => setForm({ ...form, is_active: e.detail.checked })}
+                    />
+                  </IonItem>
+                </div>
+              </>
+            ) : (
+              /* ==========================================================
+                 ADD MODE: Simplified layout, Site Name only, optional fields collapsed
+                 ========================================================== */
+              <>
+                <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                  <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
+                    Site Name
+                  </h3>
+
+                  <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
+                    <IonInput
+                      label="Site Name *"
+                      labelPlacement="floating"
+                      placeholder="E.G. SAN JOSE POULTRY COMPLEX"
+                      value={form.site_name}
+                      onIonInput={(e) => setForm({ ...form, site_name: (e.detail.value || '').toUpperCase() })}
+                      style={{ textTransform: 'uppercase', fontWeight: 600 }}
+                    />
+                  </IonItem>
+                </div>
+
+                <div style={{ textAlign: 'center', margin: '2px 0' }}>
+                  <IonButton
+                    fill="outline"
+                    size="small"
+                    color="medium"
+                    onClick={() => setShowAdditionalDetails(!showAdditionalDetails)}
+                    style={{ fontWeight: 600, '--border-radius': '20px' }}
+                  >
+                    <IonIcon icon={showAdditionalDetails ? chevronUpOutline : chevronDownOutline} slot="end" />
+                    {showAdditionalDetails ? 'Hide Additional Details' : 'Additional Details (Optional)'}
+                  </IonButton>
+                </div>
+
+                {showAdditionalDetails && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                      <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
+                        Poultry Classification
+                      </h3>
+
+                      {/* Site Type Dropdown: limited to SITE_TYPES, default POULTRY */}
+                      <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
+                        <IonSelect
+                          label="Site Type"
+                          labelPlacement="floating"
+                          value={form.site_type}
+                          onIonChange={(e) => setForm({ ...form, site_type: e.detail.value })}
+                          interface="popover"
+                        >
+                          {SITE_TYPES.map((t) => (
+                            <IonSelectOption key={t.value} value={t.value}>
+                              {t.label}
+                            </IonSelectOption>
+                          ))}
+                        </IonSelect>
+                      </IonItem>
+
+                      {/* Poultry Type Dropdown */}
+                      <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
+                        <IonSelect
+                          label="Poultry Type"
+                          labelPlacement="floating"
+                          value={form.poultry_type}
+                          onIonChange={(e) => setForm({ ...form, poultry_type: e.detail.value })}
+                          interface="popover"
+                        >
+                          {POULTRY_TYPES.map((p) => (
+                            <IonSelectOption key={p.value} value={p.value}>
+                              {p.label}
+                            </IonSelectOption>
+                          ))}
+                        </IonSelect>
+                      </IonItem>
+
+                      {/* Chicken Type Dropdown */}
+                      <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
+                        <IonSelect
+                          label="Chicken Type"
+                          labelPlacement="floating"
+                          value={form.chicken_type}
+                          onIonChange={(e) => setForm({ ...form, chicken_type: e.detail.value })}
+                          interface="popover"
+                        >
+                          {CHICKEN_TYPES.map((c) => (
+                            <IonSelectOption key={c.value} value={c.value}>
+                              {c.label}
+                            </IonSelectOption>
+                          ))}
+                        </IonSelect>
+                      </IonItem>
+                    </div>
+
+                    <div style={{ background: '#ffffff', padding: '16px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                      <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 700, color: '#1e293b' }}>
+                        Location &amp; Geography
+                      </h3>
+
+                      <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
+                        <IonInput
+                          label="Address / Barangay"
+                          labelPlacement="floating"
+                          placeholder="E.G. BRGY. SAN JOSE, MALAYBALAY CITY"
+                          value={form.address}
+                          onIonInput={(e) => setForm({ ...form, address: (e.detail.value || '').toUpperCase() })}
+                          style={{ textTransform: 'uppercase' }}
+                        />
+                      </IonItem>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                        <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
+                          <IonInput
+                            label="Latitude"
+                            labelPlacement="floating"
+                            type="number"
+                            value={form.current_latitude}
+                            onIonInput={(e) => setForm({ ...form, current_latitude: e.detail.value || '' })}
+                          />
+                        </IonItem>
+                        <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
+                          <IonInput
+                            label="Longitude"
+                            labelPlacement="floating"
+                            type="number"
+                            value={form.current_longitude}
+                            onIonInput={(e) => setForm({ ...form, current_longitude: e.detail.value || '' })}
+                          />
+                        </IonItem>
+                      </div>
+
+                      <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px', marginBottom: '10px' }}>
+                        <IonInput
+                          label="Area Size (Hectares)"
+                          labelPlacement="floating"
+                          type="number"
+                          value={form.area_size_hectares}
+                          onIonInput={(e) => setForm({ ...form, area_size_hectares: e.detail.value || '' })}
+                        />
+                      </IonItem>
+
+                      <IonItem lines="none" style={{ '--background': '#f1f5f9', borderRadius: '8px' }}>
+                        <IonLabel style={{ fontSize: '14px', fontWeight: 600 }}>Active Status</IonLabel>
+                        <IonToggle
+                          slot="end"
+                          checked={form.is_active}
+                          onIonChange={(e) => setForm({ ...form, is_active: e.detail.checked })}
+                        />
+                      </IonItem>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             <IonButton
               expand="block"
